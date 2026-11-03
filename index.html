@@ -3,282 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Training Trail Run - Andrea & Vittoria</title>
+    <title>Training Trail Run - Area Riservata</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Chart.js per Grafici Dashboard -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- File di configurazione esterno -->
     <script src="./config.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
 
-    <!-- Schermata di Caricamento -->
-    <div id="loading-screen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
-        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500 mb-4"></div>
-        <p class="text-slate-400 text-sm tracking-wide">Caricamento Dashboard & Metodologia Massini...</p>
+    <!-- SCHERMATA DI AUTENTICAZIONE (LOGIN / WHITELIST) -->
+    <div id="auth-screen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl max-w-md w-full space-y-6 shadow-2xl">
+            <div class="text-center">
+                <h1 class="text-2xl font-bold text-emerald-400">Training Trail Run</h1>
+                <p class="text-xs text-slate-400 mt-1">Accesso Riservato • Autenticazione Richiesta</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Email Account</label>
+                    <input type="email5" id="auth-email" placeholder="nome@email.com" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Password</label>
+                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
+                </div>
+                <button onclick="handleLogin()" class="w-full bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-sm hover:bg-emerald-400 transition-colors">Accedi al Sistema</button>
+                <p id="auth-error" class="text-xs text-rose-400 text-center hidden"></p>
+            </div>
+            <div class="text-center text-[11px] text-slate-500 border-t border-slate-800/80 pt-4">
+                Nota: L'accesso è consentito solo agli account preventivamente autorizzati dall'Amministratore.
+            </div>
+        </div>
     </div>
 
-    <!-- Header Principale & Selettore Atleta Globale -->
-    <header class="p-4 sm:p-6 border-b border-slate-800 max-w-7xl mx-auto w-full flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-emerald-400">Training Trail Run</h1>
-            <p class="text-xs text-slate-400 mt-1" id="tab-subtitle">Metodologia Massini & Analytics</p>
-        </div>
-        
-        <!-- Selettore Atleta Globale -->
-        <div class="flex items-center bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs">
-            <button onclick="setAthlete('Andrea')" id="filter-Andrea" class="athlete-btn px-4 py-1.5 rounded-lg font-semibold bg-emerald-500 text-slate-950 transition-all">Andrea</button>
-            <button onclick="setAthlete('Vittoria')" id="filter-Vittoria" class="athlete-btn px-4 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all">Vittoria</button>
-        </div>
+    <!-- APP PRINCIPALE (VISIBILE SOLO DOPO LOGIN) -->
+    <div id="main-app" class="hidden flex-1 flex flex-col justify-between">
+        <header class="p-4 sm:p-6 border-b border-slate-800 max-w-7xl mx-auto w-full flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-emerald-400">Training Trail Run</h1>
+                <p class="text-xs text-slate-400 mt-1" id="user-role-badge">Utente Autenticato</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="logged-user-email" class="text-xs text-slate-300 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">--</span>
+                <button onclick="handleLogout()" class="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-xl hover:bg-rose-500/20 transition-colors">Esci</button>
+            </div>
+        </header>
 
-        <span id="connection-status" class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">System Ready</span>
-    </header>
-
-    <!-- Contenuto Principale -->
-    <main class="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
-
-        <!-- NAVIGATION TABS -->
-        <div class="flex border-b border-slate-800 text-sm font-medium text-slate-400 gap-6 overflow-x-auto pb-1">
-            <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn pb-3 text-emerald-400 border-b-2 border-emerald-400 font-bold transition-all whitespace-nowrap">Dashboard Personale & Analytics</button>
-            <button onclick="switchTab('massini')" id="btn-massini" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Piano Massini (Martedì/Venerdì/Trail)</button>
-            <button onclick="switchTab('settimana')" id="btn-settimana" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Settimana 7 Giorni (Drag & Drop)</button>
-            <button onclick="switchTab('intervals')" id="btn-intervals" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Connessione Intervals.icu</button>
-        </div>
-
-        <!-- TAB 1: DASHBOARD PERSONALE CON GRAFICI -->
-        <section id="tab-dashboard" class="tab-content space-y-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold text-slate-200" id="dash-title">Dashboard Personale: Andrea Baron</h2>
-                <span class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">Sync: Intervals.icu / Garmin</span>
+        <main class="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
+            <!-- NAVIGATION TABS -->
+            <div class="flex border-b border-slate-800 text-sm font-medium text-slate-400 gap-6 overflow-x-auto pb-1">
+                <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn pb-3 text-emerald-400 border-b-2 border-emerald-400 font-bold transition-all whitespace-nowrap">Dashboard Personale</button>
+                <button onclick="switchTab('massini')" id="btn-massini" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Piano Metodologico Massini</button>
+                <button onclick="switchTab('admin')" id="btn-admin" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap hidden">Gestione Admin (Whitelist)</button>
             </div>
 
-            <!-- KPI Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                    <span class="text-xs text-slate-500 block">Km Settimanali</span>
-                    <b class="text-xl text-emerald-400 font-bold" id="kpi-km">54.8 km</b>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                    <span class="text-xs text-slate-500 block">Dislivello D+</span>
-                    <b class="text-xl text-emerald-400 font-bold" id="kpi-dplus">+1,450 m</b>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                    <span class="text-xs text-slate-500 block">Forma (TSB)</span>
-                    <b class="text-xl text-sky-400 font-bold" id="kpi-tsb">+5 (Ottimale)</b>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                    <span class="text-xs text-slate-500 block">Velocità Rif. (VR)</span>
-                    <b class="text-xl text-amber-400 font-bold" id="kpi-vr">3:45 /km</b>
-                </div>
-            </div>
-
-            <!-- Grafici Carico e Form -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <h3 class="text-sm font-bold text-slate-300 mb-4">Volume Settimanale (Km & D+)</h3>
-                    <canvas id="chart-volume" class="w-full max-h-60"></canvas>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <h3 class="text-sm font-bold text-slate-300 mb-4">Trend Fitness & Form (CTL/ATL/TSB)</h3>
-                    <canvas id="chart-fitness" class="w-full max-h-60"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 2: PIANO MASSINI (MARTEDÌ, VENERDÌ & TRAIL) -->
-        <section id="tab-massini" class="tab-content hidden space-y-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold text-slate-200">Metodologia Fulvio Massini ("Tipi Che Corrono")</h2>
-                <div class="text-xs bg-slate-900 border border-slate-800 p-2 rounded-lg flex items-center gap-2">
-                    <span class="text-slate-400">VR Impostata:</span>
-                    <input type="text" id="vr-input" value="03:45" class="bg-slate-950 border border-slate-700 px-2 py-0.5 rounded text-emerald-400 w-16 text-center font-bold" onchange="updateMassiniPaces()">
-                    <span class="text-slate-500">/km</span>
-                </div>
-            </div>
-
-            <!-- Calcolo Ritmi Massini -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
-                    <span class="text-slate-500 block">Corsa Lenta (CL)</span>
-                    <b class="text-slate-200 text-sm" id="pace-cl">4:25 - 4:35 /km</b>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
-                    <span class="text-slate-500 block">Corsa Media (CM)</span>
-                    <b class="text-slate-200 text-sm" id="pace-cm">4:05 - 4:10 /km</b>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
-                    <span class="text-slate-500 block">Corsa Veloce (CV)</span>
-                    <b class="text-slate-200 text-sm" id="pace-cv">3:55 - 4:00 /km</b>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-center">
-                    <span class="text-slate-500 block">Ripetute VR</span>
-                    <b class="text-emerald-400 text-sm" id="pace-rg">3:40 - 3:50 /km</b>
-                </div>
-            </div>
-
-            <!-- Tabella Programmazione Massini -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 class="font-bold text-slate-200 text-base">Microciclo Guidato Massini</h3>
-                <div class="space-y-3 text-xs">
-                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
-                        <div>
-                            <b class="text-indigo-400">Lunedì: Nuoto (Fisso)</b>
-                            <p class="text-slate-400 mt-0.5">19:00 - 19:45 (45 min) • Scarico articolare & recupero idrodinamico</p>
-                        </div>
-                        <span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-1 rounded">Cross-Training</span>
+            <!-- TAB 1: DASHBOARD -->
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                <h2 class="text-xl font-bold text-slate-200">Panoramica Carico & Metriche</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                        <span class="text-xs text-slate-500 block">Km Settimanali</span>
+                        <b class="text-xl text-emerald-400 font-bold" id="dash-km">-- km</b>
                     </div>
-
-                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
-                        <div>
-                            <b class="text-emerald-400">Martedì: Strada - Lavoro di Qualità Massini</b>
-                            <p class="text-slate-400 mt-0.5">Riscaldamento 3 km + Ripetute (es. 6x1000m @ VR con recupero 1 km CL)</p>
-                        </div>
-                        <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded">Qualità Strada</span>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                        <span class="text-xs text-slate-500 block">Dislivello D+</span>
+                        <b class="text-xl text-emerald-400 font-bold" id="dash-dplus">-- m</b>
                     </div>
-
-                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
-                        <div>
-                            <b class="text-slate-400">Mercoledì: Riposo Attivo</b>
-                            <p class="text-slate-500 mt-0.5">Core stability 20 min + stretching dinamico</p>
-                        </div>
-                        <span class="bg-slate-800 text-slate-400 px-2 py-1 rounded">Recupero</span>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                        <span class="text-xs text-slate-500 block">Fitness (CTL)</span>
+                        <b class="text-xl text-sky-400 font-bold" id="dash-ctl">--</b>
                     </div>
-
-                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
-                        <div>
-                            <b class="text-indigo-400">Giovedì: Nuoto (Fisso)</b>
-                            <p class="text-slate-400 mt-0.5">19:00 - 19:45 (45 min) • Potenziamento parte superiore</p>
-                        </div>
-                        <span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-1 rounded">Cross-Training</span>
-                    </div>
-
-                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
-                        <div>
-                            <b class="text-sky-400">Venerdì: Strada - Corsa Media / Progressivo</b>
-                            <p class="text-slate-400 mt-0.5">12-14 km di Corsa Media sostenuta (CM) per la resistenza di base</p>
-                        </div>
-                        <span class="bg-sky-500/20 text-sky-400 border border-sky-500/30 px-2 py-1 rounded">Strada Sostanza</span>
-                    </div>
-
-                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
-                        <div>
-                            <b class="text-amber-400">Weekend (Sabato o Domenica): Lungo Trail D+</b>
-                            <p class="text-slate-400 mt-0.5">25-35 km specifico Trail con +1200m / +1800m D+ (Prealpi/Montello)</p>
-                        </div>
-                        <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-1 rounded">Endurance Trail</span>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                        <span class="text-xs text-slate-500 block">Forma (TSB)</span>
+                        <b class="text-xl text-amber-400 font-bold" id="dash-tsb">--</b>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- TAB 3: SETTIMANA 7 GIORNI DRAG & DROP -->
-        <section id="tab-settimana" class="tab-content hidden space-y-4">
-            <h2 class="text-lg font-bold text-slate-200">Microciclo Settimanale Dinamico</h2>
-            <div class="grid grid-cols-1 md:grid-cols-7 gap-3" id="week-grid">
-                <!-- Giorni dinamici popolati dallo script -->
-            </div>
-        </section>
+            <!-- TAB 2: PIANO MASSINI STRUTTURATO (STRADA + LUNGHI SPECIFICI) -->
+            <section id="tab-massini" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-slate-200">Metodologia Fulvio Massini • Ciclo Guidato</h2>
+                    <span class="text-xs bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-emerald-400">Strada (Mar/Ven) + Trail Specifico (Weekend)</span>
+                </div>
 
-        <!-- TAB 4: CONFIGURAZIONE INTERVALS.ICU API -->
-        <section id="tab-intervals" class="tab-content hidden space-y-6">
-            <h2 class="text-lg font-bold text-slate-200">Connessione API Intervals.icu</h2>
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
-                <p class="text-xs text-slate-400">Inserisci la tua API Key di Intervals.icu e l'Athlete ID per sincronizzare automaticamente i grafici e la forma (CTL/ATL/TSB) senza caricamenti manuali.</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    <div>
-                        <label class="block text-slate-400 mb-1">Athlete ID (es. i12345)</label>
-                        <input type="text" id="intervals-athlete-id" placeholder="Es. i12345" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-slate-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <!-- Martedì -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+                        <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold">Martedì • Strada (Qualità)</span>
+                        <h3 class="font-bold text-slate-200 text-sm">Interval Training / Variazioni VR</h3>
+                        <p class="text-slate-400">Lavoro fondamentale basato sulla Velocità di Riferimento (Test 3km). Esempi: ripetute brevi o medie in soglia (CV) con recupero attivo.</p>
                     </div>
-                    <div>
-                        <label class="block text-slate-400 mb-1">API Key Personal</label>
-                        <input type="password" id="intervals-api-key" placeholder="La tua API Key" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-slate-200">
+
+                    <!-- Venerdì -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+                        <span class="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded font-bold">Venerdì • Strada (Sostanza)</span>
+                        <h3 class="font-bold text-slate-200 text-sm">Corsa Media (CM) / Progressivo</h3>
+                        <p class="text-slate-400">Costruzione aerobica costante. 12-14 km a ritmo medio sostenuto o progressivo per abituare l'organismo allo smaltimento del lattato.</p>
+                    </div>
+
+                    <!-- Weekend -->
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+                        <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold">Weekend • Trail con Lavoro Specifico</span>
+                        <h3 class="font-bold text-slate-200 text-sm">Endurance + Variazioni in Salita</h3>
+                        <p class="text-slate-400">Non solo lungo lento: inserimento di tratti in salita a ritmo gara trail, variazioni di ritmo nelle sezioni corribili e gestione dell'alimentazione tecnica.</p>
                     </div>
                 </div>
-                <button onclick="saveIntervalsCredentials()" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs hover:bg-emerald-400 transition-colors">Salva e Sincronizza API</button>
-            </div>
-        </section>
+            </section>
 
-    </main>
+            <!-- TAB 3: ADMIN PANEL (GESTIONE WHITELIST) -->
+            <section id="tab-admin" class="tab-content hidden space-y-6">
+                <h2 class="text-xl font-bold text-slate-200">Pannello Amministratore • Gestione Account Autorizzati</h2>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4 max-w-xl">
+                    <p class="text-xs text-slate-400">Aggiungi l'email di un nuovo atleta per autorizzarlo alla registrazione e all'accesso protetto.</p>
+                    <div class="flex gap-2">
+                        <input type="email" id="new-allowed-email" placeholder="atleta@email.com" class="flex-1 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-slate-200">
+                        <button onclick="addEmailToWhitelist()" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs hover:bg-emerald-400 transition-colors">Autorizza</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
 
-    <!-- Logic & Chart Initialization Script -->
+    <!-- Script Autenticazione e Logica -->
     <script>
-        let currentAthlete = 'Andrea';
-        let chartVolumeInstance = null;
-        let chartFitnessInstance = null;
+        const db = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
 
-        window.addEventListener('DOMContentLoaded', () => {
-            initCharts();
-            renderWeekGrid();
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) {
-                loadingScreen.style.opacity = '0';
-                setTimeout(() => loadingScreen.style.display = 'none', 300);
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await db.auth.getSession();
+            if (session) {
+                await checkUserRoleAndInit(session.user);
+            } else {
+                document.getElementById('auth-screen').style.display = 'flex';
             }
         });
 
-        function setAthlete(athlete) {
-            currentAthlete = athlete;
-            document.querySelectorAll('.athlete-btn').forEach(btn => {
-                btn.classList.remove('bg-emerald-500', 'text-slate-950', 'font-semibold');
-                btn.classList.add('text-slate-400');
-            });
+        async function handleLogin() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const errorEl = document.getElementById('auth-error');
 
-            const activeBtn = document.getElementById(`filter-${athlete}`);
-            activeBtn.classList.add('bg-emerald-500', 'text-slate-950', 'font-semibold');
-            activeBtn.classList.remove('text-slate-400');
+            errorEl.classList.add('hidden');
 
-            document.getElementById('dash-title').textContent = `Dashboard Personale: ${athlete}`;
-            
-            // Dati simulati per atleta
-            if (athlete === 'Andrea') {
-                document.getElementById('kpi-km').textContent = '54.8 km';
-                document.getElementById('kpi-dplus').textContent = '+1,450 m';
-                document.getElementById('kpi-vr').textContent = '3:45 /km';
-                document.getElementById('vr-input').value = '03:45';
-            } else {
-                document.getElementById('kpi-km').textContent = '38.2 km';
-                document.getElementById('kpi-dplus').textContent = '+650 m';
-                document.getElementById('kpi-vr').textContent = '4:50 /km';
-                document.getElementById('vr-input').value = '04:50';
+            // 1. Verifica se l'email è nella whitelist prima di loggare
+            const { data: whitelist } = await db.from('authorized_emails').select('*').eq('email', email).single();
+            if (!whitelist) {
+                errorEl.textContent = "Accesso negato: questa email non è autorizzata dall'amministratore.";
+                errorEl.classList.remove('hidden');
+                return;
             }
-            updateCharts();
+
+            // 2. Procedi con il login Supabase Auth
+            const { data, error } = await db.auth.signInWithPassword({ email, password });
+            if (error) {
+                errorEl.textContent = "Errore di autenticazione: " + error.message;
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            await checkUserRoleAndInit(data.user);
         }
 
-        function initCharts() {
-            const ctxVol = document.getElementById('chart-volume').getContext('2d');
-            chartVolumeInstance = new Chart(ctxVol, {
-                type: 'bar',
-                data: {
-                    labels: ['Sett 1', 'Sett 2', 'Sett 3', 'Sett 4 (Attuale)'],
-                    datasets: [
-                        { label: 'Km Corsa', data: [42, 48, 52, 54.8], backgroundColor: '#10b981' },
-                        { label: 'D+ (x10m)', data: [80, 110, 130, 145], backgroundColor: '#f59e0b' }
-                    ]
-                },
-                options: { responsive: true, plugins: { legend: { labels: { color: '#94a3b8' } } } }
-            });
+        async function checkUserRoleAndInit(user) {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('logged-user-email').textContent = user.email;
 
-            const ctxFit = document.getElementById('chart-fitness').getContext('2d');
-            chartFitnessInstance = new Chart(ctxFit, {
-                type: 'line',
-                data: {
-                    labels: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'],
-                    datasets: [
-                        { label: 'Fitness (CTL)', data: [62, 63, 63, 64, 64, 66, 65], borderColor: '#3b82f6', fill: false },
-                        { label: 'Forma (TSB)', data: [2, -5, 0, -2, 4, -8, 5], borderColor: '#38bdf8', fill: false }
-                    ]
-                },
-                options: { responsive: true, plugins: { legend: { labels: { color: '#94a3b8' } } } }
-            });
+            // Recupera ruolo dal database
+            const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single();
+            
+            if (profile && profile.role === 'admin') {
+                document.getElementById('user-role-badge').textContent = "Profilo: Amministratore (Accesso Totale)";
+                document.getElementById('btn-admin').classList.remove('hidden');
+            } else {
+                document.getElementById('user-role-badge').textContent = "Profilo: Atleta";
+            }
         }
 
-        function updateCharts() {
-            if (chartVolumeInstance) {
-                chartVolumeInstance.data.datasets[0].data = currentAthlete === 'Andrea' ? [42, 48, 52, 54.8] : [28, 32, 35, 38.2];
-                chartVolumeInstance.update();
+        async function handleLogout() {
+            await db.auth.signOut();
+            window.location.reload();
+        }
+
+        async function addEmailToWhitelist() {
+            const email = document.getElementById('new-allowed-email').value;
+            if (!email) return;
+
+            const { error } = await db.from('authorized_emails').insert({ email, role: 'athlete' });
+            if (error) {
+                alert("Errore: " + error.message);
+            } else {
+                alert(`Email ${email} aggiunta con successo alla whitelist! L'atleta ora può registrarsi e connettersi.`);
+                document.getElementById('new-allowed-email').value = '';
             }
         }
 
@@ -287,32 +208,8 @@
             document.querySelectorAll('.tab-btn').forEach(el => {
                 el.classList.remove('text-emerald-400', 'border-b-2', 'border-emerald-400', 'font-bold');
             });
-
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`btn-${tabId}`);
-            activeBtn.classList.add('text-emerald-400', 'border-b-2', 'border-emerald-400', 'font-bold');
-        }
-
-        function renderWeekGrid() {
-            const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
-            const container = document.getElementById('week-grid');
-            container.innerHTML = days.map(d => `
-                <div class="day-column bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 min-h-[200px]" data-day="${d}">
-                    <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">${d.toUpperCase()}</div>
-                    ${(d === 'Lunedì' || d === 'Giovedì') ? `
-                        <div class="bg-indigo-950/40 border border-indigo-500/30 p-2 rounded-lg text-xs">
-                            <span class="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded block w-max mb-1">Nuoto • 19:00</span>
-                            <b class="text-slate-200 block">45 min (19:00-19:45)</b>
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
-        }
-
-        function saveIntervalsCredentials() {
-            const id = document.getElementById('intervals-athlete-id').value;
-            const key = document.getElementById('intervals-api-key').value;
-            alert(`Credenziali Intervals.icu salvate per ${currentAthlete}!`);
+            document.getElementById(`btn-${tabId}`).classList.add('text-emerald-400', 'border-b-2', 'border-emerald-400', 'font-bold');
         }
     </script>
 </body>
