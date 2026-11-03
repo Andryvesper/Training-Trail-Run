@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Trail Run Web App - Andrea & Vittoria</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
+
+    <!-- Schermata di Caricamento -->
+    <div id="loading-screen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500 mb-4"></div>
+        <p class="text-slate-400 text-sm tracking-wide">Caricamento dati personali...</p>
+    </div>
+
+    <!-- Header Principale -->
+    <header class="p-6 border-b border-slate-800 max-w-7xl mx-auto w-full flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-emerald-400">Training Trail Run</h1>
+            <p class="text-xs text-slate-400 mt-1" id="tab-subtitle">Programma Settimanale & Obiettivi</p>
+        </div>
+        <span id="connection-status" class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Cloud Connesso</span>
+    </header>
+
+    <!-- Contenuto Principale con Gestione Tab -->
+    <main class="flex-1 p-6 max-w-7xl mx-auto w-full">
+        
+        <!-- Tab 1: Settimana -->
+        <section id="tab-settimana" class="tab-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-slate-200">Allenamenti Recenti & Settimana</h2>
+                <span class="text-xs text-slate-400">Treviso / Alzaia del Sile</span>
+            </div>
+            <div id="activities-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-slate-200">Lungo Specifico Trail</h3>
+                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Trail</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3">Preparazione dislivello e potenziamento</p>
+                    <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-800 text-xs">
+                        <div><span class="text-slate-500 block">Distanza</span><b class="text-slate-200">28.5 km</b></div>
+                        <div><span class="text-slate-500 block">D+</span><b class="text-slate-200">+1250 m</b></div>
+                        <div><span class="text-slate-500 block">FC Media</span><b class="text-slate-200">148 bpm</b></div>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-slate-200">Ripetute in Soglia</h3>
+                        <span class="text-xs px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">Strada</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3">Sessione tecnica Alzaia Sile</p>
+                    <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-800 text-xs">
+                        <div><span class="text-slate-500 block">Distanza</span><b class="text-slate-200">14.2 km</b></div>
+                        <div><span class="text-slate-500 block">D+</span><b class="text-slate-200">+20 m</b></div>
+                        <div><span class="text-slate-500 block">FC Media</span><b class="text-slate-200">162 bpm</b></div>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-slate-200">Recupero Attivo (Nuoto)</h3>
+                        <span class="text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Cross-Training</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3">Sessione defaticante per le gambe</p>
+                    <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-800 text-xs">
+                        <div><span class="text-slate-500 block">Durata</span><b class="text-slate-200">45 min</b></div>
+                        <div><span class="text-slate-500 block">Tipo</span><b class="text-slate-200">Nuoto</b></div>
+                        <div><span class="text-slate-500 block">Stato</span><b class="text-emerald-400">Completato</b></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 2: Piano -->
+        <section id="tab-piano" class="tab-content hidden">
+            <h2 class="text-xl font-bold text-slate-200 mb-4">Pianificazione & Microciclo</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl lg:col-span-1">
+                    <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Focus Principale</span>
+                    <h3 class="text-lg font-bold text-slate-100 mt-3">Chianti Ultra Trail (75k)</h3>
+                    <p class="text-xs text-slate-400 mt-1">Marzo 2027 • Radda in Chianti</p>
+                    <div class="mt-4 pt-4 border-t border-slate-800 space-y-2 text-xs text-slate-300">
+                        <div class="flex justify-between"><span>Volume Target:</span> <span class="font-semibold text-slate-100">70-80 km/settimana</span></div>
+                        <div class="flex justify-between"><span>Dislivello Target:</span> <span class="font-semibold text-slate-100">+2500m / +3000m D+</span></div>
+                        <div class="flex justify-between border-t border-slate-800/60 pt-2"><span>Test Ritmo Intermedio:</span> <span class="font-semibold text-sky-400">Mezza di Cittadella</span></div>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl lg:col-span-2">
+                    <h3 class="text-md font-semibold text-slate-200 mb-3">Struttura Settimanale</h3>
+                    <div class="space-y-2 text-xs text-slate-300">
+                        <div class="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+                            <span><b>Martedì:</b> Interval Training / Soglia (Alzaia Sile)</span>
+                            <span class="text-emerald-400">Qualità</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+                            <span><b>Giovedì:</b> Fondo Medio / Collinare</span>
+                            <span class="text-slate-400">Costruzione</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+                            <span><b>Sabato/Domenica:</b> Lungo Trail / Specifico D+</span>
+                            <span class="text-emerald-400">Endurance</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+                            <span><b>Recupero:</b> Nuoto (45') + Core stability</span>
+                            <span class="text-sky-400">Recovery</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 3: Atleti -->
+        <section id="tab-atleti" class="tab-content hidden">
+            <h2 class="text-xl font-bold text-slate-200 mb-4">Profili Atleti</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-slate-200 text-lg">Andrea Baron</h3>
+                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Ultramarathoner</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4">Mogliano Veneto (TV)</p>
+                    <div class="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded border border-slate-800">
+                        <div><span class="text-slate-500 block">Marathon PB</span><b class="text-slate-200">2h 59:00</b></div>
+                        <div><span class="text-slate-500 block">Target 2027</span><b class="text-emerald-400">Chianti Ultra Trail 75k</b></div>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-slate-200 text-lg">Vittoria Scattolin</h3>
+                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Marathoner</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4">Mogliano Veneto (TV)</p>
+                    <div class="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded border border-slate-800">
+                        <div><span class="text-slate-500 block">Esordio Maratona</span><b class="text-slate-200">Venicemarathon (Completata)</b></div>
+                        <div><span class="text-slate-500 block">Stato</span><b class="text-emerald-400">Attiva / Finisher</b></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 4: Gare -->
+        <section id="tab-gare" class="tab-content hidden">
+            <h2 class="text-xl font-bold text-slate-200 mb-4">Calendario Gare & Storico</h2>
+            <div class="space-y-3">
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-emerald-400 font-semibold">Marzo 2027</span>
+                        <h4 class="font-bold text-slate-200 text-base mt-0.5">Chianti Ultra Trail by UTMB (75k)</h4>
+                        <p class="text-xs text-slate-400">Radda in Chianti • Obiettivo A</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Obiettivo Principale</span>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-sky-400 font-semibold">Dicembre</span>
+                        <h4 class="font-bold text-slate-200 text-base mt-0.5">Mezza Maratona di Cittadella (21.097 km)</h4>
+                        <p class="text-xs text-slate-400">Cittadella (PD) • Test Ritmo / Soglia Velocità</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">Programmata</span>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center opacity-80">
+                    <div>
+                        <span class="text-xs text-slate-400 font-semibold">25 Ottobre 2026</span>
+                        <h4 class="font-bold text-slate-200 text-base mt-0.5">Wizz Air Venicemarathon</h4>
+                        <p class="text-xs text-slate-400">Venezia • Andrea (2:59:00) & Vittoria (Finisher esordio)</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300">Completata</span>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center opacity-80">
+                    <div>
+                        <span class="text-xs text-slate-400 font-semibold">Settembre 2026</span>
+                        <h4 class="font-bold text-slate-200 text-base mt-0.5">Dolomiti del Brenta Trail (64k / +4200m D+)</h4>
+                        <p class="text-xs text-slate-400">Molveno (TN) • Andrea</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300">Completata</span>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center opacity-80">
+                    <div>
+                        <span class="text-xs text-slate-400 font-semibold">Giugno 2026</span>
+                        <h4 class="font-bold text-slate-200 text-base mt-0.5">Dolomiti Extreme Trail (DXT 55 km)</h4>
+                        <p class="text-xs text-slate-400">Forno di Zoldo • Andrea (8h 46m)</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300">Completata</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 5: Garmin -->
+        <section id="tab-garmin" class="tab-content hidden">
+            <h2 class="text-xl font-bold text-slate-200 mb-4">Integrazione Garmin Connect</h2>
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-3">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                        <h4 class="font-bold text-slate-200">Dispositivo Sincronizzato</h4>
+                        <p class="text-xs text-slate-400">Garmin Fenix 7 Sapphire Solar (v26.09)</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Online</span>
+                </div>
+                <p class="text-xs text-slate-400">Sincronizzazione automatica GPX, metriche di carico e recupero attiva.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Barra di Navigazione Inferiore -->
+    <nav class="bg-slate-900 border-t border-slate-800 py-3 px-4 sticky bottom-0">
+        <div class="max-w-7xl mx-auto flex justify-around text-xs sm:text-sm font-medium text-slate-400">
+            <button onclick="switchTab('settimana')" id="btn-settimana" class="tab-btn text-emerald-400 font-bold transition-colors">Settimana</button>
+            <button onclick="switchTab('piano')" id="btn-piano" class="tab-btn hover:text-emerald-400 transition-colors">Piano</button>
+            <button onclick="switchTab('atleti')" id="btn-atleti" class="tab-btn hover:text-emerald-400 transition-colors">Atleti</button>
+            <button onclick="switchTab('gare')" id="btn-gare" class="tab-btn hover:text-emerald-400 transition-colors">Gare</button>
+            <button onclick="switchTab('garmin')" id="btn-garmin" class="tab-btn hover:text-emerald-400 transition-colors">Garmin</button>
+        </div>
+    </nav>
+
+    <!-- Script Logica & Connessione -->
+    <script>
+        // 1. CONFIGURAZIONE SUPABASE
+        const SUPABASE_URL = "https://sjsttftadxmutrhmagep.supabase.co"; // Sostituisci con il tuo Project URL
+        const SUPABASE_KEY = "sb_publishable_dtgDUmx9PrYS3O8EBf_zHg_YYmtwRSC"; // Sostituisci con la tua chiave anon/public
+
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 2. INIZIALIZZAZIONE
+        async function initApp() {
+            const loadingScreen = document.getElementById('loading-screen');
+            try {
+                await db.from('activities').select('id').limit(1);
+            } catch (err) {
+                console.log("Nota connessione cloud:", err.message);
+            } finally {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => loadingScreen.style.display = 'none', 300);
+            }
+        }
+
+        // 3. GESTIONE CAMBIO TAB
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('text-emerald-400', 'font-bold');
+                el.classList.add('hover:text-emerald-400');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            activeBtn.classList.add('text-emerald-400', 'font-bold');
+            
+            const subtitles = {
+                'settimana': 'Programma Settimanale & Attività',
+                'piano': 'Pianificazione Gare e Microcicli',
+                'atleti': 'Profili: Andrea & Vittoria',
+                'gare': 'Storico & Calendario Gare',
+                'garmin': 'Sincronizzazione Dispositivi'
+            };
+            document.getElementById('tab-subtitle').textContent = subtitles[tabId] || '';
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
