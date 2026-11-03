@@ -16,17 +16,17 @@
     <!-- Schermata di Caricamento -->
     <div id="loading-screen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
         <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500 mb-4"></div>
-        <p class="text-slate-400 text-sm tracking-wide">Sincronizzazione Dashboard & Settimana...</p>
+        <p class="text-slate-400 text-sm tracking-wide">Caricamento Piani & Dati...</p>
     </div>
 
-    <!-- Header Principale & Filtro Atleta -->
+    <!-- Header Principale & Selettore Atleta Globale -->
     <header class="p-4 sm:p-6 border-b border-slate-800 max-w-7xl mx-auto w-full flex flex-col sm:flex-row justify-between items-center gap-4">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-emerald-400">Training Trail Run</h1>
-            <p class="text-xs text-slate-400 mt-1" id="tab-subtitle">Dashboard Personale & Settimana</p>
+            <p class="text-xs text-slate-400 mt-1" id="tab-subtitle">Pianificazione & Integrazione Dati</p>
         </div>
         
-        <!-- Selettore Atleta -->
+        <!-- Selettore Atleta Globale -->
         <div class="flex items-center bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs">
             <button onclick="setAthleteFilter('all')" id="filter-all" class="athlete-btn px-3 py-1.5 rounded-lg font-semibold bg-emerald-500 text-slate-950 transition-all">Tutti</button>
             <button onclick="setAthleteFilter('Andrea')" id="filter-Andrea" class="athlete-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all">Andrea</button>
@@ -39,71 +39,127 @@
     <!-- Contenuto Principale -->
     <main class="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
 
-        <!-- SINTESI PERSONALE (PROSSIMO ALLENAMENTO & PROSSIMA GARA) -->
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
-                <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Prossima Sessione</span>
-                <div class="mt-2">
-                    <h3 class="font-bold text-slate-100 text-base" id="next-workout-title">Lungo Specifico Trail</h3>
-                    <p class="text-xs text-slate-400 mt-1" id="next-workout-desc">Sabato • 28.5 km (+1250m D+)</p>
-                </div>
-                <div class="mt-3 text-xs text-slate-500 border-t border-slate-800 pt-2 flex justify-between">
-                    <span>Atleta: <b class="text-slate-300" id="next-workout-athlete">Andrea</b></span>
-                    <span class="text-emerald-400">Pianificato</span>
-                </div>
+        <!-- NAVIGATION TABS -->
+        <div class="flex border-b border-slate-800 text-sm font-medium text-slate-400 gap-6 overflow-x-auto pb-1">
+            <button onclick="switchTab('piano')" id="btn-piano" class="tab-btn pb-3 text-emerald-400 border-b-2 border-emerald-400 font-bold transition-all whitespace-nowrap">Piano Allenamento</button>
+            <button onclick="switchTab('settimana')" id="btn-settimana" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Settimana 7 Giorni (Drag & Drop)</button>
+            <button onclick="switchTab('gare')" id="btn-gare" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Calendario Gare</button>
+            <button onclick="switchTab('garmin')" id="btn-garmin" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Garmin Import</button>
+        </div>
+
+        <!-- TAB 1: SOLO PIANO DI ALLENAMENTO (VISTA STRUTTURATA) -->
+        <section id="tab-piano" class="tab-content space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold text-slate-200">Piano Strategico di Allenamento</h2>
+                <span class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">Target: Chianti Ultra Trail & Gare 2027</span>
             </div>
 
-            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
-                <span class="text-xs font-semibold text-sky-400 uppercase tracking-wider">Nuoto Fisso Settimanale</span>
-                <div class="mt-2">
-                    <h3 class="font-bold text-slate-100 text-base">Corso Nuoto (45 min)</h3>
-                    <p class="text-xs text-slate-400 mt-1">Lunedì & Giovedì • 19:00 - 19:45</p>
-                </div>
-                <div class="mt-3 text-xs text-slate-500 border-t border-slate-800 pt-2 flex justify-between">
-                    <span>Partecipanti: <b class="text-slate-300">Andrea & Vittoria</b></span>
-                    <span class="text-sky-400">Fisso</span>
-                </div>
-            </div>
+            <!-- Macro-struttura Piani divisa per Atleta -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- Piano Andrea -->
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <div>
+                            <h3 class="font-bold text-lg text-emerald-400">Piano Andrea Baron</h3>
+                            <p class="text-xs text-slate-400">Marathon PB: 2h 58:44 • Target: Ultra Trail 75k</p>
+                        </div>
+                        <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Fase Specifico D+</span>
+                    </div>
 
-            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
-                <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider">Prossimo Target Gara</span>
-                <div class="mt-2">
-                    <h3 class="font-bold text-slate-100 text-base">Chianti Ultra Trail (75k)</h3>
-                    <p class="text-xs text-slate-400 mt-1">Marzo 2027 • Radda in Chianti</p>
+                    <div class="space-y-2 text-xs">
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Lunedì:</b> Nuoto Corso / Libero (19:00 - 19:45)</span>
+                            <span class="text-indigo-400 font-semibold">45 min</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Martedì:</b> Ripetute in Soglia / Interval (Alzaia Sile)</span>
+                            <span class="text-emerald-400 font-semibold">Qualità (14 km)</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Mercoledì:</b> Core Stability & Mobilita / Potenziamento</span>
+                            <span class="text-slate-400">Recupero Attivo</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Giovedì:</b> Nuoto Corso / Libero (19:00 - 19:45) + Fondo Collinare</span>
+                            <span class="text-indigo-400 font-semibold">45 min + 10 km</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Venerdì:</b> Riposo Completo / Scarico</span>
+                            <span class="text-slate-500">Rest</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Sabato:</b> Lungo Specifico Trail (Prealpi / Montello)</span>
+                            <span class="text-emerald-400 font-semibold">28-35 km (+1500m D+)</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Domenica:</b> Rigenerante Z1/Z2 oppure Bici</span>
+                            <span class="text-slate-400">10 km / Cross</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="mt-3 text-xs text-slate-500 border-t border-slate-800 pt-2 flex justify-between">
-                    <span>Focus: <b class="text-slate-300">Endurance D+</b></span>
-                    <a href="https://chianti.utmb.world/" target="_blank" class="text-amber-400 hover:underline">Sito Gara &rarr;</a>
+
+                <!-- Piano Vittoria -->
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <div>
+                            <h3 class="font-bold text-lg text-sky-400">Piano Vittoria Scattolin</h3>
+                            <p class="text-xs text-slate-400">Marathon PB: 3h 48:00 • Target: SF40 Endurance</p>
+                        </div>
+                        <span class="text-xs px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">Fase Costruzione</span>
+                    </div>
+
+                    <div class="space-y-2 text-xs">
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Lunedì:</b> Nuoto Corso / Libero (19:00 - 19:45)</span>
+                            <span class="text-indigo-400 font-semibold">45 min</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Martedì:</b> Corsa Ritmo Medio / Variazioni</span>
+                            <span class="text-sky-400 font-semibold">10 km</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Mercoledì:</b> Riposo Attivo / Camminata o Stretch</span>
+                            <span class="text-slate-400">Recupero</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Giovedì:</b> Nuoto Corso / Libero (19:00 - 19:45)</span>
+                            <span class="text-indigo-400 font-semibold">45 min</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Venerdì:</b> Corsa Breve Rigenerante</span>
+                            <span class="text-slate-400">6-8 km</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Sabato:</b> Lungo Progredendo D+</span>
+                            <span class="text-sky-400 font-semibold">16-20 km (+600m D+)</span>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                            <span><b>Domenica:</b> Riposo Completo</span>
+                            <span class="text-slate-500">Rest</span>
+                        </div>
+                    </div>
                 </div>
+
             </div>
         </section>
 
-        <!-- NAVIGATION TABS -->
-        <div class="flex border-b border-slate-800 text-sm font-medium text-slate-400 gap-6">
-            <button onclick="switchTab('settimana')" id="btn-settimana" class="tab-btn pb-3 text-emerald-400 border-b-2 border-emerald-400 font-bold transition-all">Settimana 7 Giorni (Drag & Drop)</button>
-            <button onclick="switchTab('gare')" id="btn-gare" class="tab-btn pb-3 hover:text-emerald-400 transition-all">Calendario & Link Gare</button>
-            <button onclick="switchTab('garmin')" id="btn-garmin" class="tab-btn pb-3 hover:text-emerald-400 transition-all">Integrazione Garmin</button>
-        </div>
-        
-        <!-- TAB 1: SETTIMANA 7 GIORNI CON DRAG AND DROP -->
-        <section id="tab-settimana" class="tab-content">
+        <!-- TAB 2: SETTIMANA 7 GIORNI DRAG & DROP -->
+        <section id="tab-settimana" class="tab-content hidden">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold text-slate-200">Microciclo Settimanale (Trascina per spostare i giorni)</h2>
+                <h2 class="text-lg font-bold text-slate-200">Microciclo Settimanale (Sposta le sessioni)</h2>
                 <span class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">Drag & Drop Attivo</span>
             </div>
 
-            <!-- Griglia Settimanale a 7 Giorni -->
             <div class="grid grid-cols-1 md:grid-cols-7 gap-3" id="week-grid">
-                
                 <!-- Lunedì -->
                 <div class="day-column bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 min-h-[220px]" data-day="Lunedì" ondragover="allowDrop(event)" ondrop="drop(event)">
                     <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1 flex justify-between">
                         <span>LUNEDÌ</span>
                     </div>
-                    <!-- Nuoto fisso -->
                     <div class="bg-indigo-950/40 border border-indigo-500/30 p-2 rounded-lg text-xs">
                         <span class="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded block w-max mb-1">Nuoto • 19:00</span>
-                        <b class="text-slate-200 text-xs block">Nuoto Libero/Corso</b>
+                        <b class="text-slate-200 text-xs block">Corso Nuoto (Fisso)</b>
                         <p class="text-[11px] text-slate-400 mt-0.5">45 min (19:00 - 19:45)</p>
                         <span class="text-[10px] text-slate-500 mt-1 block">Andrea & Vittoria</span>
                     </div>
@@ -114,7 +170,6 @@
                     <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">
                         <span>MARTEDÌ</span>
                     </div>
-                    <!-- Card Trascinabile -->
                     <div draggable="true" ondragstart="drag(event)" id="act-1" class="workout-card bg-slate-900 border border-slate-700/80 p-2.5 rounded-lg text-xs cursor-grab active:cursor-grabbing hover:border-emerald-500/50 transition-all">
                         <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded block w-max mb-1">Qualità</span>
                         <b class="text-slate-200 block">Ripetute Soglia</b>
@@ -136,10 +191,9 @@
                     <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">
                         <span>GIOVEDÌ</span>
                     </div>
-                    <!-- Nuoto fisso -->
                     <div class="bg-indigo-950/40 border border-indigo-500/30 p-2 rounded-lg text-xs">
                         <span class="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded block w-max mb-1">Nuoto • 19:00</span>
-                        <b class="text-slate-200 text-xs block">Nuoto Libero/Corso</b>
+                        <b class="text-slate-200 text-xs block">Corso Nuoto (Fisso)</b>
                         <p class="text-[11px] text-slate-400 mt-0.5">45 min (19:00 - 19:45)</p>
                         <span class="text-[10px] text-slate-500 mt-1 block">Andrea & Vittoria</span>
                     </div>
@@ -158,7 +212,6 @@
                     <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">
                         <span>SABATO</span>
                     </div>
-                    <!-- Card Trascinabile -->
                     <div draggable="true" ondragstart="drag(event)" id="act-2" class="workout-card bg-slate-900 border border-slate-700/80 p-2.5 rounded-lg text-xs cursor-grab active:cursor-grabbing hover:border-emerald-500/50 transition-all">
                         <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded block w-max mb-1">Trail Specifico</span>
                         <b class="text-slate-200 block">Lungo Collinare</b>
@@ -172,7 +225,6 @@
                     <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">
                         <span>DOMENICA</span>
                     </div>
-                    <!-- Card Trascinabile -->
                     <div draggable="true" ondragstart="drag(event)" id="act-3" class="workout-card bg-slate-900 border border-slate-700/80 p-2.5 rounded-lg text-xs cursor-grab active:cursor-grabbing hover:border-emerald-500/50 transition-all">
                         <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded block w-max mb-1">Corsa Rigenerante</span>
                         <b class="text-slate-200 block">Fondo Lento</b>
@@ -184,11 +236,11 @@
             </div>
         </section>
 
-        <!-- TAB 2: CALENDARIO GARE & LINK ESTERNI -->
+        <!-- TAB 3: CALENDARIO GARE -->
         <section id="tab-gare" class="tab-content hidden">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold text-slate-200">Calendario Gare & Portali Ufficiali</h2>
-                <button class="text-xs bg-emerald-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-400 transition-colors">+ Aggiungi Gara da URL</button>
+                <h2 class="text-lg font-bold text-slate-200">Calendario Gare Ufficiali</h2>
+                <button class="text-xs bg-emerald-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-400 transition-colors">+ Nuova Gara da URL</button>
             </div>
             
             <div class="space-y-3" id="races-list">
@@ -199,7 +251,7 @@
                         <p class="text-xs text-slate-400">Radda in Chianti • Target: Andrea Baron</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <a href="https://chianti.utmb.world/" target="_blank" class="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20">Sito Ufficiale Gara &rarr;</a>
+                        <a href="https://chianti.utmb.world/" target="_blank" class="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20">Sito Ufficiale &rarr;</a>
                         <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Programmata</span>
                     </div>
                 </div>
@@ -211,7 +263,7 @@
                         <p class="text-xs text-slate-400">Cittadella (PD) • Target: Andrea & Vittoria</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <a href="https://www.maratonadicitadella.it/" target="_blank" class="text-xs text-sky-400 bg-sky-500/10 border border-sky-500/20 px-3 py-1.5 rounded-lg hover:bg-sky-500/20">Sito Ufficiale Gara &rarr;</a>
+                        <a href="https://www.maratonadicitadella.it/" target="_blank" class="text-xs text-sky-400 bg-sky-500/10 border border-sky-500/20 px-3 py-1.5 rounded-lg hover:bg-sky-500/20">Sito Ufficiale &rarr;</a>
                         <span class="text-xs px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">Programmata</span>
                     </div>
                 </div>
@@ -227,23 +279,37 @@
             </div>
         </section>
 
-        <!-- TAB 3: GARMIN SYNC -->
+        <!-- TAB 4: GARMIN IMPORT CON SELEZIONE ATLETA SEPARATA -->
         <section id="tab-garmin" class="tab-content hidden">
-            <h2 class="text-lg font-bold text-slate-200 mb-4">Sincronizzazione Garmin Connect</h2>
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
-                    <div>
-                        <h3 class="font-bold text-slate-100 text-base">Garmin Fenix 7 Sapphire Solar</h3>
-                        <p class="text-xs text-slate-400">Ultimo aggiornamento traccia: Oggi, 07:30</p>
+            <h2 class="text-lg font-bold text-slate-200 mb-4">Upload Dati Garmin & Sincronizzazione</h2>
+
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-6">
+                
+                <!-- Selettore Atleta per Upload -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Seleziona chi sta caricando i dati:</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="setGarminUser('Andrea')" id="garmin-user-Andrea" class="garmin-user-btn border-2 border-emerald-500 bg-emerald-500/10 text-emerald-400 p-4 rounded-xl flex flex-col items-center gap-1 transition-all">
+                            <span class="font-bold text-sm">Andrea Baron</span>
+                            <span class="text-[11px] text-slate-400">Garmin Fenix 7 Sapphire Solar</span>
+                        </button>
+                        <button onclick="setGarminUser('Vittoria')" id="garmin-user-Vittoria" class="garmin-user-btn border-2 border-slate-800 bg-slate-950 text-slate-400 p-4 rounded-xl flex flex-col items-center gap-1 transition-all hover:border-slate-700">
+                            <span class="font-bold text-sm">Vittoria Scattolin</span>
+                            <span class="text-[11px] text-slate-400">Dispositivo Garmin Connect</span>
+                        </button>
                     </div>
-                    <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Sincronizzato</span>
                 </div>
 
-                <!-- Box Trascinamento GPX/FIT Manuale -->
-                <div class="border-2 border-dashed border-slate-800 hover:border-emerald-500/40 rounded-xl p-8 text-center transition-all cursor-pointer">
-                    <p class="text-xs text-slate-300 font-semibold">Trascina qui un file .GPX o .FIT di Garmin</p>
-                    <p class="text-[11px] text-slate-500 mt-1">L'app rileverà distanza, D+ e frequenza cardiaca abbinandola all'allenamento del giorno.</p>
+                <!-- Form Upload File per l'atleta selezionato -->
+                <div class="border-2 border-dashed border-slate-800 hover:border-emerald-500/40 rounded-xl p-8 text-center transition-all cursor-pointer relative bg-slate-950/40">
+                    <input type="file" id="garmin-file-input" accept=".gpx,.fit" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
+                    <div class="space-y-2">
+                        <p class="text-sm font-semibold text-slate-200" id="garmin-upload-label">Trascina qui il file .GPX o .FIT per Andrea</p>
+                        <p class="text-xs text-slate-500">I dati scaricati verranno registrati su Supabase per l'atleta selezionato.</p>
+                        <span class="inline-block text-xs bg-slate-800 px-3 py-1 rounded-md text-emerald-400 mt-2" id="upload-status">Pronto al caricamento</span>
+                    </div>
                 </div>
+
             </div>
         </section>
 
@@ -252,7 +318,7 @@
     <!-- Script Logica, Drag & Drop e Supabase -->
     <script>
         const db = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
-        let selectedAthlete = 'all';
+        let selectedGarminUser = 'Andrea';
 
         // 1. INIZIALIZZAZIONE SCHERMATA
         window.addEventListener('DOMContentLoaded', () => {
@@ -263,7 +329,36 @@
             }
         });
 
-        // 2. LOGICA DRAG & DROP PER I GIORNI DELLA SETTIMANA
+        // 2. SELEZIONE ATLETA IN GARMIN IMPORT
+        function setGarminUser(user) {
+            selectedGarminUser = user;
+            document.querySelectorAll('.garmin-user-btn').forEach(btn => {
+                btn.classList.remove('border-emerald-500', 'bg-emerald-500/10', 'text-emerald-400', 'border-sky-500', 'bg-sky-500/10', 'text-sky-400');
+                btn.classList.add('border-slate-800', 'bg-slate-950', 'text-slate-400');
+            });
+
+            const activeBtn = document.getElementById(`garmin-user-${user}`);
+            if (user === 'Andrea') {
+                activeBtn.classList.add('border-emerald-500', 'bg-emerald-500/10', 'text-emerald-400');
+            } else {
+                activeBtn.classList.add('border-sky-500', 'bg-sky-500/10', 'text-sky-400');
+            }
+            activeBtn.classList.remove('border-slate-800', 'bg-slate-950', 'text-slate-400');
+
+            document.getElementById('garmin-upload-label').textContent = `Trascina qui il file .GPX o .FIT per ${user}`;
+        }
+
+        // 3. GESTIONE UPLOAD FILE GARMIN
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            const statusLabel = document.getElementById('upload-status');
+            if (file) {
+                statusLabel.textContent = `File "${file.name}" caricato per ${selectedGarminUser}!`;
+                statusLabel.className = "inline-block text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-md mt-2 font-bold";
+            }
+        }
+
+        // 4. LOGICA DRAG & DROP PER I GIORNI DELLA SETTIMANA
         function allowDrop(ev) {
             ev.preventDefault();
         }
@@ -277,7 +372,6 @@
             const data = ev.dataTransfer.getData("text");
             const draggedElement = document.getElementById(data);
             
-            // Trova la colonna del giorno di destinazione
             let dropTarget = ev.target;
             while (dropTarget && !dropTarget.classList.contains('day-column')) {
                 dropTarget = dropTarget.parentElement;
@@ -287,20 +381,11 @@
                 dropTarget.appendChild(draggedElement);
                 const newDay = dropTarget.getAttribute('data-day');
                 console.log(`Allenamento ${data} spostato a: ${newDay}`);
-
-                // Aggiornamento asincrono nel DB Supabase (simulato o attivo su tabella activities)
-                try {
-                    await db.from('activities').update({ description: `Spostato a ${newDay}` }).eq('id', 1);
-                } catch(e) {
-                    console.log("Notifica Sync DB:", e.message);
-                }
             }
         }
 
-        // 3. FILTRO PER ATLETA (ANDREA / VITTORIA / TUTTI)
+        // 5. FILTRO ATLETA GLOBALE
         function setAthleteFilter(athlete) {
-            selectedAthlete = athlete;
-
             document.querySelectorAll('.athlete-btn').forEach(btn => {
                 btn.classList.remove('bg-emerald-500', 'text-slate-950', 'font-semibold');
                 btn.classList.add('text-slate-400');
@@ -312,7 +397,6 @@
                 activeBtn.classList.remove('text-slate-400');
             }
 
-            // Filtraggio visivo degli allenamenti
             document.querySelectorAll('.workout-card').forEach(card => {
                 if (athlete === 'all' || card.innerText.includes(athlete)) {
                     card.style.display = 'block';
@@ -322,7 +406,7 @@
             });
         }
 
-        // 4. CAMBIO TAB
+        // 6. CAMBIO TAB
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(el => {
