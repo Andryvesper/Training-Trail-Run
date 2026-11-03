@@ -86,7 +86,7 @@
                 </div>
             </section>
 
-            <!-- TAB 2: MASSINI (STRADA + LUNGHI SPECIFICI) -->
+            <!-- TAB 2: MASSINI -->
             <section id="tab-massini" class="tab-content hidden space-y-6">
                 <div class="flex justify-between items-center">
                     <h2 class="text-xl font-bold text-slate-200">Metodologia Fulvio Massini ("Tipi che corrono")</h2>
@@ -128,7 +128,10 @@
                             <label class="block text-slate-400 mb-1">Intervals API Key</label>
                             <input type="password" id="intervals-api-key" placeholder="La tua API Key" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-slate-200">
                         </div>
-                        <button onclick="saveIntervalsCredentials()" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-lg hover:bg-emerald-400 transition-colors">Salva e Sincronizza</button>
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="saveIntervalsCredentials()" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-lg hover:bg-emerald-400 transition-colors">Salva e Sincronizza</button>
+                            <button onclick="checkSavedDataInDB()" class="bg-slate-800 text-slate-300 font-bold px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors">🔍 Verifica Salvataggio DB</button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -187,8 +190,18 @@
             document.getElementById('main-app').classList.remove('hidden');
             document.getElementById('logged-user-email').textContent = user.email;
 
-            const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single();
+            // Controlla se esiste già un profilo per questo utente, altrimenti lo crea
+            let { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single();
             
+            if (!profile) {
+                const { data: newProf } = await db.from('profiles').insert({
+                    id: user.id,
+                    email: user.email,
+                    role: user.email === 'andrea.baron.ing@gmail.com' ? 'admin' : 'athlete'
+                }).select().single();
+                profile = newProf;
+            }
+
             if (profile) {
                 if (profile.role === 'admin') {
                     document.getElementById('user-role-badge').textContent = "Ruolo: Amministratore";
@@ -218,15 +231,36 @@
             const { data: { user } } = await db.auth.getUser();
             if (!user) return;
 
-            const { error } = await db.from('profiles')
-                .update({ intervals_id: athleteId, intervals_key: apiKey })
-                .eq('id', user.id);
+            // Upsert per garantire che il record venga creato o aggiornato senza errori
+            const { error } = await db.from('profiles').upsert({
+                id: user.id,
+                email: user.email,
+                intervals_id: athleteId,
+                intervals_key: apiKey
+            });
 
             if (error) {
                 alert("Errore nel salvataggio: " + error.message);
             } else {
-                alert("Credenziali salvate! Avvio sincronizzazione...");
+                alert("Credenziali salvate nel DB! Avvio sincronizzazione...");
                 await fetchIntervalsData();
+            }
+        }
+
+        // Funzione diagnostica per verificare se i dati sono scritti nel DB
+        async function checkSavedDataInDB() {
+            const { data: { user } } = await db.auth.getUser();
+            if (!user) {
+                alert("Utente non autenticato!");
+                return;
+            }
+
+            const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
+            if (error) {
+                alert("Errore lettura DB: " + error.message);
+            } else {
+                console.log("Profilo letto da Supabase:", data);
+                alert(`Stato Database per ${user.email}:\n- Athlete ID: ${data.intervals_id || 'NON SALVATO'}\n- API Key: ${data.intervals_key ? 'PRESENTE (oscurata)' : 'NON SALVATA'}`);
             }
         }
 
@@ -235,7 +269,10 @@
             if (!user) return;
 
             const { data: profile } = await db.from('profiles').select('intervals_id, intervals_key').eq('id', user.id).single();
-            if (!profile || !profile.intervals_id || !profile.intervals_key) return;
+            if (!profile || !profile.intervals_id || !profile.intervals_key) {
+                console.log("Nessuna credenziale Intervals trovata nel profilo.");
+                return;
+            }
 
             try {
                 const authHeader = 'Basic ' + btoa('API_KEY:' + profile.intervals_key);
