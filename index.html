@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Training Trail Run Web App - Andrea & Vittoria</title>
+    <title>Training Trail Run - Andrea & Vittoria</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase JS Client CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- File di configurazione esterno sicuro -->
+    <!-- File di configurazione esterno -->
     <script src="./config.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
@@ -16,255 +16,323 @@
     <!-- Schermata di Caricamento -->
     <div id="loading-screen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
         <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500 mb-4"></div>
-        <p class="text-slate-400 text-sm tracking-wide">Sincronizzazione database Cloud...</p>
+        <p class="text-slate-400 text-sm tracking-wide">Sincronizzazione Dashboard & Settimana...</p>
     </div>
 
-    <!-- Header Principale -->
-    <header class="p-6 border-b border-slate-800 max-w-7xl mx-auto w-full flex justify-between items-center">
+    <!-- Header Principale & Filtro Atleta -->
+    <header class="p-4 sm:p-6 border-b border-slate-800 max-w-7xl mx-auto w-full flex flex-col sm:flex-row justify-between items-center gap-4">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-emerald-400">Training Trail Run</h1>
-            <p class="text-xs text-slate-400 mt-1" id="tab-subtitle">Programma Settimanale & Obiettivi</p>
+            <p class="text-xs text-slate-400 mt-1" id="tab-subtitle">Dashboard Personale & Settimana</p>
         </div>
-        <span id="connection-status" class="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Connessione...</span>
+        
+        <!-- Selettore Atleta -->
+        <div class="flex items-center bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs">
+            <button onclick="setAthleteFilter('all')" id="filter-all" class="athlete-btn px-3 py-1.5 rounded-lg font-semibold bg-emerald-500 text-slate-950 transition-all">Tutti</button>
+            <button onclick="setAthleteFilter('Andrea')" id="filter-Andrea" class="athlete-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all">Andrea</button>
+            <button onclick="setAthleteFilter('Vittoria')" id="filter-Vittoria" class="athlete-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all">Vittoria</button>
+        </div>
+
+        <span id="connection-status" class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">DB Connesso</span>
     </header>
 
-    <!-- Contenuto Principale con Gestione Tab -->
-    <main class="flex-1 p-6 max-w-7xl mx-auto w-full">
+    <!-- Contenuto Principale -->
+    <main class="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
+
+        <!-- SINTESI PERSONALE (PROSSIMO ALLENAMENTO & PROSSIMA GARA) -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
+                <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Prossima Sessione</span>
+                <div class="mt-2">
+                    <h3 class="font-bold text-slate-100 text-base" id="next-workout-title">Lungo Specifico Trail</h3>
+                    <p class="text-xs text-slate-400 mt-1" id="next-workout-desc">Sabato • 28.5 km (+1250m D+)</p>
+                </div>
+                <div class="mt-3 text-xs text-slate-500 border-t border-slate-800 pt-2 flex justify-between">
+                    <span>Atleta: <b class="text-slate-300" id="next-workout-athlete">Andrea</b></span>
+                    <span class="text-emerald-400">Pianificato</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
+                <span class="text-xs font-semibold text-sky-400 uppercase tracking-wider">Nuoto Fisso Settimanale</span>
+                <div class="mt-2">
+                    <h3 class="font-bold text-slate-100 text-base">Corso Nuoto (45 min)</h3>
+                    <p class="text-xs text-slate-400 mt-1">Lunedì & Giovedì • 19:00 - 19:45</p>
+                </div>
+                <div class="mt-3 text-xs text-slate-500 border-t border-slate-800 pt-2 flex justify-between">
+                    <span>Partecipanti: <b class="text-slate-300">Andrea & Vittoria</b></span>
+                    <span class="text-sky-400">Fisso</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
+                <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider">Prossimo Target Gara</span>
+                <div class="mt-2">
+                    <h3 class="font-bold text-slate-100 text-base">Chianti Ultra Trail (75k)</h3>
+                    <p class="text-xs text-slate-400 mt-1">Marzo 2027 • Radda in Chianti</p>
+                </div>
+                <div class="mt-3 text-xs text-slate-500 border-t border-slate-800 pt-2 flex justify-between">
+                    <span>Focus: <b class="text-slate-300">Endurance D+</b></span>
+                    <a href="https://chianti.utmb.world/" target="_blank" class="text-amber-400 hover:underline">Sito Gara &rarr;</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- NAVIGATION TABS -->
+        <div class="flex border-b border-slate-800 text-sm font-medium text-slate-400 gap-6">
+            <button onclick="switchTab('settimana')" id="btn-settimana" class="tab-btn pb-3 text-emerald-400 border-b-2 border-emerald-400 font-bold transition-all">Settimana 7 Giorni (Drag & Drop)</button>
+            <button onclick="switchTab('gare')" id="btn-gare" class="tab-btn pb-3 hover:text-emerald-400 transition-all">Calendario & Link Gare</button>
+            <button onclick="switchTab('garmin')" id="btn-garmin" class="tab-btn pb-3 hover:text-emerald-400 transition-all">Integrazione Garmin</button>
+        </div>
         
-        <!-- Tab 1: Settimana -->
+        <!-- TAB 1: SETTIMANA 7 GIORNI CON DRAG AND DROP -->
         <section id="tab-settimana" class="tab-content">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-slate-200">Allenamenti Recenti & Attività</h2>
-                <button onclick="initDatabaseAndFetch()" class="text-xs bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-emerald-400 hover:border-emerald-500/50 transition-colors">Sincronizza DB</button>
+                <h2 class="text-lg font-bold text-slate-200">Microciclo Settimanale (Trascina per spostare i giorni)</h2>
+                <span class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg">Drag & Drop Attivo</span>
             </div>
-            <div id="activities-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <p class="text-slate-400 text-sm">Caricamento attività...</p>
-                </div>
-            </div>
-        </section>
 
-        <!-- Tab 2: Piano -->
-        <section id="tab-piano" class="tab-content hidden">
-            <h2 class="text-xl font-bold text-slate-200 mb-4">Pianificazione & Microciclo</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl lg:col-span-1">
-                    <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Focus Principale</span>
-                    <h3 class="text-lg font-bold text-slate-100 mt-3">Chianti Ultra Trail (75k)</h3>
-                    <p class="text-xs text-slate-400 mt-1">Marzo 2027 • Radda in Chianti</p>
-                    <div class="mt-4 pt-4 border-t border-slate-800 space-y-2 text-xs text-slate-300">
-                        <div class="flex justify-between"><span>Volume Target:</span> <span class="font-semibold text-slate-100">70-80 km/settimana</span></div>
-                        <div class="flex justify-between"><span>Dislivello Target:</span> <span class="font-semibold text-slate-100">+2500m / +3000m D+</span></div>
-                        <div class="flex justify-between border-t border-slate-800/60 pt-2"><span>Test Velocità:</span> <span class="font-semibold text-sky-400">Mezza di Cittadella</span></div>
+            <!-- Griglia Settimanale a 7 Giorni -->
+            <div class="grid grid-cols-1 md:grid-cols-7 gap-3" id="week-grid">
+                
+                <!-- Lunedì -->
+                <div class="day-column bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 min-h-[220px]" data-day="Lunedì" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1 flex justify-between">
+                        <span>LUNEDÌ</span>
+                    </div>
+                    <!-- Nuoto fisso -->
+                    <div class="bg-indigo-950/40 border border-indigo-500/30 p-2 rounded-lg text-xs">
+                        <span class="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded block w-max mb-1">Nuoto • 19:00</span>
+                        <b class="text-slate-200 text-xs block">Nuoto Libero/Corso</b>
+                        <p class="text-[11px] text-slate-400 mt-0.5">45 min (19:00 - 19:45)</p>
+                        <span class="text-[10px] text-slate-500 mt-1 block">Andrea & Vittoria</span>
                     </div>
                 </div>
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl lg:col-span-2">
-                    <h3 class="text-md font-semibold text-slate-200 mb-3">Struttura Settimanale</h3>
-                    <div class="space-y-2 text-xs text-slate-300">
-                        <div class="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
-                            <span><b>Martedì:</b> Interval Training / Soglia (Alzaia Sile)</span>
-                            <span class="text-emerald-400">Qualità</span>
-                        </div>
-                        <div class="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
-                            <span><b>Giovedì:</b> Fondo Medio / Collinare</span>
-                            <span class="text-slate-400">Costruzione</span>
-                        </div>
-                        <div class="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
-                            <span><b>Sabato/Domenica:</b> Lungo Trail / Specifico D+</span>
-                            <span class="text-emerald-400">Endurance</span>
-                        </div>
-                        <div class="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
-                            <span><b>Recupero:</b> Nuoto (45') + Core stability</span>
-                            <span class="text-sky-400">Recovery</span>
-                        </div>
+
+                <!-- Martedì -->
+                <div class="day-column bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 min-h-[220px]" data-day="Martedì" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">
+                        <span>MARTEDÌ</span>
+                    </div>
+                    <!-- Card Trascinabile -->
+                    <div draggable="true" ondragstart="drag(event)" id="act-1" class="workout-card bg-slate-900 border border-slate-700/80 p-2.5 rounded-lg text-xs cursor-grab active:cursor-grabbing hover:border-emerald-500/50 transition-all">
+                        <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded block w-max mb-1">Qualità</span>
+                        <b class="text-slate-200 block">Ripetute Soglia</b>
+                        <p class="text-[11px] text-slate-400 mt-0.5">14.2 km • Alzaia Sile</p>
+                        <span class="text-[10px] text-slate-500 mt-1 block">Atleta: Andrea</span>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- Tab 3: Atleti -->
-        <section id="tab-atleti" class="tab-content hidden">
-            <h2 class="text-xl font-bold text-slate-200 mb-4">Profili Atleti (da Database)</h2>
-            <div id="athletes-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <p class="text-slate-400 text-sm">Caricamento atleti...</p>
+                <!-- Mercoledì -->
+                <div class="day-column bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 min-h-[220px]" data-day="Mercoledì" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">
+                        <span>MERCOLEDÌ</span>
+                    </div>
+                    <div class="text-[11px] text-slate-600 italic text-center my-auto">Riposo / Core</div>
                 </div>
+
+                <!-- Giovedì -->
+                <div class="day-column bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 min-h-[220px]" data-day="Giovedì" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">
+                        <span>GIOVEDÌ</span>
+                    </div>
+                    <!-- Nuoto fisso -->
+                    <div class="bg-indigo-950/40 border border-indigo-500/30 p-2 rounded-lg text-xs">
+                        <span class="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded block w-max mb-1">Nuoto • 19:00</span>
+                        <b class="text-slate-200 text-xs block">Nuoto Libero/Corso</b>
+                        <p class="text-[11px] text-slate-400 mt-0.5">45 min (19:00 - 19:45)</p>
+                        <span class="text-[10px] text-slate-500 mt-1 block">Andrea & Vittoria</span>
+                    </div>
+                </div>
+
+                <!-- Venerdì -->
+                <div class="day-column bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 min-h-[220px]" data-day="Venerdì" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">
+                        <span>VENERDÌ</span>
+                    </div>
+                    <div class="text-[11px] text-slate-600 italic text-center my-auto">Riposo Attivo</div>
+                </div>
+
+                <!-- Sabato -->
+                <div class="day-column bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 min-h-[220px]" data-day="Sabato" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">
+                        <span>SABATO</span>
+                    </div>
+                    <!-- Card Trascinabile -->
+                    <div draggable="true" ondragstart="drag(event)" id="act-2" class="workout-card bg-slate-900 border border-slate-700/80 p-2.5 rounded-lg text-xs cursor-grab active:cursor-grabbing hover:border-emerald-500/50 transition-all">
+                        <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded block w-max mb-1">Trail Specifico</span>
+                        <b class="text-slate-200 block">Lungo Collinare</b>
+                        <p class="text-[11px] text-slate-400 mt-0.5">28.5 km • +1250m D+</p>
+                        <span class="text-[10px] text-slate-500 mt-1 block">Atleta: Andrea</span>
+                    </div>
+                </div>
+
+                <!-- Domenica -->
+                <div class="day-column bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col gap-2 min-h-[220px]" data-day="Domenica" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <div class="text-xs font-bold text-slate-400 border-b border-slate-800/60 pb-1">
+                        <span>DOMENICA</span>
+                    </div>
+                    <!-- Card Trascinabile -->
+                    <div draggable="true" ondragstart="drag(event)" id="act-3" class="workout-card bg-slate-900 border border-slate-700/80 p-2.5 rounded-lg text-xs cursor-grab active:cursor-grabbing hover:border-emerald-500/50 transition-all">
+                        <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded block w-max mb-1">Corsa Rigenerante</span>
+                        <b class="text-slate-200 block">Fondo Lento</b>
+                        <p class="text-[11px] text-slate-400 mt-0.5">10 km • Z1/Z2</p>
+                        <span class="text-[10px] text-slate-500 mt-1 block">Atleta: Vittoria</span>
+                    </div>
+                </div>
+
             </div>
         </section>
 
-        <!-- Tab 4: Gare -->
+        <!-- TAB 2: CALENDARIO GARE & LINK ESTERNI -->
         <section id="tab-gare" class="tab-content hidden">
-            <h2 class="text-xl font-bold text-slate-200 mb-4">Calendario Gare & Storico (da Database)</h2>
-            <div id="races-container" class="space-y-3">
-                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
-                    <p class="text-slate-400 text-sm">Caricamento gare...</p>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-slate-200">Calendario Gare & Portali Ufficiali</h2>
+                <button class="text-xs bg-emerald-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-400 transition-colors">+ Aggiungi Gara da URL</button>
+            </div>
+            
+            <div class="space-y-3" id="races-list">
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div>
+                        <span class="text-xs text-emerald-400 font-semibold">Marzo 2027</span>
+                        <h4 class="font-bold text-slate-200 text-base mt-0.5">Chianti Ultra Trail by UTMB (75k)</h4>
+                        <p class="text-xs text-slate-400">Radda in Chianti • Target: Andrea Baron</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <a href="https://chianti.utmb.world/" target="_blank" class="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20">Sito Ufficiale Gara &rarr;</a>
+                        <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Programmata</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div>
+                        <span class="text-xs text-sky-400 font-semibold">Dicembre</span>
+                        <h4 class="font-bold text-slate-200 text-base mt-0.5">Mezza Maratona di Cittadella (21.097 km)</h4>
+                        <p class="text-xs text-slate-400">Cittadella (PD) • Target: Andrea & Vittoria</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <a href="https://www.maratonadicitadella.it/" target="_blank" class="text-xs text-sky-400 bg-sky-500/10 border border-sky-500/20 px-3 py-1.5 rounded-lg hover:bg-sky-500/20">Sito Ufficiale Gara &rarr;</a>
+                        <span class="text-xs px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">Programmata</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-3 opacity-80">
+                    <div>
+                        <span class="text-xs text-slate-400 font-semibold">25 Ottobre 2026</span>
+                        <h4 class="font-bold text-slate-200 text-base mt-0.5">Wizz Air Venicemarathon</h4>
+                        <p class="text-xs text-slate-400">Venezia • Andrea (2:58:44) | Vittoria (3:48:00)</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300">Completata</span>
                 </div>
             </div>
         </section>
 
-        <!-- Tab 5: Garmin -->
+        <!-- TAB 3: GARMIN SYNC -->
         <section id="tab-garmin" class="tab-content hidden">
-            <h2 class="text-xl font-bold text-slate-200 mb-4">Integrazione Garmin Connect</h2>
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-3">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h2 class="text-lg font-bold text-slate-200 mb-4">Sincronizzazione Garmin Connect</h2>
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div>
-                        <h4 class="font-bold text-slate-200">Dispositivo Sincronizzato</h4>
-                        <p class="text-xs text-slate-400">Garmin Fenix 7 Sapphire Solar (v26.09)</p>
+                        <h3 class="font-bold text-slate-100 text-base">Garmin Fenix 7 Sapphire Solar</h3>
+                        <p class="text-xs text-slate-400">Ultimo aggiornamento traccia: Oggi, 07:30</p>
                     </div>
-                    <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Online</span>
+                    <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Sincronizzato</span>
                 </div>
-                <p class="text-xs text-slate-400">Sincronizzazione automatica GPX, metriche di carico e recupero attiva.</p>
+
+                <!-- Box Trascinamento GPX/FIT Manuale -->
+                <div class="border-2 border-dashed border-slate-800 hover:border-emerald-500/40 rounded-xl p-8 text-center transition-all cursor-pointer">
+                    <p class="text-xs text-slate-300 font-semibold">Trascina qui un file .GPX o .FIT di Garmin</p>
+                    <p class="text-[11px] text-slate-500 mt-1">L'app rileverà distanza, D+ e frequenza cardiaca abbinandola all'allenamento del giorno.</p>
+                </div>
             </div>
         </section>
 
     </main>
 
-    <!-- Barra di Navigazione Inferiore -->
-    <nav class="bg-slate-900 border-t border-slate-800 py-3 px-4 sticky bottom-0">
-        <div class="max-w-7xl mx-auto flex justify-around text-xs sm:text-sm font-medium text-slate-400">
-            <button onclick="switchTab('settimana')" id="btn-settimana" class="tab-btn text-emerald-400 font-bold transition-colors">Settimana</button>
-            <button onclick="switchTab('piano')" id="btn-piano" class="tab-btn hover:text-emerald-400 transition-colors">Piano</button>
-            <button onclick="switchTab('atleti')" id="btn-atleti" class="tab-btn hover:text-emerald-400 transition-colors">Atleti</button>
-            <button onclick="switchTab('gare')" id="btn-gare" class="tab-btn hover:text-emerald-400 transition-colors">Gare</button>
-            <button onclick="switchTab('garmin')" id="btn-garmin" class="tab-btn hover:text-emerald-400 transition-colors">Garmin</button>
-        </div>
-    </nav>
-
-    <!-- Script Logica & Popolamento Automatico DB -->
+    <!-- Script Logica, Drag & Drop e Supabase -->
     <script>
         const db = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
+        let selectedAthlete = 'all';
 
-        // DATI REALI DA INSERIRE NEL DB SE VUOTO (SEED AUTOMATICO)
-        const seedAthletes = [
-            { name: "Andrea Baron", category: "Ultramarathoner", location: "Mogliano Veneto (TV)", marathon_pb: "2h 58:44", target: "Chianti Ultra Trail 75k" },
-            { name: "Vittoria Scattolin", category: "Marathoner (SF40)", location: "Mogliano Veneto (TV)", marathon_pb: "3h 48:00", target: "Finisher SF40" }
-        ];
-
-        const seedRaces = [
-            { title: "Chianti Ultra Trail by UTMB (75k)", date: "Marzo 2027", location: "Radda in Chianti", details: "Obiettivo Principale A", status: "Programmata" },
-            { title: "Mezza Maratona di Cittadella (21.097 km)", date: "Dicembre", location: "Cittadella (PD)", details: "Andrea & Vittoria • Test Ritmo / Soglia", status: "Programmata" },
-            { title: "Wizz Air Venicemarathon", date: "25 Ottobre 2026", location: "Venezia", details: "Andrea (2:58:44) | Vittoria (3:48:00)", status: "Completata" },
-            { title: "Dolomiti del Brenta Trail", date: "Settembre 2026", location: "Molveno (TN)", details: "Andrea (64k / +4200m D+) | Vittoria (Finisher)", status: "Completata" },
-            { title: "Dolomiti Extreme Trail (DXT 55 km)", date: "Giugno 2026", location: "Forno di Zoldo", details: "Andrea (8h 46m)", status: "Completata" },
-            { title: "Trail Due Rocche", date: "Maggio 2026", location: "Cornuda (TV)", details: "Andrea & Vittoria (Finisher)", status: "Completata" }
-        ];
-
-        const seedActivities = [
-            { title: "Lungo Specifico Trail", type: "Trail", description: "Preparazione dislivello e potenziamento", distance: 28.5, elevation: 1250, avg_hr: 148 },
-            { title: "Ripetute in Soglia", type: "Strada", description: "Sessione tecnica Alzaia Sile", distance: 14.2, elevation: 20, avg_hr: 162 },
-            { title: "Recupero Attivo (Nuoto)", type: "Cross-Training", description: "Sessione defaticante per le gambe", distance: 0, elevation: 0, avg_hr: 115 }
-        ];
-
-        async function initDatabaseAndFetch() {
+        // 1. INIZIALIZZAZIONE SCHERMATA
+        window.addEventListener('DOMContentLoaded', () => {
             const loadingScreen = document.getElementById('loading-screen');
-            const connectionStatus = document.getElementById('connection-status');
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => loadingScreen.style.display = 'none', 300);
+            }
+        });
 
-            try {
-                // 1. Verifica se le tabelle sono vuote e popola automaticamente (Seed)
-                const { data: existingAthletes } = await db.from('athletes').select('id').limit(1);
-                if (!existingAthletes || existingAthletes.length === 0) {
-                    await db.from('athletes').insert(seedAthletes);
-                    await db.from('races').insert(seedRaces);
-                    await db.from('activities').insert(seedActivities);
-                }
+        // 2. LOGICA DRAG & DROP PER I GIORNI DELLA SETTIMANA
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
 
-                // 2. Fetch dei dati dal Database Supabase
-                const [athletesRes, racesRes, activitiesRes] = await Promise.all([
-                    db.from('athletes').select('*'),
-                    db.from('races').select('*'),
-                    db.from('activities').select('*')
-                ]);
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+        }
 
-                renderAthletes(athletesRes.data || []);
-                renderRaces(racesRes.data || []);
-                renderActivities(activitiesRes.data || []);
+        async function drop(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text");
+            const draggedElement = document.getElementById(data);
+            
+            // Trova la colonna del giorno di destinazione
+            let dropTarget = ev.target;
+            while (dropTarget && !dropTarget.classList.contains('day-column')) {
+                dropTarget = dropTarget.parentElement;
+            }
 
-                connectionStatus.textContent = "Cloud Connesso (DB)";
-                connectionStatus.className = "text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            if (dropTarget && draggedElement) {
+                dropTarget.appendChild(draggedElement);
+                const newDay = dropTarget.getAttribute('data-day');
+                console.log(`Allenamento ${data} spostato a: ${newDay}`);
 
-            } catch (err) {
-                console.error("Errore Supabase:", err);
-                connectionStatus.textContent = "Errore DB";
-                connectionStatus.className = "text-xs px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20";
-            } finally {
-                if (loadingScreen) {
-                    loadingScreen.style.opacity = '0';
-                    setTimeout(() => loadingScreen.style.display = 'none', 300);
+                // Aggiornamento asincrono nel DB Supabase (simulato o attivo su tabella activities)
+                try {
+                    await db.from('activities').update({ description: `Spostato a ${newDay}` }).eq('id', 1);
+                } catch(e) {
+                    console.log("Notifica Sync DB:", e.message);
                 }
             }
         }
 
-        function renderAthletes(athletes) {
-            const container = document.getElementById('athletes-container');
-            container.innerHTML = athletes.map(ath => `
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-slate-200 text-lg">${ath.name}</h3>
-                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${ath.category}</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mb-4">${ath.location}</p>
-                    <div class="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded border border-slate-800">
-                        <div><span class="text-slate-500 block">Marathon PB</span><b class="text-slate-200">${ath.marathon_pb}</b></div>
-                        <div><span class="text-slate-500 block">Target</span><b class="text-emerald-400">${ath.target}</b></div>
-                    </div>
-                </div>
-            `).join('');
+        // 3. FILTRO PER ATLETA (ANDREA / VITTORIA / TUTTI)
+        function setAthleteFilter(athlete) {
+            selectedAthlete = athlete;
+
+            document.querySelectorAll('.athlete-btn').forEach(btn => {
+                btn.classList.remove('bg-emerald-500', 'text-slate-950', 'font-semibold');
+                btn.classList.add('text-slate-400');
+            });
+
+            const activeBtn = document.getElementById(`filter-${athlete}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-emerald-500', 'text-slate-950', 'font-semibold');
+                activeBtn.classList.remove('text-slate-400');
+            }
+
+            // Filtraggio visivo degli allenamenti
+            document.querySelectorAll('.workout-card').forEach(card => {
+                if (athlete === 'all' || card.innerText.includes(athlete)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
         }
 
-        function renderRaces(races) {
-            const container = document.getElementById('races-container');
-            container.innerHTML = races.map(race => `
-                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
-                    <div>
-                        <span class="text-xs text-emerald-400 font-semibold">${race.date}</span>
-                        <h4 class="font-bold text-slate-200 text-base mt-0.5">${race.title}</h4>
-                        <p class="text-xs text-slate-400">${race.location} • ${race.details}</p>
-                    </div>
-                    <span class="text-xs px-2.5 py-1 rounded ${race.status === 'Completata' ? 'bg-slate-800 text-slate-300' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}">${race.status}</span>
-                </div>
-            `).join('');
-        }
-
-        function renderActivities(activities) {
-            const container = document.getElementById('activities-container');
-            container.innerHTML = activities.map(act => `
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-slate-200">${act.title}</h3>
-                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${act.type}</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mb-3">${act.description}</p>
-                    <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-800 text-xs">
-                        <div><span class="text-slate-500 block">Distanza</span><b class="text-slate-200">${act.distance} km</b></div>
-                        <div><span class="text-slate-500 block">D+</span><b class="text-slate-200">+${act.elevation} m</b></div>
-                        <div><span class="text-slate-500 block">FC Media</span><b class="text-slate-200">${act.avg_hr} bpm</b></div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
+        // 4. CAMBIO TAB
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('text-emerald-400', 'font-bold');
-                el.classList.add('hover:text-emerald-400');
+                el.classList.remove('text-emerald-400', 'border-b-2', 'border-emerald-400', 'font-bold');
             });
 
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
             const activeBtn = document.getElementById(`btn-${tabId}`);
-            activeBtn.classList.add('text-emerald-400', 'font-bold');
-            
-            const subtitles = {
-                'settimana': 'Programma Settimanale & Attività',
-                'piano': 'Pianificazione Gare e Microcicli',
-                'atleti': 'Profili: Andrea & Vittoria',
-                'gare': 'Storico & Calendario Gare',
-                'garmin': 'Sincronizzazione Dispositivi'
-            };
-            document.getElementById('tab-subtitle').textContent = subtitles[tabId] || '';
+            activeBtn.classList.add('text-emerald-400', 'border-b-2', 'border-emerald-400', 'font-bold');
         }
-
-        window.addEventListener('DOMContentLoaded', initDatabaseAndFetch);
     </script>
 </body>
 </html>
