@@ -26,7 +26,7 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Email Account</label>
-                    <input type="email5" id="auth-email" placeholder="nome@email.com" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
+                    <input type="email" id="auth-email" placeholder="nome@email.com" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Password</label>
@@ -35,13 +35,10 @@
                 <button onclick="handleLogin()" class="w-full bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-sm hover:bg-emerald-400 transition-colors">Accedi al Sistema</button>
                 <p id="auth-error" class="text-xs text-rose-400 text-center hidden"></p>
             </div>
-            <div class="text-center text-[11px] text-slate-500 border-t border-slate-800/80 pt-4">
-                Nota: L'accesso è consentito solo agli account preventivamente autorizzati dall'Amministratore.
-            </div>
         </div>
     </div>
 
-    <!-- APP PRINCIPALE (VISIBILE SOLO DOPO LOGIN) -->
+    <!-- APP PRINCIPALE -->
     <div id="main-app" class="hidden flex-1 flex flex-col justify-between">
         <header class="p-4 sm:p-6 border-b border-slate-800 max-w-7xl mx-auto w-full flex flex-col sm:flex-row justify-between items-center gap-4">
             <div>
@@ -58,16 +55,20 @@
             <!-- NAVIGATION TABS -->
             <div class="flex border-b border-slate-800 text-sm font-medium text-slate-400 gap-6 overflow-x-auto pb-1">
                 <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn pb-3 text-emerald-400 border-b-2 border-emerald-400 font-bold transition-all whitespace-nowrap">Dashboard Personale</button>
-                <button onclick="switchTab('massini')" id="btn-massini" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Piano Metodologico Massini</button>
-                <button onclick="switchTab('admin')" id="btn-admin" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap hidden">Gestione Admin (Whitelist)</button>
+                <button onclick="switchTab('massini')" id="btn-massini" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Piano Massini</button>
+                <button onclick="switchTab('intervals')" id="btn-intervals" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Configurazione Intervals.icu</button>
+                <button onclick="switchTab('admin')" id="btn-admin" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap hidden">Gestione Admin</button>
             </div>
 
             <!-- TAB 1: DASHBOARD -->
             <section id="tab-dashboard" class="tab-content space-y-6">
-                <h2 class="text-xl font-bold text-slate-200">Panoramica Carico & Metriche</h2>
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-slate-200">Panoramica Carico & Metrike Reali</h2>
+                    <button onclick="fetchIntervalsData()" class="text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors font-bold">↻ Sincronizza ora da Intervals.icu</button>
+                </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                        <span class="text-xs text-slate-500 block">Km Settimanali</span>
+                        <span class="text-xs text-slate-500 block">Km Ultimi 7 Giorni</span>
                         <b class="text-xl text-emerald-400 font-bold" id="dash-km">-- km</b>
                     </div>
                     <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
@@ -85,52 +86,58 @@
                 </div>
             </section>
 
-            <!-- TAB 2: PIANO MASSINI STRUTTURATO (STRADA + LUNGHI SPECIFICI) -->
+            <!-- TAB 2: MASSINI -->
             <section id="tab-massini" class="tab-content hidden space-y-6">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-slate-200">Metodologia Fulvio Massini • Ciclo Guidato</h2>
-                    <span class="text-xs bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-emerald-400">Strada (Mar/Ven) + Trail Specifico (Weekend)</span>
-                </div>
-
+                <h2 class="text-xl font-bold text-slate-200">Metodologia Fulvio Massini</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                    <!-- Martedì -->
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
-                        <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold">Martedì • Strada (Qualità)</span>
-                        <h3 class="font-bold text-slate-200 text-sm">Interval Training / Variazioni VR</h3>
-                        <p class="text-slate-400">Lavoro fondamentale basato sulla Velocità di Riferimento (Test 3km). Esempi: ripetute brevi o medie in soglia (CV) con recupero attivo.</p>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                        <b class="text-emerald-400 block mb-1">Martedì • Strada (Qualità)</b>
+                        <p class="text-slate-400">Ripetute / Interval Training basati sulla VR personale (Test 3km).</p>
                     </div>
-
-                    <!-- Venerdì -->
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
-                        <span class="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded font-bold">Venerdì • Strada (Sostanza)</span>
-                        <h3 class="font-bold text-slate-200 text-sm">Corsa Media (CM) / Progressivo</h3>
-                        <p class="text-slate-400">Costruzione aerobica costante. 12-14 km a ritmo medio sostenuto o progressivo per abituare l'organismo allo smaltimento del lattato.</p>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                        <b class="text-sky-400 block mb-1">Venerdì • Strada (Sostanza)</b>
+                        <p class="text-slate-400">Corsa Media (CM) sostenuta o Progressivi di costruzione.</p>
                     </div>
-
-                    <!-- Weekend -->
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
-                        <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold">Weekend • Trail con Lavoro Specifico</span>
-                        <h3 class="font-bold text-slate-200 text-sm">Endurance + Variazioni in Salita</h3>
-                        <p class="text-slate-400">Non solo lungo lento: inserimento di tratti in salita a ritmo gara trail, variazioni di ritmo nelle sezioni corribili e gestione dell'alimentazione tecnica.</p>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                        <b class="text-amber-400 block mb-1">Weekend • Trail Specifico</b>
+                        <p class="text-slate-400">Endurance D+ con variazioni di ritmo guidate e tratti in salita.</p>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 3: ADMIN PANEL (GESTIONE WHITELIST) -->
-            <section id="tab-admin" class="tab-content hidden space-y-6">
-                <h2 class="text-xl font-bold text-slate-200">Pannello Amministratore • Gestione Account Autorizzati</h2>
+            <!-- TAB 3: CONFIGURAZIONE INTERVALS.ICU -->
+            <section id="tab-intervals" class="tab-content hidden space-y-6">
+                <h2 class="text-lg font-bold text-slate-200">Credenziali API Intervals.icu</h2>
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4 max-w-xl">
-                    <p class="text-xs text-slate-400">Aggiungi l'email di un nuovo atleta per autorizzarlo alla registrazione e all'accesso protetto.</p>
+                    <p class="text-xs text-slate-400">Inserisci l'Athlete ID (es. iXXXXX) e la tua API Key trovata nelle impostazioni di Intervals.icu.</p>
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Intervals Athlete ID</label>
+                            <input type="text" id="intervals-athlete-id" placeholder="Es. i12345" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Intervals API Key</label>
+                            <input type="password" id="intervals-api-key" placeholder="La tua API Key" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-slate-200">
+                        </div>
+                        <button onclick="saveIntervalsCredentials()" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-lg hover:bg-emerald-400 transition-colors">Salva e Sincronizza</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: ADMIN -->
+            <section id="tab-admin" class="tab-content hidden space-y-6">
+                <h2 class="text-xl font-bold text-slate-200">Gestione Whitelist Atleti</h2>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4 max-w-xl">
                     <div class="flex gap-2">
                         <input type="email" id="new-allowed-email" placeholder="atleta@email.com" class="flex-1 bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-xs text-slate-200">
-                        <button onclick="addEmailToWhitelist()" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs hover:bg-emerald-400 transition-colors">Autorizza</button>
+                        <button onclick="addEmailToWhitelist()" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs hover:bg-emerald-400 transition-colors">Autorizza Atleta</button>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Script Autenticazione e Logica -->
+    <!-- LOGICA JAVASCRIPT REALE -->
     <script>
         const db = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
 
@@ -144,24 +151,21 @@
         });
 
         async function handleLogin() {
-            const email = document.getElementById('auth-email').value;
+            const email = document.getElementById('auth-email').value.trim();
             const password = document.getElementById('auth-password').value;
             const errorEl = document.getElementById('auth-error');
-
             errorEl.classList.add('hidden');
 
-            // 1. Verifica se l'email è nella whitelist prima di loggare
             const { data: whitelist } = await db.from('authorized_emails').select('*').eq('email', email).single();
             if (!whitelist) {
-                errorEl.textContent = "Accesso negato: questa email non è autorizzata dall'amministratore.";
+                errorEl.textContent = "Accesso negato: email non autorizzata dall'amministratore.";
                 errorEl.classList.remove('hidden');
                 return;
             }
 
-            // 2. Procedi con il login Supabase Auth
             const { data, error } = await db.auth.signInWithPassword({ email, password });
             if (error) {
-                errorEl.textContent = "Errore di autenticazione: " + error.message;
+                errorEl.textContent = "Errore di login: " + error.message;
                 errorEl.classList.remove('hidden');
                 return;
             }
@@ -174,33 +178,105 @@
             document.getElementById('main-app').classList.remove('hidden');
             document.getElementById('logged-user-email').textContent = user.email;
 
-            // Recupera ruolo dal database
             const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single();
             
-            if (profile && profile.role === 'admin') {
-                document.getElementById('user-role-badge').textContent = "Profilo: Amministratore (Accesso Totale)";
-                document.getElementById('btn-admin').classList.remove('hidden');
-            } else {
-                document.getElementById('user-role-badge').textContent = "Profilo: Atleta";
+            if (profile) {
+                if (profile.role === 'admin') {
+                    document.getElementById('user-role-badge').textContent = "Ruolo: Amministratore";
+                    document.getElementById('btn-admin').classList.remove('hidden');
+                } else {
+                    document.getElementById('user-role-badge').textContent = "Ruolo: Atleta";
+                }
+
+                if (profile.intervals_id) document.getElementById('intervals-athlete-id').value = profile.intervals_id;
+                if (profile.intervals_key) document.getElementById('intervals-api-key').value = profile.intervals_key;
+                
+                if (profile.intervals_id && profile.intervals_key) {
+                    await fetchIntervalsData();
+                }
             }
         }
 
-        async function handleLogout() {
-            await db.auth.signOut();
-            window.location.reload();
+        async function saveIntervalsCredentials() {
+            const athleteId = document.getElementById('intervals-athlete-id').value.trim();
+            const apiKey = document.getElementById('intervals-api-key').value.trim();
+
+            if (!athleteId || !apiKey) {
+                alert("Inserisci sia l'Athlete ID che la API Key!");
+                return;
+            }
+
+            const { data: { user } } = await db.auth.getUser();
+            if (!user) return;
+
+            const { error } = await db.from('profiles')
+                .update({ intervals_id: athleteId, intervals_key: apiKey })
+                .eq('id', user.id);
+
+            if (error) {
+                alert("Errore nel salvataggio: " + error.message);
+            } else {
+                alert("Credenziali salvate! Avvio sincronizzazione...");
+                await fetchIntervalsData();
+            }
+        }
+
+        async function fetchIntervalsData() {
+            const { data: { user } } = await db.auth.getUser();
+            if (!user) return;
+
+            const { data: profile } = await db.from('profiles').select('intervals_id, intervals_key').eq('id', user.id).single();
+            if (!profile || !profile.intervals_id || !profile.intervals_key) return;
+
+            try {
+                const authHeader = 'Basic ' + btoa('API_KEY:' + profile.intervals_key);
+                const oldestDate = new Date();
+                oldestDate.setDate(oldestDate.getDate() - 30);
+                const oldestStr = oldestDate.toISOString().split('T')[0];
+
+                const response = await fetch(`https://intervals.icu/api/v1/athlete/${profile.intervals_id}/activities?oldest=${oldestStr}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}: Credenziali Intervals non valide.`);
+
+                const activities = await response.json();
+                let totalMeters = 0, totalDPlus = 0;
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+                activities.forEach(act => {
+                    const actDate = new Date(act.start_date_local);
+                    if (actDate >= sevenDaysAgo) {
+                        totalMeters += act.distance || 0;
+                        totalDPlus += act.total_elevation_gain || 0;
+                    }
+                });
+
+                document.getElementById('dash-km').textContent = (totalMeters / 1000).toFixed(1) + ' km';
+                document.getElementById('dash-dplus').textContent = '+' + Math.round(totalDPlus) + ' m';
+            } catch (err) {
+                console.error("Sync error:", err);
+            }
         }
 
         async function addEmailToWhitelist() {
-            const email = document.getElementById('new-allowed-email').value;
+            const email = document.getElementById('new-allowed-email').value.trim();
             if (!email) return;
 
             const { error } = await db.from('authorized_emails').insert({ email, role: 'athlete' });
             if (error) {
                 alert("Errore: " + error.message);
             } else {
-                alert(`Email ${email} aggiunta con successo alla whitelist! L'atleta ora può registrarsi e connettersi.`);
+                alert(`Email ${email} autorizzata con successo!`);
                 document.getElementById('new-allowed-email').value = '';
             }
+        }
+
+        async function handleLogout() {
+            await db.auth.signOut();
+            window.location.reload();
         }
 
         function switchTab(tabId) {
