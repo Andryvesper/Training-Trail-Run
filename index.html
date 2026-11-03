@@ -67,7 +67,7 @@
                     <button onclick="fetchIntervalsData()" class="text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors font-bold">↻ Sincronizza da Intervals.icu</button>
                 </div>
 
-                <!-- KPI Cards -->
+                <!-- KPI Cards con Tooltip esplicativi per CTL e TSB -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
                         <span class="text-xs text-slate-500 block">Km Ultimi 7 Giorni</span>
@@ -75,25 +75,25 @@
                     </div>
                     <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
                         <span class="text-xs text-slate-500 block">Dislivello D+</span>
-                        <b class="text-xl text-emerald-400 font-bold" id="dash-dplus">-- m</b>
+                        <b class="text-xl text-emerald-400 font-bold" id="dash-dplus">+-- m</b>
                     </div>
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                        <span class="text-xs text-slate-500 block">Fitness (CTL)</span>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl cursor-help" title="CTL (Chronic Training Load / Fitness): rappresenta il carico di allenamento medio sostenuto negli ultimi 42 giorni. Indica la tua condizione fisica generale.">
+                        <span class="text-xs text-slate-500 block flex items-center justify-between">Fitness (CTL) <span class="text-[10px] text-sky-400 border border-sky-500/30 px-1 rounded">i</span></span>
                         <b class="text-xl text-sky-400 font-bold" id="dash-ctl">--</b>
                     </div>
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                        <span class="text-xs text-slate-500 block">Forma (TSB)</span>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl cursor-help" title="TSB (Training Stress Balance / Forma): bilancio tra fitness e fatica. Valori positivi indicano freschezza/riposo, valori negativi indicano affaticamento da carico.">
+                        <span class="text-xs text-slate-500 block flex items-center justify-between">Forma (TSB) <span class="text-[10px] text-amber-400 border border-amber-500/30 px-1 rounded">i</span></span>
                         <b class="text-xl text-amber-400 font-bold" id="dash-tsb">--</b>
                     </div>
                 </div>
 
-                <!-- Scheletro Calendario 7 Giorni (Capisaldi Massini) -->
+                <!-- Scheletro Calendario 7 Giorni Aggiornato (Capisaldi Massini + Nuoto Lun/Gio) -->
                 <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-4">
-                    <h3 class="text-sm font-bold text-slate-200">Scheletro Microciclo Settimanale (Massini)</h3>
+                    <h3 class="text-sm font-bold text-slate-200">Scheletro Microciclo Settimanale (Massini + Nuoto)</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 text-xs">
-                        <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg">
-                            <span class="text-slate-500 block font-bold mb-1">LUNEDÌ</span>
-                            <span class="text-slate-300">Riposo / Scarico</span>
+                        <div class="bg-slate-950 border border-cyan-500/30 p-3 rounded-lg">
+                            <span class="text-cyan-400 block font-bold mb-1">LUNEDÌ</span>
+                            <span class="text-slate-200">Nuoto (Recupero Attivo / Aerobico)</span>
                         </div>
                         <div class="bg-slate-950 border border-emerald-500/30 p-3 rounded-lg">
                             <span class="text-emerald-400 block font-bold mb-1">MARTEDÌ</span>
@@ -103,9 +103,9 @@
                             <span class="text-slate-500 block font-bold mb-1">MERCOLEDÌ</span>
                             <span class="text-slate-300">Core Stability / Riposo</span>
                         </div>
-                        <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg">
-                            <span class="text-slate-500 block font-bold mb-1">GIOVEDÌ</span>
-                            <span class="text-slate-300">Corsa Lenta Rigenerante</span>
+                        <div class="bg-slate-950 border border-cyan-500/30 p-3 rounded-lg">
+                            <span class="text-cyan-400 block font-bold mb-1">GIOVEDÌ</span>
+                            <span class="text-slate-200">Nuoto (Tecnologia / Resistenza)</span>
                         </div>
                         <div class="bg-slate-950 border border-sky-500/30 p-3 rounded-lg">
                             <span class="text-sky-400 block font-bold mb-1">VENERDÌ</span>
@@ -139,10 +139,16 @@
             <section id="tab-massini" class="tab-content hidden space-y-6">
                 <div class="flex justify-between items-center">
                     <h2 class="text-xl font-bold text-slate-200">Metodologia Fulvio Massini ("Tipi che corrono")</h2>
-                    <span class="text-xs bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-emerald-400">Strada (Mar/Ven) + Trail Specifico (Weekend)</span>
+                    <span class="text-xs bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-emerald-400">Strada (Mar/Ven) + Trail Specifico (Weekend) + Nuoto (Lun/Gio)</span>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+                        <span class="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded font-bold">Lunedì & Giovedì • Nuoto</span>
+                        <h3 class="font-bold text-slate-200 text-sm">Cross-Training & Recupero</h3>
+                        <p class="text-slate-400">Sessioni regolari di nuoto (45 min) per scarico articolare, active recovery e potenziamento aerobico senza impatto.</p>
+                    </div>
+
                     <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
                         <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold">Martedì • Strada (Qualità)</span>
                         <h3 class="font-bold text-slate-200 text-sm">Interval Training / Variazioni VR</h3>
@@ -156,9 +162,9 @@
                     </div>
 
                     <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
-                        <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold">Weekend • Trail con Lavoro Specifico</span>
+                        <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold">Weekend • Trail Specifico</span>
                         <h3 class="font-bold text-slate-200 text-sm">Endurance + Variazioni in Salita</h3>
-                        <p class="text-slate-400">Non solo lungo lento: inserimento di tratti in salita a ritmo gara trail, variazioni di ritmo nelle sezioni corribili e gestione dell'alimentazione tecnica.</p>
+                        <p class="text-slate-400">Lungo in ambiente con tratti in salita a ritmo gara trail, variazioni di ritmo nelle sezioni corribili e gestione nutrizionale.</p>
                     </div>
                 </div>
             </section>
@@ -198,14 +204,14 @@
         </main>
     </div>
 
-    <!-- LOGICA JAVASCRIPT & GRAFICI -->
+    <!-- LOGICA JAVASCRIPT & GRAFICI DINAMICI -->
     <script>
         const db = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
         let chartVolInstance = null;
         let chartFitInstance = null;
 
         window.addEventListener('DOMContentLoaded', async () => {
-            initCharts();
+            initEmptyCharts();
             const { data: { session } } = await db.auth.getSession();
             if (session) {
                 await checkUserRoleAndInit(session.user);
@@ -214,15 +220,15 @@
             }
         });
 
-        function initCharts() {
+        function initEmptyCharts() {
             const ctxVol = document.getElementById('chart-volume').getContext('2d');
             chartVolInstance = new Chart(ctxVol, {
                 type: 'bar',
                 data: {
                     labels: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'],
                     datasets: [
-                        { label: 'Km Corsa', data: [0, 12, 0, 8, 14, 25, 0], backgroundColor: '#10b981' },
-                        { label: 'D+ (x10m)', data: [0, 0, 0, 0, 0, 120, 40], backgroundColor: '#f59e0b' }
+                        { label: 'Km Corsa', data: [0, 0, 0, 0, 0, 0, 0], backgroundColor: '#10b981' },
+                        { label: 'D+ (x10m)', data: [0, 0, 0, 0, 0, 0, 0], backgroundColor: '#f59e0b' }
                     ]
                 },
                 options: { responsive: true, plugins: { legend: { labels: { color: '#94a3b8' } } } }
@@ -234,8 +240,8 @@
                 data: {
                     labels: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'],
                     datasets: [
-                        { label: 'Fitness (CTL)', data: [62, 62, 63, 63, 64, 64, 64], borderColor: '#38bdf8', fill: false },
-                        { label: 'Forma (TSB)', data: [4, -2, 2, -1, 3, -6, 5], borderColor: '#f59e0b', fill: false }
+                        { label: 'Fitness (CTL)', data: [0,0,0,0,0,0,0], borderColor: '#38bdf8', fill: false },
+                        { label: 'Forma (TSB)', data: [0,0,0,0,0,0,0], borderColor: '#f59e0b', fill: false }
                     ]
                 },
                 options: { responsive: true, plugins: { legend: { labels: { color: '#94a3b8' } } } }
@@ -350,7 +356,7 @@
                 oldestDate.setDate(oldestDate.getDate() - 30);
                 const oldestStr = oldestDate.toISOString().split('T')[0];
 
-                // 1. Chiamata alle attività per calcolare Km e D+
+                // 1. Chiamata attività per calcolare km e D+ precisi degli ultimi 7 giorni
                 const response = await fetch(`https://intervals.icu/api/v1/athlete/${profile.intervals_id}/activities?oldest=${oldestStr}`, {
                     method: 'GET',
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
@@ -360,21 +366,43 @@
                 const activities = await response.json();
 
                 let totalMeters = 0, totalDPlus = 0;
+                const now = new Date();
                 const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                sevenDaysAgo.setDate(now.getDate() - 7);
+
+                // Array per raccogliere i km giornalieri (Lun - Dom)
+                let dailyKm = [0, 0, 0, 0, 0, 0, 0];
+                let dailyDPlus = [0, 0, 0, 0, 0, 0, 0];
 
                 activities.forEach(act => {
                     const actDate = new Date(act.start_date_local || act.start_date);
-                    if (actDate >= sevenDaysAgo) {
-                        totalMeters += (act.distance || 0);
-                        totalDPlus += (act.total_elevation_gain || act.elevation_gain || 0);
+                    if (actDate >= sevenDaysAgo && actDate <= now) {
+                        const dist = act.distance || 0;
+                        const elev = act.total_elevation_gain || act.elevation_gain || 0;
+                        
+                        totalMeters += dist;
+                        totalDPlus += elev;
+
+                        // Mappa il giorno della settimana (0 = Dom, 1 = Lun ... 6 = Sab) adattato a indice (0 = Lun ... 6 = Dom)
+                        let dayIndex = actDate.getDay();
+                        dayIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+                        
+                        dailyKm[dayIndex] += (dist / 1000);
+                        dailyDPlus[dayIndex] += (elev / 10); // Scala per il grafico
                     }
                 });
 
-                document.getElementById('dash-km').textContent = (totalMeters / 1000).toFixed(1) + ' km';
-                document.getElementById('dash-dplus').textContent = '+' + Math.round(totalDPlus) + ' m';
+                document.getElementById('dash-km').textContent = `${(totalMeters / 1000).toFixed(1)} km`;
+                document.getElementById('dash-dplus').textContent = `+${Math.round(totalDPlus)} m`;
 
-                // 2. Chiamata all'endpoint principale atleta per prelevare CTL e TSB correnti (Forma)
+                // Aggiorna Grafico Volume
+                if (chartVolInstance) {
+                    chartVolInstance.data.datasets[0].data = dailyKm.map(v => Number(v.toFixed(1)));
+                    chartVolInstance.data.datasets[1].data = dailyDPlus.map(v => Number(v.toFixed(0)));
+                    chartVolInstance.update();
+                }
+
+                // 2. Chiamata endpoint principale atleta per CTL e TSB
                 const athResponse = await fetch(`https://intervals.icu/api/v1/athlete/${profile.intervals_id}`, {
                     method: 'GET',
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
