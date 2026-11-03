@@ -14,7 +14,7 @@
     <!-- Schermata di Caricamento -->
     <div id="loading-screen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
         <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500 mb-4"></div>
-        <p class="text-slate-400 text-sm tracking-wide">Caricamento dati personali...</p>
+        <p class="text-slate-400 text-sm tracking-wide">Connessione al database Cloud...</p>
     </div>
 
     <!-- Header Principale -->
@@ -23,54 +23,21 @@
             <h1 class="text-2xl font-bold tracking-tight text-emerald-400">Training Trail Run</h1>
             <p class="text-xs text-slate-400 mt-1" id="tab-subtitle">Programma Settimanale & Obiettivi</p>
         </div>
-        <span id="connection-status" class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Cloud Connesso</span>
+        <span id="connection-status" class="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Connessione in corso...</span>
     </header>
 
     <!-- Contenuto Principale con Gestione Tab -->
     <main class="flex-1 p-6 max-w-7xl mx-auto w-full">
         
-        <!-- Tab 1: Settimana -->
+        <!-- Tab 1: Settimana / Attività -->
         <section id="tab-settimana" class="tab-content">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-slate-200">Allenamenti Recenti & Settimana</h2>
-                <span class="text-xs text-slate-400">Treviso / Alzaia del Sile</span>
+                <h2 class="text-xl font-bold text-slate-200">Allenamenti Recenti & Attività</h2>
+                <button onclick="loadDatabaseData()" class="text-xs bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-emerald-400 hover:border-emerald-500/50 transition-colors">Aggiorna da DB</button>
             </div>
-            <div id="activities-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div id="activities-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-slate-200">Lungo Specifico Trail</h3>
-                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Trail</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mb-3">Preparazione dislivello e potenziamento</p>
-                    <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-800 text-xs">
-                        <div><span class="text-slate-500 block">Distanza</span><b class="text-slate-200">28.5 km</b></div>
-                        <div><span class="text-slate-500 block">D+</span><b class="text-slate-200">+1250 m</b></div>
-                        <div><span class="text-slate-500 block">FC Media</span><b class="text-slate-200">148 bpm</b></div>
-                    </div>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-slate-200">Ripetute in Soglia</h3>
-                        <span class="text-xs px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">Strada</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mb-3">Sessione tecnica Alzaia Sile</p>
-                    <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-800 text-xs">
-                        <div><span class="text-slate-500 block">Distanza</span><b class="text-slate-200">14.2 km</b></div>
-                        <div><span class="text-slate-500 block">D+</span><b class="text-slate-200">+20 m</b></div>
-                        <div><span class="text-slate-500 block">FC Media</span><b class="text-slate-200">162 bpm</b></div>
-                    </div>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-slate-200">Recupero Attivo (Nuoto)</h3>
-                        <span class="text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Cross-Training</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mb-3">Sessione defaticante per le gambe</p>
-                    <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-800 text-xs">
-                        <div><span class="text-slate-500 block">Durata</span><b class="text-slate-200">45 min</b></div>
-                        <div><span class="text-slate-500 block">Tipo</span><b class="text-slate-200">Nuoto</b></div>
-                        <div><span class="text-slate-500 block">Stato</span><b class="text-emerald-400">Completato</b></div>
-                    </div>
+                    <p class="text-slate-400 text-sm">Caricamento attività dal database...</p>
                 </div>
             </div>
         </section>
@@ -115,33 +82,68 @@
 
         <!-- Tab 3: Atleti -->
         <section id="tab-atleti" class="tab-content hidden">
-            <h2 class="text-xl font-bold text-slate-200 mb-4">Profili Atleti</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h2 class="text-xl font-bold text-slate-200 mb-4">Profili Atleti (da Database)</h2>
+            <div id="athletes-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-slate-200 text-lg">Andrea Baron</h3>
-                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Ultramarathoner</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mb-4">Mogliano Veneto (TV)</p>
-                    <div class="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded border border-slate-800">
-                        <div><span class="text-slate-500 block">Marathon PB</span><b class="text-slate-200">2h 58:44</b></div>
-                        <div><span class="text-slate-500 block">Target 2027</span><b class="text-emerald-400">Chianti Ultra Trail 75k</b></div>
-                    </div>
-                </div>
-                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-slate-200 text-lg">Vittoria Scattolin</h3>
-                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Marathoner</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mb-4">Mogliano Veneto (TV)</p>
-                    <div class="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded border border-slate-800">
-                        <div><span class="text-slate-500 block">Marathon PB</span><b class="text-slate-200">3h 48:00</b></div>
-                        <div><span class="text-slate-500 block">Stato</span><b class="text-emerald-400">Finisher SF40</b></div>
-                    </div>
+                    <p class="text-slate-400 text-sm">Caricamento atleti...</p>
                 </div>
             </div>
         </section>
 
         <!-- Tab 4: Gare -->
         <section id="tab-gare" class="tab-content hidden">
-            <h2 class="text-xl font-bold text-slate-200 mb-4">Calendario Gare & Storico</h2>
+            <h2 class="text-xl font-bold text-slate-200 mb-4">Calendario Gare & Storico (da Database)</h2>
+            <div id="races-container" class="space-y-3">
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
+                    <p class="text-slate-400 text-sm">Caricamento gare dal database...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 5: Garmin -->
+        <section id="tab-garmin" class="tab-content hidden">
+            <h2 class="text-xl font-bold text-slate-200 mb-4">Integrazione Garmin Connect</h2>
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-3">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                        <h4 class="font-bold text-slate-200">Dispositivo Sincronizzato</h4>
+                        <p class="text-xs text-slate-400">Garmin Fenix 7 Sapphire Solar (v26.09)</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Online</span>
+                </div>
+                <p class="text-xs text-slate-400">Sincronizzazione automatica GPX, metriche di carico e recupero attiva.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Barra di Navigazione Inferiore -->
+    <nav class="bg-slate-900 border-t border-slate-800 py-3 px-4 sticky bottom-0">
+        <div class="max-w-7xl mx-auto flex justify-around text-xs sm:text-sm font-medium text-slate-400">
+            <button onclick="switchTab('settimana')" id="btn-settimana" class="tab-btn text-emerald-400 font-bold transition-colors">Settimana</button>
+            <button onclick="switchTab('piano')" id="btn-piano" class="tab-btn hover:text-emerald-400 transition-colors">Piano</button>
+            <button onclick="switchTab('atleti')" id="btn-atleti" class="tab-btn hover:text-emerald-400 transition-colors">Atleti</button>
+            <button onclick="switchTab('gare')" id="btn-gare" class="tab-btn hover:text-emerald-400 transition-colors">Gare</button>
+            <button onclick="switchTab('garmin')" id="btn-garmin" class="tab-btn hover:text-emerald-400 transition-colors">Garmin</button>
+        </div>
+    </nav>
+
+    <!-- Script Logica & Connessione Supabase -->
+    <script>
+        // CONFIGURAZIONE SUPABASE (Sostituisci con i tuoi dati reali)
+        const SUPABASE_URL = "https://sjsttftadxmutrhmagep.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_dtgDUmx9PrYS3O8EBf_zHg_YYmtwRSC";
+
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // FUNZIONE DI FETCH GENERALE DAL DATABASE
+        async function loadDatabaseData() {
+            const loadingScreen = document.getElementById('loading-screen');
+            const connectionStatus = document.getElementById('connection-status');
+
+            try {
+                // Interrogazione simultanea delle tabelle sul database Supabase
+                const [athletesRes, racesRes, activitiesRes] = await Promise.all([
+                    db.from('athletes').select('*'),
+                    db.from('races').select('*').order('date', { ascending: false }),
+                    db.from('
