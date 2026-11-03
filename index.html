@@ -8,13 +8,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase JS Client CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- File di configurazione esterno sicuro -->
+    <script src="./config.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
 
     <!-- Schermata di Caricamento -->
     <div id="loading-screen" class="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-50 transition-opacity duration-300">
         <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500 mb-4"></div>
-        <p class="text-slate-400 text-sm tracking-wide">Connessione al database Cloud...</p>
+        <p class="text-slate-400 text-sm tracking-wide">Sincronizzazione database Cloud...</p>
     </div>
 
     <!-- Header Principale -->
@@ -23,21 +25,21 @@
             <h1 class="text-2xl font-bold tracking-tight text-emerald-400">Training Trail Run</h1>
             <p class="text-xs text-slate-400 mt-1" id="tab-subtitle">Programma Settimanale & Obiettivi</p>
         </div>
-        <span id="connection-status" class="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Connessione in corso...</span>
+        <span id="connection-status" class="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Connessione...</span>
     </header>
 
     <!-- Contenuto Principale con Gestione Tab -->
     <main class="flex-1 p-6 max-w-7xl mx-auto w-full">
         
-        <!-- Tab 1: Settimana / Attività -->
+        <!-- Tab 1: Settimana -->
         <section id="tab-settimana" class="tab-content">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-slate-200">Allenamenti Recenti & Attività</h2>
-                <button onclick="loadDatabaseData()" class="text-xs bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-emerald-400 hover:border-emerald-500/50 transition-colors">Aggiorna da DB</button>
+                <button onclick="initDatabaseAndFetch()" class="text-xs bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-emerald-400 hover:border-emerald-500/50 transition-colors">Sincronizza DB</button>
             </div>
             <div id="activities-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
-                    <p class="text-slate-400 text-sm">Caricamento attività dal database...</p>
+                    <p class="text-slate-400 text-sm">Caricamento attività...</p>
                 </div>
             </div>
         </section>
@@ -95,7 +97,7 @@
             <h2 class="text-xl font-bold text-slate-200 mb-4">Calendario Gare & Storico (da Database)</h2>
             <div id="races-container" class="space-y-3">
                 <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
-                    <p class="text-slate-400 text-sm">Caricamento gare dal database...</p>
+                    <p class="text-slate-400 text-sm">Caricamento gare...</p>
                 </div>
             </div>
         </section>
@@ -128,22 +130,141 @@
         </div>
     </nav>
 
-    <!-- Script Logica & Connessione Supabase -->
+    <!-- Script Logica & Popolamento Automatico DB -->
     <script>
-        // CONFIGURAZIONE SUPABASE (Sostituisci con i tuoi dati reali)
-        const SUPABASE_URL = "https://sjsttftadxmutrhmagep.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_dtgDUmx9PrYS3O8EBf_zHg_YYmtwRSC";
+        const db = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
 
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // DATI REALI DA INSERIRE NEL DB SE VUOTO (SEED AUTOMATICO)
+        const seedAthletes = [
+            { name: "Andrea Baron", category: "Ultramarathoner", location: "Mogliano Veneto (TV)", marathon_pb: "2h 58:44", target: "Chianti Ultra Trail 75k" },
+            { name: "Vittoria Scattolin", category: "Marathoner (SF40)", location: "Mogliano Veneto (TV)", marathon_pb: "3h 48:00", target: "Finisher SF40" }
+        ];
 
-        // FUNZIONE DI FETCH GENERALE DAL DATABASE
-        async function loadDatabaseData() {
+        const seedRaces = [
+            { title: "Chianti Ultra Trail by UTMB (75k)", date: "Marzo 2027", location: "Radda in Chianti", details: "Obiettivo Principale A", status: "Programmata" },
+            { title: "Mezza Maratona di Cittadella (21.097 km)", date: "Dicembre", location: "Cittadella (PD)", details: "Andrea & Vittoria • Test Ritmo / Soglia", status: "Programmata" },
+            { title: "Wizz Air Venicemarathon", date: "25 Ottobre 2026", location: "Venezia", details: "Andrea (2:58:44) | Vittoria (3:48:00)", status: "Completata" },
+            { title: "Dolomiti del Brenta Trail", date: "Settembre 2026", location: "Molveno (TN)", details: "Andrea (64k / +4200m D+) | Vittoria (Finisher)", status: "Completata" },
+            { title: "Dolomiti Extreme Trail (DXT 55 km)", date: "Giugno 2026", location: "Forno di Zoldo", details: "Andrea (8h 46m)", status: "Completata" },
+            { title: "Trail Due Rocche", date: "Maggio 2026", location: "Cornuda (TV)", details: "Andrea & Vittoria (Finisher)", status: "Completata" }
+        ];
+
+        const seedActivities = [
+            { title: "Lungo Specifico Trail", type: "Trail", description: "Preparazione dislivello e potenziamento", distance: 28.5, elevation: 1250, avg_hr: 148 },
+            { title: "Ripetute in Soglia", type: "Strada", description: "Sessione tecnica Alzaia Sile", distance: 14.2, elevation: 20, avg_hr: 162 },
+            { title: "Recupero Attivo (Nuoto)", type: "Cross-Training", description: "Sessione defaticante per le gambe", distance: 0, elevation: 0, avg_hr: 115 }
+        ];
+
+        async function initDatabaseAndFetch() {
             const loadingScreen = document.getElementById('loading-screen');
             const connectionStatus = document.getElementById('connection-status');
 
             try {
-                // Interrogazione simultanea delle tabelle sul database Supabase
+                // 1. Verifica se le tabelle sono vuote e popola automaticamente (Seed)
+                const { data: existingAthletes } = await db.from('athletes').select('id').limit(1);
+                if (!existingAthletes || existingAthletes.length === 0) {
+                    await db.from('athletes').insert(seedAthletes);
+                    await db.from('races').insert(seedRaces);
+                    await db.from('activities').insert(seedActivities);
+                }
+
+                // 2. Fetch dei dati dal Database Supabase
                 const [athletesRes, racesRes, activitiesRes] = await Promise.all([
                     db.from('athletes').select('*'),
-                    db.from('races').select('*').order('date', { ascending: false }),
-                    db.from('
+                    db.from('races').select('*'),
+                    db.from('activities').select('*')
+                ]);
+
+                renderAthletes(athletesRes.data || []);
+                renderRaces(racesRes.data || []);
+                renderActivities(activitiesRes.data || []);
+
+                connectionStatus.textContent = "Cloud Connesso (DB)";
+                connectionStatus.className = "text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+
+            } catch (err) {
+                console.error("Errore Supabase:", err);
+                connectionStatus.textContent = "Errore DB";
+                connectionStatus.className = "text-xs px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20";
+            } finally {
+                if (loadingScreen) {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => loadingScreen.style.display = 'none', 300);
+                }
+            }
+        }
+
+        function renderAthletes(athletes) {
+            const container = document.getElementById('athletes-container');
+            container.innerHTML = athletes.map(ath => `
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-slate-200 text-lg">${ath.name}</h3>
+                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${ath.category}</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4">${ath.location}</p>
+                    <div class="grid grid-cols-2 gap-3 text-xs bg-slate-950 p-3 rounded border border-slate-800">
+                        <div><span class="text-slate-500 block">Marathon PB</span><b class="text-slate-200">${ath.marathon_pb}</b></div>
+                        <div><span class="text-slate-500 block">Target</span><b class="text-emerald-400">${ath.target}</b></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderRaces(races) {
+            const container = document.getElementById('races-container');
+            container.innerHTML = races.map(race => `
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-emerald-400 font-semibold">${race.date}</span>
+                        <h4 class="font-bold text-slate-200 text-base mt-0.5">${race.title}</h4>
+                        <p class="text-xs text-slate-400">${race.location} • ${race.details}</p>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded ${race.status === 'Completata' ? 'bg-slate-800 text-slate-300' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}">${race.status}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderActivities(activities) {
+            const container = document.getElementById('activities-container');
+            container.innerHTML = activities.map(act => `
+                <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-slate-200">${act.title}</h3>
+                        <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${act.type}</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3">${act.description}</p>
+                    <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-800 text-xs">
+                        <div><span class="text-slate-500 block">Distanza</span><b class="text-slate-200">${act.distance} km</b></div>
+                        <div><span class="text-slate-500 block">D+</span><b class="text-slate-200">+${act.elevation} m</b></div>
+                        <div><span class="text-slate-500 block">FC Media</span><b class="text-slate-200">${act.avg_hr} bpm</b></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('text-emerald-400', 'font-bold');
+                el.classList.add('hover:text-emerald-400');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            activeBtn.classList.add('text-emerald-400', 'font-bold');
+            
+            const subtitles = {
+                'settimana': 'Programma Settimanale & Attività',
+                'piano': 'Pianificazione Gare e Microcicli',
+                'atleti': 'Profili: Andrea & Vittoria',
+                'gare': 'Storico & Calendario Gare',
+                'garmin': 'Sincronizzazione Dispositivi'
+            };
+            document.getElementById('tab-subtitle').textContent = subtitles[tabId] || '';
+        }
+
+        window.addEventListener('DOMContentLoaded', initDatabaseAndFetch);
+    </script>
+</body>
+</html>
