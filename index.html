@@ -55,7 +55,7 @@
             <!-- NAVIGATION TABS -->
             <div class="flex border-b border-slate-800 text-sm font-medium text-slate-400 gap-6 overflow-x-auto pb-1">
                 <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn pb-3 text-emerald-400 border-b-2 border-emerald-400 font-bold transition-all whitespace-nowrap">Dashboard Personale</button>
-                <button onclick="switchTab('massini')" id="btn-massini" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Piano Massini</button>
+                <button onclick="switchTab('massini')" id="btn-massini" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Piano Metodologico Massini</button>
                 <button onclick="switchTab('intervals')" id="btn-intervals" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap">Configurazione Intervals.icu</button>
                 <button onclick="switchTab('admin')" id="btn-admin" class="tab-btn pb-3 hover:text-emerald-400 transition-all whitespace-nowrap hidden">Gestione Admin</button>
             </div>
@@ -63,7 +63,7 @@
             <!-- TAB 1: DASHBOARD -->
             <section id="tab-dashboard" class="tab-content space-y-6">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-slate-200">Panoramica Carico & Metrike Reali</h2>
+                    <h2 class="text-xl font-bold text-slate-200">Panoramica Carico & Metriche Reali</h2>
                     <button onclick="fetchIntervalsData()" class="text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors font-bold">↻ Sincronizza ora da Intervals.icu</button>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -86,21 +86,30 @@
                 </div>
             </section>
 
-            <!-- TAB 2: MASSINI -->
+            <!-- TAB 2: MASSINI (STRADA + LUNGHI SPECIFICI) -->
             <section id="tab-massini" class="tab-content hidden space-y-6">
-                <h2 class="text-xl font-bold text-slate-200">Metodologia Fulvio Massini</h2>
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-slate-200">Metodologia Fulvio Massini ("Tipi che corrono")</h2>
+                    <span class="text-xs bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-emerald-400">Strada (Mar/Ven) + Trail Specifico (Weekend)</span>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                        <b class="text-emerald-400 block mb-1">Martedì • Strada (Qualità)</b>
-                        <p class="text-slate-400">Ripetute / Interval Training basati sulla VR personale (Test 3km).</p>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+                        <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold">Martedì • Strada (Qualità)</span>
+                        <h3 class="font-bold text-slate-200 text-sm">Interval Training / Variazioni VR</h3>
+                        <p class="text-slate-400">Lavoro fondamentale basato sulla Velocità di Riferimento (Test 3km). Ripetute brevi o medie in soglia (CV) con recupero attivo.</p>
                     </div>
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                        <b class="text-sky-400 block mb-1">Venerdì • Strada (Sostanza)</b>
-                        <p class="text-slate-400">Corsa Media (CM) sostenuta o Progressivi di costruzione.</p>
+
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+                        <span class="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded font-bold">Venerdì • Strada (Sostanza)</span>
+                        <h3 class="font-bold text-slate-200 text-sm">Corsa Media (CM) / Progressivo</h3>
+                        <p class="text-slate-400">Costruzione aerobica costante. 12-14 km a ritmo medio sostenuto o progressivo per abituare l'organismo allo smaltimento del lattato.</p>
                     </div>
-                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                        <b class="text-amber-400 block mb-1">Weekend • Trail Specifico</b>
-                        <p class="text-slate-400">Endurance D+ con variazioni di ritmo guidate e tratti in salita.</p>
+
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
+                        <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold">Weekend • Trail con Lavoro Specifico</span>
+                        <h3 class="font-bold text-slate-200 text-sm">Endurance + Variazioni in Salita</h3>
+                        <p class="text-slate-400">Non solo lungo lento: inserimento di tratti in salita a ritmo gara trail, variazioni di ritmo nelle sezioni corribili e gestione dell'alimentazione tecnica.</p>
                     </div>
                 </div>
             </section>
@@ -247,15 +256,24 @@
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
                 activities.forEach(act => {
-                    const actDate = new Date(act.start_date_local);
+                    const actDate = new Date(act.start_date_local || act.start_date);
                     if (actDate >= sevenDaysAgo) {
-                        totalMeters += act.distance || 0;
-                        totalDPlus += act.total_elevation_gain || 0;
+                        totalMeters += (act.distance || 0);
+                        totalDPlus += (act.total_elevation_gain || act.elevation_gain || 0);
                     }
                 });
 
-                document.getElementById('dash-km').textContent = (totalMeters / 1000).toFixed(1) + ' km';
-                document.getElementById('dash-dplus').textContent = '+' + Math.round(totalDPlus) + ' m';
+                const kmTotali = (totalMeters / 1000).toFixed(1);
+                const dPlusTotale = Math.round(totalDPlus);
+
+                document.getElementById('dash-km').textContent = `${kmTotali} km`;
+                document.getElementById('dash-dplus').textContent = `+${dPlusTotale} m`;
+
+                const lastAct = activities[0];
+                if (lastAct) {
+                    if (lastAct.icu_ctl) document.getElementById('dash-ctl').textContent = Math.round(lastAct.icu_ctl);
+                    if (lastAct.icu_tsb) document.getElementById('dash-tsb').textContent = (lastAct.icu_tsb > 0 ? '+' : '') + Math.round(lastAct.icu_tsb);
+                }
             } catch (err) {
                 console.error("Sync error:", err);
             }
