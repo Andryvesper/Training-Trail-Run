@@ -29,6 +29,10 @@ test('usa le metriche più recenti disponibili e separa gli sport nel riepilogo'
     assert.equal(summary.activities.runKm, 15);
     assert.equal(summary.activities.swimMeters, 1200);
     assert.equal(summary.activities.averageRunPaceSecondsPerKm, 320);
+    assert.deepEqual(summary.activities.runBreakdown, [
+        { date: null, name: 'Run', type: 'run', distanceKm: 10 },
+        { date: null, name: 'TrailRun', type: 'trailrun', distanceKm: 5 }
+    ]);
 });
 
 test('non inventa metriche quando Intervals non restituisce valori', () => {
@@ -38,6 +42,7 @@ test('non inventa metriche quando Intervals non restituisce valori', () => {
     assert.deepEqual(summary.activities, {
         count: 0,
         runKm: null,
+        runBreakdown: [],
         swimMeters: null,
         averageRunPaceSecondsPerKm: null
     });

@@ -2,6 +2,7 @@
 import { initializePlatform } from './core/platform.js';
 import { initIntervalsModule } from './modules/intervals-ui.js';
 import { initCalendarModule } from './modules/calendar-ui.js';
+import { initRacesModule } from './modules/races-ui.js';
 
 const supabase = window.supabase.createClient(
     window.SUPABASE_CONFIG.URL, 
@@ -10,6 +11,7 @@ const supabase = window.supabase.createClient(
 
 document.addEventListener('DOMContentLoaded', async () => {
     setupTabNavigation();
+    setupSidebar();
 
     try {
         // Verifichiamo la sessione Supabase attiva
@@ -75,6 +77,9 @@ async function startApp(user) {
         console.log("Inizializzazione Modulo Calendario...");
         initCalendarModule(supabase, user.id);
 
+        console.log("Inizializzazione Modulo Gare...");
+        await initRacesModule(supabase, user.id);
+
         console.log("Mostro la dashboard principale...");
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('main-app').classList.remove('hidden');
@@ -105,12 +110,57 @@ function setupTabNavigation() {
             
             tabButtons.forEach(b => {
                 b.classList.remove('bg-emerald-500', 'text-slate-950');
-                b.classList.add('bg-slate-900', 'text-slate-400');
+                b.classList.remove('bg-slate-900', 'text-slate-400');
+                b.classList.add('text-slate-300');
                 b.setAttribute('aria-selected', 'false');
             });
-            btn.classList.remove('bg-slate-900', 'text-slate-400');
+            btn.classList.remove('text-slate-300', 'hover:bg-slate-900', 'hover:text-white');
             btn.classList.add('bg-emerald-500', 'text-slate-950');
             btn.setAttribute('aria-selected', 'true');
+            closeMobileSidebar();
         });
     });
+}
+
+function setupSidebar() {
+    const sidebar = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const menuButton = document.getElementById('btn-menu-toggle');
+    const closeButton = document.getElementById('btn-sidebar-close');
+    const collapseButton = document.getElementById('btn-sidebar-collapse');
+
+    menuButton?.addEventListener('click', () => {
+        const isOpen = !sidebar.classList.contains('-translate-x-full');
+        setMobileSidebarOpen(!isOpen);
+    });
+    closeButton?.addEventListener('click', closeMobileSidebar);
+    backdrop?.addEventListener('click', closeMobileSidebar);
+
+    collapseButton?.addEventListener('click', () => {
+        const isExpanded = collapseButton.getAttribute('aria-expanded') === 'true';
+        sidebar.classList.toggle('is-collapsed', isExpanded);
+        collapseButton.setAttribute('aria-expanded', String(!isExpanded));
+        collapseButton.setAttribute('aria-label', isExpanded ? 'Espandi menu' : 'Riduci menu');
+        collapseButton.textContent = isExpanded ? '⇥' : '⇤';
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeMobileSidebar();
+    });
+}
+
+function setMobileSidebarOpen(isOpen) {
+    const sidebar = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const menuButton = document.getElementById('btn-menu-toggle');
+
+    sidebar.classList.toggle('-translate-x-full', !isOpen);
+    sidebar.classList.toggle('translate-x-0', isOpen);
+    backdrop.classList.toggle('hidden', !isOpen);
+    menuButton.setAttribute('aria-expanded', String(isOpen));
+    menuButton.setAttribute('aria-label', isOpen ? 'Chiudi menu' : 'Apri menu');
+}
+
+function closeMobileSidebar() {
+    setMobileSidebarOpen(false);
 }

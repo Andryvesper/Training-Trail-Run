@@ -71,6 +71,16 @@ export function summarizeIntervalsData(wellness, activities) {
     const swimActivities = activityRecords.filter(activity => isSwimActivity(activity));
     const runDistances = runActivities.map(activity => readNumber(activity.distance)).filter(value => value !== null);
     const swimDistances = swimActivities.map(activity => readNumber(activity.distance)).filter(value => value !== null);
+    const runBreakdown = runActivities.map(activity => ({
+        date: typeof activity.start_date_local === 'string'
+            ? activity.start_date_local.slice(0, 10)
+            : null,
+        name: activity.name || activity.type || 'Corsa',
+        type: activityType(activity),
+        distanceKm: readNumber(activity.distance) === null
+            ? null
+            : readNumber(activity.distance) / 1000
+    }));
     const timedRunActivities = runActivities
         .map(activity => ({
             distance: readNumber(activity.distance),
@@ -92,6 +102,7 @@ export function summarizeIntervalsData(wellness, activities) {
             runKm: runDistances.length
                 ? runDistances.reduce((sum, distance) => sum + distance, 0) / 1000
                 : null,
+            runBreakdown,
             swimMeters: swimDistances.length
                 ? swimDistances.reduce((sum, distance) => sum + distance, 0)
                 : null,

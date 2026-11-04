@@ -19,6 +19,21 @@
             }
         }
     </script>
+    <style>
+        @media (min-width: 1024px) {
+            #app-sidebar.is-collapsed {
+                width: 5rem;
+            }
+
+            #app-sidebar.is-collapsed .nav-label {
+                display: none;
+            }
+
+            #app-sidebar.is-collapsed nav button {
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500 selection:text-slate-950">
 
@@ -49,53 +64,67 @@
     </div>
 
     <!-- Applicazione Principale -->
-    <div id="main-app" class="hidden min-h-screen flex flex-col">
-        <!-- Header -->
-        <header class="border-b border-slate-900 bg-slate-950/95 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-3 sm:py-4">
-            <div class="max-w-7xl mx-auto flex justify-between items-center">
-                <div class="flex items-center gap-2 sm:gap-4">
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <h1 class="text-xs sm:text-sm font-bold tracking-tight text-white">Training Trail Run</h1>
+    <div id="main-app" class="hidden min-h-screen lg:flex">
+        <button id="sidebar-backdrop" type="button" class="fixed inset-0 z-40 hidden bg-slate-950/80 backdrop-blur-sm lg:hidden" aria-label="Chiudi menu"></button>
+        <aside id="app-sidebar" class="fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-slate-800 bg-slate-950 transition-all duration-200 lg:static lg:translate-x-0 lg:w-64">
+            <div class="flex min-h-16 items-center justify-between gap-2 border-b border-slate-800 px-4">
+                <div class="flex min-w-0 items-center gap-3">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400" aria-hidden="true">🏃</span>
+                    <span class="nav-label truncate text-sm font-bold text-white">Training Trail Run</span>
+                </div>
+                <button id="btn-sidebar-close" type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-300 hover:bg-slate-800 lg:hidden" aria-label="Chiudi menu">✕</button>
+                <button id="btn-sidebar-collapse" type="button" class="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white lg:flex" aria-label="Riduci menu" aria-expanded="true">⇤</button>
+            </div>
+            <nav class="flex-1 space-y-2 overflow-y-auto p-3" role="tablist" aria-label="Sezioni dell'app">
+                <button role="tab" aria-selected="true" data-target="section-calendar" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl bg-emerald-500 px-3 text-left text-sm font-semibold text-slate-950" aria-label="Calendario">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span class="nav-label">Calendario</span>
+                </button>
+                <button role="tab" aria-selected="false" data-target="section-races" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Gare">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 21V5m0 0h12l-2 4 2 4H4m0-8v8m0 8h16"/></svg>
+                    <span class="nav-label">Gare</span>
+                </button>
+                <button role="tab" aria-selected="false" data-target="section-dashboard" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Dashboard e metriche">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <span class="nav-label">Dashboard</span>
+                </button>
+                <button role="tab" aria-selected="false" data-target="section-intervals" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Intervals.icu">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    <span class="nav-label">Intervals.icu</span>
+                </button>
+                <button role="tab" aria-selected="false" data-target="section-admin" class="tab-btn hidden min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" data-tab="admin" aria-label="Amministrazione">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                    <span class="nav-label">Amministrazione</span>
+                </button>
+            </nav>
+            <div class="nav-label border-t border-slate-800 p-4 text-xs text-slate-500">Pianifica · Allenati · Migliora</div>
+        </aside>
+
+        <div id="app-shell" class="flex min-h-screen min-w-0 flex-1 flex-col">
+            <header class="sticky top-0 z-30 border-b border-slate-900 bg-slate-950/95 px-4 py-3 backdrop-blur-md sm:px-6">
+                <div class="mx-auto flex max-w-7xl items-center justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <button id="btn-menu-toggle" type="button" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-200 hover:bg-slate-800 lg:hidden" aria-label="Apri menu" aria-expanded="false" aria-controls="app-sidebar">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        </button>
+                        <div class="flex min-w-0 items-center gap-2 sm:gap-4">
+                            <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" aria-hidden="true"></span>
+                            <span class="truncate text-xs font-semibold text-white sm:text-sm">Training Trail Run</span>
+                            <span id="user-role-badge" class="hidden rounded-full border border-slate-800 bg-slate-900 px-2.5 py-1 text-[10px] font-medium text-slate-300 sm:inline">--</span>
+                        </div>
                     </div>
-                    <span id="user-role-badge" class="text-[10px] bg-slate-900 text-slate-300 px-3 py-1 rounded-full border border-slate-800 font-medium">--</span>
+                    <div class="flex shrink-0 items-center gap-2 sm:gap-4">
+                        <span id="logged-user-email" class="hidden text-xs text-slate-400 xl:inline"></span>
+                        <button id="btn-logout" class="min-h-11 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-300 transition-all hover:bg-slate-800 hover:text-white">Esci</button>
+                    </div>
                 </div>
-                
-                <div class="flex items-center gap-6">
-                    <span id="logged-user-email" class="text-xs text-slate-400 hidden lg:inline"></span>
-                    <button id="btn-logout" class="min-h-11 text-xs font-medium text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 px-3 py-2 rounded-xl border border-slate-800 transition-all">Esci</button>
-                </div>
-            </div>
-        </header>
+            </header>
 
-        <!-- Navbar Moduli -->
-        <div class="border-b border-slate-900 bg-slate-900/30">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 flex gap-2 py-2 overflow-x-auto" role="tablist" aria-label="Sezioni dell'app">
-                <button role="tab" aria-selected="true" data-target="section-dashboard" class="tab-btn min-h-11 shrink-0 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 transition-all shadow-md shadow-emerald-500/10 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    Dashboard & Metriche
-                </button>
-                <button role="tab" aria-selected="false" data-target="section-calendar" class="tab-btn min-h-11 shrink-0 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all border border-slate-800/80 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    Calendario
-                </button>
-                <button role="tab" aria-selected="false" data-target="section-intervals" class="tab-btn min-h-11 shrink-0 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all border border-slate-800/80 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                    Intervals.icu
-                </button>
-                <button role="tab" aria-selected="false" data-target="section-admin" class="tab-btn min-h-11 shrink-0 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all border border-slate-800/80 hidden items-center gap-2" data-tab="admin">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                    Amministrazione
-                </button>
-            </div>
-        </div>
-
-        <!-- Contenuto Principale -->
-        <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-5 sm:space-y-6">
+            <main class="mx-auto w-full max-w-7xl flex-1 space-y-5 p-4 sm:space-y-6 sm:p-6">
             <div id="module-container" class="space-y-6">
                 
                 <!-- Modulo Dashboard Metriche -->
-                <div id="section-dashboard" role="tabpanel" class="space-y-5 sm:space-y-6">
+                <div id="section-dashboard" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
                     <div class="space-y-2">
                         <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">La tua attività</p>
                         <h2 class="text-2xl sm:text-3xl font-bold text-white">Riepilogo</h2>
@@ -138,7 +167,7 @@
                 </div>
 
                 <!-- Modulo Calendario Multi-Settimanale -->
-                <div id="section-calendar" role="tabpanel" class="space-y-5 sm:space-y-6 hidden">
+                <div id="section-calendar" role="tabpanel" class="space-y-5 sm:space-y-6">
                     <div class="space-y-4 bg-slate-900/70 border border-slate-800 p-4 sm:p-5 rounded-2xl">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Il tuo programma</p>
@@ -153,6 +182,104 @@
                     </div>
                     <div id="calendar-multi-container" class="space-y-4">
                         <!-- Renderizzato via JS -->
+                    </div>
+                </div>
+
+                <div id="section-races" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
+                    <div class="space-y-2">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Obiettivi e risultati</p>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white">Gare</h2>
+                        <p class="text-sm text-slate-400">Registra le gare future anche per mese/periodo, oppure archivia i risultati conclusi.</p>
+                    </div>
+                    <p id="races-status" class="hidden rounded-xl border p-3 text-sm" role="status" aria-live="polite"></p>
+                    <form id="race-form" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5">
+                        <input type="hidden" name="race_id">
+                        <h3 class="text-base font-bold text-white">Aggiungi una gara</h3>
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label class="space-y-1 text-xs font-medium text-slate-400 sm:col-span-2">
+                                <span>Nome della gara</span>
+                                <input name="name" required maxlength="120" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200" placeholder="Es. Top Dolomites 100 km">
+                            </label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400">
+                                <span>Data esatta (se nota)</span>
+                                <input name="event_date" type="date" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                            </label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400">
+                                <span>Oppure periodo</span>
+                                <input name="target_period" maxlength="80" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200" placeholder="Giugno 2027">
+                            </label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400">
+                                <span>Distanza (km)</span>
+                                <input name="distance_km" type="number" min="0.001" step="0.001" inputmode="decimal" required class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                            </label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400">
+                                <span>Dislivello positivo (m, facoltativo)</span>
+                                <input name="elevation_gain_m" type="number" min="0" step="1" inputmode="numeric" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                            </label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400">
+                                <span>Priorità</span>
+                                <select name="priority" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                    <option value="1">Principale</option>
+                                    <option value="2" selected>Secondaria</option>
+                                    <option value="3">Facoltativa</option>
+                                </select>
+                            </label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400 sm:col-span-2">
+                                <span>Stato</span>
+                                <select name="status" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                    <option value="planned">Obiettivo pianificato</option>
+                                    <option value="completed">Gara completata</option>
+                                </select>
+                            </label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400 sm:col-span-2">
+                                <span>Obiettivo o note</span>
+                                <textarea name="goal" rows="2" maxlength="2000" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" placeholder="Obiettivo personale, percorso o note"></textarea>
+                            </label>
+                        </div>
+                        <div id="race-result-fields" class="hidden space-y-3 border-t border-slate-800 pt-4">
+                            <h4 class="text-sm font-semibold text-white">Risultato</h4>
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <label class="space-y-1 text-xs font-medium text-slate-400">
+                                    <span>Tempo ufficiale (HH:MM:SS)</span>
+                                    <input name="official_time" inputmode="numeric" placeholder="02:59:48" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                </label>
+                                <label class="space-y-1 text-xs font-medium text-slate-400">
+                                    <span>Real time / chip (HH:MM:SS)</span>
+                                    <input name="chip_time" inputmode="numeric" placeholder="02:58:44" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                </label>
+                                <label class="space-y-1 text-xs font-medium text-slate-400">
+                                    <span>Posizione assoluta</span>
+                                    <input name="overall_position" type="number" min="1" step="1" inputmode="numeric" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                </label>
+                                <label class="space-y-1 text-xs font-medium text-slate-400">
+                                    <span>Posizione di genere</span>
+                                    <input name="gender_position" type="number" min="1" step="1" inputmode="numeric" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                </label>
+                                <label class="space-y-1 text-xs font-medium text-slate-400">
+                                    <span>Categoria</span>
+                                    <input name="category" maxlength="40" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200" placeholder="Es. SM40">
+                                </label>
+                                <label class="space-y-1 text-xs font-medium text-slate-400">
+                                    <span>Posizione di categoria</span>
+                                    <input name="category_position" type="number" min="1" step="1" inputmode="numeric" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                </label>
+                                <label class="space-y-1 text-xs font-medium text-slate-400">
+                                    <span>Pettorale (facoltativo)</span>
+                                    <input name="bib_number" maxlength="30" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                </label>
+                                <label class="space-y-1 text-xs font-medium text-slate-400">
+                                    <span>Fonte del risultato (HTTPS)</span>
+                                    <input name="result_source_url" type="url" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2 sm:flex-row">
+                            <button type="submit" class="min-h-11 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-400">Salva gara</button>
+                            <button id="race-cancel-edit" type="button" class="hidden min-h-11 rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-300 hover:bg-slate-800">Annulla modifica</button>
+                        </div>
+                    </form>
+                    <div id="races-list" class="space-y-3" aria-live="polite">
+                        <p class="rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400">Caricamento gare e risultati…</p>
                     </div>
                 </div>
 
@@ -192,7 +319,8 @@
                 </div>
 
             </div>
-        </main>
+            </main>
+        </div>
     </div>
 
     <script src="config.js"></script>

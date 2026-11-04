@@ -195,6 +195,31 @@ function renderActivities(activities) {
         card.append(createElement('p', 'mt-1 text-lg sm:text-xl font-semibold text-white', value));
         container.append(card);
     });
+
+    if (activities.runBreakdown.length) {
+        const details = createElement('details', 'col-span-full rounded-xl border border-slate-800 bg-slate-950/60');
+        const summary = createElement(
+            'summary',
+            'min-h-11 cursor-pointer px-4 py-3 text-sm font-medium text-slate-200',
+            `Attività conteggiate nella corsa (${activities.runBreakdown.length})`
+        );
+        details.append(summary);
+        const list = createElement('ul', 'space-y-2 border-t border-slate-800 p-4');
+        activities.runBreakdown.forEach(activity => {
+            const row = createElement('li', 'flex items-start justify-between gap-3 text-sm');
+            const name = createElement('span', 'min-w-0 text-slate-300');
+            name.textContent = `${activity.date ? `${activity.date} · ` : ''}${activity.name} (${activity.type})`;
+            const distance = createElement(
+                'span',
+                'shrink-0 font-semibold text-white',
+                activity.distanceKm === null ? 'distanza n/d' : `${formatMetric(activity.distanceKm)} km`
+            );
+            row.append(name, distance);
+            list.append(row);
+        });
+        details.append(list);
+        container.append(details);
+    }
 }
 
 function setDashboardStatus(message, state) {
