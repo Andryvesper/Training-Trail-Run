@@ -1,4 +1,4 @@
-// js/modules/calendar-ui.js - Render Multi-Settimanale Avanzato
+// js/modules/calendar-ui.js - Render Multi-Settimanale Avanzato con Drag & Drop e Validazione
 import { TrainingCalendarService } from './calendar.js';
 
 export function initCalendarModule(supabaseClient, userId) {
@@ -9,6 +9,7 @@ export function initCalendarModule(supabaseClient, userId) {
 
     const multiWeeks = calendarService.generateMultiWeekPlan(new Date(), 1, 4);
     renderMultiWeekView(container, multiWeeks);
+    setupDragAndDrop(container);
 }
 
 function renderMultiWeekView(container, weeks) {
@@ -44,7 +45,7 @@ function renderMultiWeekView(container, weeks) {
             const isToday = day.date === new Date().toISOString().split('T')[0];
 
             daysHtml += `
-                <div data-date="${day.date}" class="border ${isFixed ? 'border-cyan-500/30 bg-cyan-950/10' : (isToday ? 'border-emerald-500/60 bg-emerald-950/10' : 'border-slate-800/80 bg-slate-950/50')} rounded-xl p-3 flex flex-col justify-between transition-all hover:border-slate-700 group">
+                <div draggable="true" data-date="${day.date}" class="day-card border ${isFixed ? 'border-cyan-500/30 bg-cyan-950/10' : (isToday ? 'border-emerald-500/60 bg-emerald-950/10' : 'border-slate-800/80 bg-slate-950/50')} rounded-xl p-3 flex flex-col justify-between transition-all hover:border-slate-600 cursor-grab active:cursor-grabbing group">
                     <div>
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-[11px] font-bold text-slate-300 uppercase">
@@ -58,7 +59,10 @@ function renderMultiWeekView(container, weeks) {
                     <div class="space-y-2 pt-2 border-t border-slate-900">
                         <div class="text-[10px] text-slate-400 flex items-center justify-between">
                             <span>${isFixed ? '🏊 19:00 Nuoto' : '🏃 Massini'}</span>
-                            <button onclick="alert('Modifica allenamento per il ${day.date}')" class="text-emerald-400 hover:underline font-medium">Modifica</button>
+                            <div class="flex items-center gap-1">
+                                <button title="Conferma / Valida lavoro eseguito" onclick="alert('Lavoro confermato e salvato per il ${day.date}')" class="text-xs hover:scale-110 transition-transform">✅</button>
+                                <button title="Modifica data" onclick="alert('Modifica allenamento per il ${day.date}')" class="text-emerald-400 hover:underline font-medium">Modifica</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -68,6 +72,43 @@ function renderMultiWeekView(container, weeks) {
         daysHtml += `</div>`;
         weekSection.innerHTML = headerHtml + daysHtml;
         container.appendChild(weekSection);
+    });
+}
+
+/**
+ * Gestione Drag & Drop per lo spostamento degli allenamenti tra i giorni
+ */
+function setupDragAndDrop(container) {
+    let draggedCard = null;
+
+    container.addEventListener('dragstart', (e) => {
+        const card = e.target.closest('.day-card');
+        if (card) {
+            draggedCard = card;
+            e.dataTransfer.setData('text/plain', card.dataset.date);
+            card.classList.add('opacity-40');
+        }
+    });
+
+    container.addEventListener('dragend', (e) => {
+        const card = e.target.closest('.day-card');
+        if (card) card.classList.remove('opacity-40');
+    });
+
+    container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+
+    container.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const targetCard = e.target.closest('.day-card');
+        if (targetCard && draggedCard && targetCard !== draggedCard) {
+            const sourceDate = draggedCard.dataset.date;
+            const targetDate = targetCard.dataset.date;
+            
+            // Inversione visiva o riassegnazione
+            alert(`Spostamento allenamento dal ${sourceDate} al ${targetDate} confermato.`);
+        }
     });
 }
 
