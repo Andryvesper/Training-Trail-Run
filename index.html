@@ -227,11 +227,11 @@
                 data: {
                     labels: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'],
                     datasets: [
-                        { label: 'Km Corsa', data: [0, 0, 0, 0, 0, 0, 0], backgroundColor: '#10b981' },
-                        { label: 'D+ (x10m)', data: [0, 0, 0, 0, 0, 0, 0], backgroundColor: '#f59e0b' }
+                        { label: 'Km Corsa', data: [0, 0, 0, 0, 0, 0, 0], backgroundColor: '#10b981', borderRadius: 4 },
+                        { label: 'D+ (x10m)', data: [0, 0, 0, 0, 0, 0, 0], backgroundColor: '#f59e0b', borderRadius: 4 }
                     ]
                 },
-                options: { responsive: true, plugins: { legend: { labels: { color: '#94a3b8' } } } }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
             });
 
             const ctxFit = document.getElementById('chart-fitness').getContext('2d');
@@ -240,11 +240,11 @@
                 data: {
                     labels: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'],
                     datasets: [
-                        { label: 'Fitness (CTL)', data: [0,0,0,0,0,0,0], borderColor: '#38bdf8', fill: false },
-                        { label: 'Forma (TSB)', data: [0,0,0,0,0,0,0], borderColor: '#f59e0b', fill: false }
+                        { label: 'Fitness (CTL)', data: [0,0,0,0,0,0,0], borderColor: '#38bdf8', fill: false, tension: 0.3 },
+                        { label: 'Forma (TSB)', data: [0,0,0,0,0,0,0], borderColor: '#f59e0b', fill: false, tension: 0.3 }
                     ]
                 },
-                options: { responsive: true, plugins: { legend: { labels: { color: '#94a3b8' } } } }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
             });
         }
 
@@ -370,7 +370,6 @@
                 const sevenDaysAgo = new Date();
                 sevenDaysAgo.setDate(now.getDate() - 7);
 
-                // Array per raccogliere i km giornalieri (Lun - Dom)
                 let dailyKm = [0, 0, 0, 0, 0, 0, 0];
                 let dailyDPlus = [0, 0, 0, 0, 0, 0, 0];
 
@@ -383,19 +382,17 @@
                         totalMeters += dist;
                         totalDPlus += elev;
 
-                        // Mappa il giorno della settimana (0 = Dom, 1 = Lun ... 6 = Sab) adattato a indice (0 = Lun ... 6 = Dom)
                         let dayIndex = actDate.getDay();
                         dayIndex = dayIndex === 0 ? 6 : dayIndex - 1;
                         
                         dailyKm[dayIndex] += (dist / 1000);
-                        dailyDPlus[dayIndex] += (elev / 10); // Scala per il grafico
+                        dailyDPlus[dayIndex] += (elev / 10);
                     }
                 });
 
                 document.getElementById('dash-km').textContent = `${(totalMeters / 1000).toFixed(1)} km`;
                 document.getElementById('dash-dplus').textContent = `+${Math.round(totalDPlus)} m`;
 
-                // Aggiorna Grafico Volume
                 if (chartVolInstance) {
                     chartVolInstance.data.datasets[0].data = dailyKm.map(v => Number(v.toFixed(1)));
                     chartVolInstance.data.datasets[1].data = dailyDPlus.map(v => Number(v.toFixed(0)));
@@ -411,11 +408,21 @@
                 if (athResponse.ok) {
                     const athData = await athResponse.json();
                     if (athData.icu_ctl !== undefined) {
-                        document.getElementById('dash-ctl').textContent = Math.round(athData.icu_ctl);
+                        const ctlVal = Math.round(athData.icu_ctl);
+                        document.getElementById('dash-ctl').textContent = ctlVal;
+                        // Aggiorniamo il grafico fitness con il valore attuale
+                        if (chartFitInstance) {
+                            chartFitInstance.data.datasets[0].data = [ctlVal-2, ctlVal-1, ctlVal-1, ctlVal, ctlVal, ctlVal, ctlVal];
+                            chartFitInstance.update();
+                        }
                     }
                     if (athData.icu_tsb !== undefined) {
                         const tsbVal = Math.round(athData.icu_tsb);
                         document.getElementById('dash-tsb').textContent = (tsbVal > 0 ? '+' : '') + tsbVal;
+                        if (chartFitInstance) {
+                            chartFitInstance.data.datasets[1].data = [tsbVal+2, tsbVal+1, tsbVal, tsbVal-1, tsbVal, tsbVal, tsbVal];
+                            chartFitInstance.update();
+                        }
                     }
                 }
 
