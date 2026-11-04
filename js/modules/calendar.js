@@ -1,11 +1,11 @@
-// js/modules/calendar.js - Gestione Multi-Settimanale e Capisaldi Massini
+// js/modules/calendar.js - Gestione Multi-Settimanale e Allenamenti Fissi
 
 export const MASSINI_PILLARS = {
     0: { type: 'REST_OR_LONG', label: 'Domenica - Long Run / Trail Lungo' },
-    1: { type: 'SWIM', label: 'Lunedì - Nuoto Fisso (19:00 - 19:45)', fixed: true },
+    1: { type: 'FIXED_SESSION', label: 'Lunedì - Corsa / Attività + Nuoto Fisso (19:00)', fixed: true, primary: 'Nuoto Fisso' },
     2: { type: 'QUALITY_RUN', label: 'Martedì - Corsa (Qualità / Varianza)' },
     3: { type: 'RECOVERY', label: 'Mercoledì - Riposo o Recupero Attivo' },
-    4: { type: 'SWIM', label: 'Giovedì - Nuoto Fisso (19:00 - 19:45)', fixed: true },
+    4: { type: 'FIXED_SESSION', label: 'Giovedì - Corsa / Attività + Nuoto Fisso (19:00)', fixed: true, primary: 'Nuoto Fisso' },
     5: { type: 'QUALITY_RUN', label: 'Venerdì - Corsa (Qualità / Medio CM)' },
     6: { type: 'TRAIL_LONG', label: 'Sabato - Trail / Dislivello D+' }
 };
@@ -17,14 +17,10 @@ export class TrainingCalendarService {
         return MASSINI_PILLARS[dayOfWeek] || { type: 'FREE', label: 'Giornata Libera' };
     }
 
-    /**
-     * Genera un blocco di più settimane (es. 1 passata, corrente, 4 future)
-     */
     generateMultiWeekPlan(centerDate = new Date(), pastWeeks = 1, futureWeeks = 4) {
         const weeks = [];
         const currentCenter = new Date(centerDate);
         
-        // Trova il lunedì della settimana di riferimento
         const dayOfWeek = currentCenter.getDay();
         const distanceToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
         const startOfCenterWeek = new Date(currentCenter);
@@ -36,8 +32,6 @@ export class TrainingCalendarService {
 
         for (let w = 0; w < totalWeeks; w++) {
             const weekDays = [];
-            let weekLoad = 0;
-            let weekDistance = 0;
 
             for (let d = 0; d < 7; d++) {
                 const currentDate = new Date(startGlobalDate);
@@ -49,7 +43,7 @@ export class TrainingCalendarService {
                     dayOfWeek: dayOfWeekNum,
                     rule: this.getDayRule(dayOfWeekNum),
                     completed: false,
-                    actualData: null
+                    intervalsActivity: null // Verrà popolato dal match con Intervals
                 });
             }
 
@@ -59,7 +53,7 @@ export class TrainingCalendarService {
                 endDate: weekDays[6].date,
                 isCurrent: w === pastWeeks,
                 days: weekDays,
-                stats: { load: 150, distance: '35 km', fitness: 52, form: 12 } // Predisposto per dati reali Intervals
+                stats: { load: 150, fitness: 52, form: 12 }
             });
         }
 
