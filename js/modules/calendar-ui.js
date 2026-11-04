@@ -1,13 +1,57 @@
-// js/modules/calendar-ui.js - Render Multi-Settimanale Avanzato con Drag & Drop e Validazione
+// js/modules/calendar-ui.js - Interfaccia Calendario con Match Intervals e Doppie Sedute
 import { TrainingCalendarService } from './calendar.js';
+import { IntervalsService } from './intervals.js';
 
-export function initCalendarModule(supabaseClient, userId) {
+export async function initCalendarModule(supabaseClient, userId) {
     const calendarService = new TrainingCalendarService();
     const container = document.getElementById('calendar-multi-container');
 
     if (!container) return;
 
+    // 1. Recuperiamo credenziali Intervals dal DB per verificare il collegamento reale
+    let athleteId = null;
+    let apiKey = null;
+
+    try {
+        const { data } = await supabaseClient
+            .from('profiles')
+            .select('intervals_id, intervals_key, intervals_athlete_id, intervals_api_key')
+            .eq('id', userId)
+            .single();
+
+        if (data) {
+            athleteId = data.intervals_id || data.intervals_athlete_id;
+            apiKey = data.intervals_key || data.intervals_api_key;
+        }
+    } catch (err) {
+        console.error("Errore lettura credenziali per calendario:", err);
+    }
+
+    // 2. Generiamo il piano multi-settimanale
     const multiWeeks = calendarService.generateMultiWeekPlan(new Date(), 1, 4);
+
+    // 3. Se abbiamo le credenziali, scarichiamo le attività reali da Intervals per fare il match
+    if (athleteId && apiKey) {
+        const service = new IntervalsService(athleteId, apiKey);
+        const oldestDate = multiWeeks[0].startDate;
+        const newestDate = multiWeeks[multiWeeks.length - 1].endDate;
+
+        const activities = await service.getActivities(oldestDate, newestDate);
+
+        if (activities && Array.isArray(activities)) {
+            // Incrociamo le attività reali con i giorni del calendario
+            multiWeeks.forEach(week => {
+                week.days.forEach(day => {
+                    const matched = activities.find(act => act.start_date_local && act.start_date_local.startsWith(day.date));
+                    if (matched) {
+                        day.intervalsActivity = matched;
+                        day.completed = true; // Attività trovata su Intervals
+                    }
+                });
+            });
+        }
+    }
+
     renderMultiWeekView(container, multiWeeks);
     setupDragAndDrop(container);
 }
@@ -31,7 +75,7 @@ function renderMultiWeekView(container, weeks) {
                     ${week.isCurrent ? '<span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-semibold">In corso</span>' : ''}
                 </div>
                 <div class="flex items-center gap-4 text-[11px] text-slate-400">
-                    <div>Carico: <span class="text-white font-semibold">${week.stats.load}</span></div>
+                    <div>Carico Settimanale: <span class="text-white font-semibold">${week.stats.load}</span></div>
                     <div>Fitness (CTL): <span class="text-cyan-400 font-semibold">${week.stats.fitness}</span></div>
                     <div>Forma (TSB): <span class="text-emerald-400 font-semibold">+${week.stats.form}</span></div>
                 </div>
@@ -43,6 +87,7 @@ function renderMultiWeekView(container, weeks) {
         week.days.forEach(day => {
             const isFixed = day.rule.fixed;
             const isToday = day.date === new Date().toISOString().split('T')[0];
+            const hasActivity = day.intervalsActivity;
 
             daysHtml += `
                 <div draggable="true" data-date="${day.date}" class="day-card border ${isFixed ? 'border-cyan-500/30 bg-cyan-950/10' : (isToday ? 'border-emerald-500/60 bg-emerald-950/10' : 'border-slate-800/80 bg-slate-950/50')} rounded-xl p-3 flex flex-col justify-between transition-all hover:border-slate-600 cursor-grab active:cursor-grabbing group">
@@ -51,19 +96,26 @@ function renderMultiWeekView(container, weeks) {
                             <span class="text-[11px] font-bold text-slate-300 uppercase">
                                 ${new Date(day.date).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}
                             </span>
-                            ${isFixed ? '<span class="text-[8px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded font-bold">Capisaldo</span>' : ''}
+                            ${isFixed ? '<span class="text-[8px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded font-bold">Sessione Fissa</span>' : ''}
                         </div>
                         <p class="text-xs font-semibold text-white mb-2">${day.rule.label}</p>
                     </div>
 
                     <div class="space-y-2 pt-2 border-t border-slate-900">
-                        <div class="text-[10px] text-slate-400 flex items-center justify-between">
-                            <span>${isFixed ? '🏊 19:00 Nuoto' : '🏃 Massini'}</span>
-                            <div class="flex items-center gap-1">
-                                <button title="Conferma / Valida lavoro eseguito" onclick="alert('Lavoro confermato e salvato per il ${day.date}')" class="text-xs hover:scale-110 transition-transform">✅</button>
-                                <button title="Modifica data" onclick="alert('Modifica allenamento per il ${day.date}')" class="text-emerald-400 hover:underline font-medium">Modifica</button>
+                        ${hasActivity ? `
+                            <div class="bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-lg text-[10px] space-y-1">
+                                <div class="flex justify-between items-center text-emerald-400 font-bold">
+                                    <span>Rilevato da Intervals ✓</span>
+                                    <button onclick="confirmActivity('${day.date}')" class="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded font-bold hover:bg-emerald-400">Conferma</button>
+                                </div>
+                                <div class="text-slate-300">${hasActivity.name || 'Attività'} (${Math.round((hasActivity.moving_time || 0)/60)} min)</div>
                             </div>
-                        </div>
+                        ` : `
+                            <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                                <span>${isFixed ? '🏊 Doppia (Corsa + Nuoto 19:00)' : '🏃 Programma Massini'}</span>
+                                <button onclick="alert('Modifica pianificazione per il ${day.date}')" class="text-emerald-400 hover:underline font-medium">Modifica</button>
+                            </div>
+                        `}
                     </div>
                 </div>
             `;
@@ -75,9 +127,10 @@ function renderMultiWeekView(container, weeks) {
     });
 }
 
-/**
- * Gestione Drag & Drop per lo spostamento degli allenamenti tra i giorni
- */
+window.confirmActivity = function(date) {
+    alert(`Attività del giorno ${date} confermata e validata con successo!`);
+};
+
 function setupDragAndDrop(container) {
     let draggedCard = null;
 
@@ -105,9 +158,7 @@ function setupDragAndDrop(container) {
         if (targetCard && draggedCard && targetCard !== draggedCard) {
             const sourceDate = draggedCard.dataset.date;
             const targetDate = targetCard.dataset.date;
-            
-            // Inversione visiva o riassegnazione
-            alert(`Spostamento allenamento dal ${sourceDate} al ${targetDate} confermato.`);
+            alert(`Spostamento allenamento dal ${sourceDate} al ${targetDate} applicato.`);
         }
     });
 }
