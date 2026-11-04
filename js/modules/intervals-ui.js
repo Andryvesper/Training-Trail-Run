@@ -1,5 +1,11 @@
-// js/modules/intervals-ui.js - Sincronizzazione Reale e Parsing Ottimizzato Intervals.icu
-import { IntervalsService } from './intervals.js';
+import { IntervalsService, summarizeIntervalsData } from './intervals.js';
+
+const METRICS = [
+    ['ctl', 'metric-ctl'],
+    ['atl', 'metric-atl'],
+    ['tsb', 'metric-tsb'],
+    ['load', 'metric-load']
+];
 
 export async function initIntervalsModule(supabaseClient, userId) {
     const athleteInput = document.getElementById('intervals-athlete-id');
@@ -9,25 +15,38 @@ export async function initIntervalsModule(supabaseClient, userId) {
     const statusMsg = document.getElementById('intervals-status-msg');
 
     try {
-        const { data } = await supabaseClient
+        const { data, error } = await supabaseClient
             .from('profiles')
             .select('intervals_id, intervals_key, intervals_athlete_id, intervals_api_key')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
-        if (data) {
-            const athleteId = data.intervals_id || data.intervals_athlete_id || '';
-            const apiKey = data.intervals_key || data.intervals_api_key || '';
+        if (error) throw error;
 
-            if (athleteInput) athleteInput.value = athleteId;
-            if (apiKeyInput) apiKeyInput.value = apiKey;
+        const athleteId = data?.intervals_id || data?.intervals_athlete_id || '';
+        const apiKey = data?.intervals_key || data?.intervals_api_key || '';
+        athleteInput.value = athleteId;
+        apiKeyInput.value = apiKey;
 
-            if (athleteId && apiKey) {
-                await loadRealDashboardData(athleteId, apiKey);
+        if (athleteId && apiKey) {
+            try {
+                await syncDashboard(athleteId, apiKey);
+            } catch (syncError) {
+                console.error('Errore nella sincronizzazione iniziale Intervals.icu:', syncError);
+                setDashboardStatus(
+                    `Collegamento non riuscito: ${syncError.message}`,
+                    'error'
+                );
             }
+        } else {
+            setDashboardStatus(
+                'Intervals.icu non è ancora collegato. Inserisci il tuo Athlete ID e la tua API Key per visualizzare i dati reali.',
+                'empty'
+            );
         }
-    } catch (err) {
-        console.error("Errore nel caricamento credenziali Intervals:", err);
+    } catch (error) {
+        console.error('Errore nel caricamento della configurazione Intervals:', error);
+        setDashboardStatus(`Impossibile leggere la configurazione Intervals.icu: ${error.message}`, 'error');
     }
 
     btnSave?.addEventListener('click', async () => {
@@ -35,25 +54,41 @@ export async function initIntervalsModule(supabaseClient, userId) {
         const apiKey = apiKeyInput.value.trim();
 
         if (!athleteId || !apiKey) {
-            showStatus("Compila tutti i campi prima di salvare.", "rose");
+            showStatus(statusMsg, 'Inserisci Athlete ID e API Key.', 'error');
             return;
         }
 
-        const { error } = await supabaseClient
-            .from('profiles')
-            .update({
-                intervals_id: athleteId,
-                intervals_key: apiKey,
-                intervals_athlete_id: athleteId,
-                intervals_api_key: apiKey
-            })
-            .eq('id', userId);
+        btnSave.disabled = true;
+        showStatus(statusMsg, 'Salvataggio credenziali…', 'loading');
+        try {
+            const { error } = await supabaseClient
+                .from('profiles')
+                .update({
+                    intervals_id: athleteId,
+                    intervals_key: apiKey,
+                    intervals_athlete_id: athleteId,
+                    intervals_api_key: apiKey
+                })
+                .eq('id', userId);
 
-        if (error) {
-            showStatus("Errore durante il salvataggio nel database.", "rose");
-        } else {
-            showStatus("Configurazione salvata con successo!", "emerald");
-            await loadRealDashboardData(athleteId, apiKey);
+            if (error) throw error;
+        } catch (error) {
+            console.error('Errore nel salvataggio delle credenziali Intervals.icu:', error);
+            showStatus(statusMsg, `Operazione non completata: ${error.message}`, 'error');
+            btnSave.disabled = false;
+            return;
+        }
+
+        document.dispatchEvent(new CustomEvent('intervals:sync'));
+        try {
+            await syncDashboard(athleteId, apiKey);
+            showStatus(statusMsg, 'Credenziali salvate e dati sincronizzati.', 'success');
+        } catch (error) {
+            console.error('Errore nella sincronizzazione dopo il salvataggio delle credenziali:', error);
+            setDashboardStatus(`Credenziali salvate, ma sincronizzazione non riuscita: ${error.message}`, 'error');
+            showStatus(statusMsg, `Credenziali salvate, ma sincronizzazione non riuscita: ${error.message}`, 'error');
+        } finally {
+            btnSave.disabled = false;
         }
     });
 
@@ -62,153 +97,173 @@ export async function initIntervalsModule(supabaseClient, userId) {
         const apiKey = apiKeyInput.value.trim();
 
         if (!athleteId || !apiKey) {
-            showStatus("Inserisci ID e API Key per testare la connessione.", "rose");
+            showStatus(statusMsg, 'Inserisci Athlete ID e API Key.', 'error');
             return;
         }
 
-        showStatus("Sincronizzazione reale in corso...", "amber");
-        const success = await loadRealDashboardData(athleteId, apiKey);
-        
-        if (success) {
-            showStatus("Sincronizzazione completata con i tuoi dati reali!", "emerald");
-        } else {
-            showStatus("Errore di connessione o credenziali non valide.", "rose");
+        btnTest.disabled = true;
+        showStatus(statusMsg, 'Verifica del collegamento e sincronizzazione…', 'loading');
+        try {
+            await syncDashboard(athleteId, apiKey);
+            showStatus(statusMsg, 'Collegamento verificato: dati aggiornati da Intervals.icu.', 'success');
+        } catch (error) {
+            console.error('Errore durante il test Intervals.icu:', error);
+            setDashboardStatus(`Sincronizzazione non riuscita: ${error.message}`, 'error');
+            showStatus(statusMsg, `Verifica non riuscita: ${error.message}`, 'error');
+        } finally {
+            btnTest.disabled = false;
         }
     });
-
-    function showStatus(text, color) {
-        if (!statusMsg) return;
-        statusMsg.textContent = text;
-        statusMsg.className = `text-xs text-center text-${color}-400 block mt-2 p-2 rounded-xl bg-slate-900 border border-slate-800`;
-        statusMsg.classList.remove('hidden');
-    }
 }
 
-/**
- * Elaborazione puntuale dei dati reali restituiti dalle API di Intervals.icu
- */
-async function loadRealDashboardData(athleteId, apiKey) {
-    try {
-        const service = new IntervalsService(athleteId, apiKey);
-        
-        const today = new Date().toISOString().split('T')[0];
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+async function syncDashboard(athleteId, apiKey) {
+    clearDashboardData();
+    setDashboardStatus('Caricamento dei dati reali da Intervals.icu…', 'loading');
 
-        const [wellness, activities] = await Promise.all([
-            service.getWellness(thirtyDaysAgo, today),
-            service.getActivities(sevenDaysAgo, today)
-        ]);
+    const today = new Date();
+    const newest = formatDateKey(today);
+    const oldestWellness = formatDateKey(addDays(today, -30));
+    const oldestActivities = formatDateKey(addDays(today, -7));
+    const service = new IntervalsService(athleteId, apiKey);
+    const [wellness, activities] = await Promise.all([
+        service.getWellness(oldestWellness, newest),
+        service.getActivities(oldestActivities, newest)
+    ]);
 
-        // 1. Estrazione CTL, ATL, TSB e Load dai dati di Wellness
-        let ctl = '--', atl = '--', tsb = '--', load = '--';
+    const summary = summarizeIntervalsData(wellness, activities);
+    renderMetrics(summary.metrics);
+    renderActivities(summary.activities);
 
-        if (wellness && Array.isArray(wellness) && wellness.length > 0) {
-            // Cerchiamo l'ultimo record che contiene effettivamente ctl/atl
-            const validWellness = wellness.reverse().find(w => w.ctl !== undefined || w.atl !== undefined) || wellness[0];
-            
-            if (validWellness) {
-                ctl = validWellness.ctl !== undefined ? Math.round(validWellness.ctl) : '--';
-                atl = validWellness.atl !== undefined ? Math.round(validWellness.atl) : '--';
-                load = validWellness.load !== undefined ? Math.round(validWellness.load) : '--';
-                
-                if (typeof ctl === 'number' && typeof atl === 'number') {
-                    tsb = ctl - atl;
-                }
-            }
-        }
-
-        document.getElementById('metric-ctl').textContent = ctl;
-        document.getElementById('metric-atl').textContent = atl;
-        
-        const elTsb = document.getElementById('metric-tsb');
-        if (elTsb) {
-            elTsb.textContent = (typeof tsb === 'number' ? (tsb > 0 ? `+${tsb}` : tsb) : '--');
-            elTsb.className = `text-2xl font-bold ${typeof tsb === 'number' && tsb >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-        }
-        document.getElementById('metric-load').textContent = load;
-
-        // 2. Calcolo Attività Ultimi 7 Giorni (Km corsa, metri nuoto, ritmo medio)
-        let runKm = 0;
-        let swimMeters = 0;
-        let totalSeconds = 0;
-        let totalMeters = 0;
-        let validActivitiesCount = 0;
-
-        if (activities && Array.isArray(activities)) {
-            activities.forEach(act => {
-                validActivitiesCount++;
-                const type = (act.type || act.sport_settings?.type || '').toLowerCase();
-                const distance = act.distance || 0; // metri
-                const movingTime = act.moving_time || act.elapsed_time || 0; // secondi
-
-                if (type.includes('run') || type.includes('trail') || type.includes('virtualrun')) {
-                    runKm += distance / 1000;
-                } else if (type.includes('swim') || type.includes('nuoto')) {
-                    swimMeters += distance;
-                }
-
-                if (distance > 0 && movingTime > 0) {
-                    totalSeconds += movingTime;
-                    totalMeters += distance;
-                }
-            });
-        }
-
-        let avgPaceFormatted = '--';
-        if (totalMeters > 0 && totalSeconds > 0) {
-            const secPerKm = (totalSeconds / (totalMeters / 1000));
-            const minutes = Math.floor(secPerKm / 60);
-            const seconds = Math.round(secPerKm % 60);
-            avgPaceFormatted = `${minutes}:${seconds < 10 ? '0' : ''}${seconds} /km`;
-        }
-
-        updateOrCreateStatCards({
-            runKm: runKm.toFixed(1),
-            swimMeters: Math.round(swimMeters),
-            avgPace: avgPaceFormatted,
-            activitiesCount: validActivitiesCount
-        });
-
-        return true;
-    } catch (err) {
-        console.error("Errore elaborazione dati reali Intervals:", err);
-    }
-    return false;
+    const activityLabel = summary.activities.count === 1
+        ? '1 attività negli ultimi 7 giorni'
+        : `${summary.activities.count} attività negli ultimi 7 giorni`;
+    setDashboardStatus(
+        `Collegato · dati aggiornati ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} · ${activityLabel}.`,
+        'success'
+    );
 }
 
-function updateOrCreateStatCards(stats) {
-    let container = document.getElementById('advanced-stats-container');
-    if (!container) {
-        const dashboard = document.getElementById('section-dashboard');
-        if (!dashboard) return;
-        
-        container = document.createElement('div');
-        container.id = 'advanced-stats-container';
-        container.className = 'grid grid-cols-1 md:grid-cols-4 gap-4 mt-4';
-        dashboard.insertBefore(container, dashboard.children[1]);
+function renderMetrics(metrics) {
+    METRICS.forEach(([key, elementId]) => {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        const value = metrics[key];
+        element.textContent = value === null
+            ? '—'
+            : key === 'tsb'
+                ? formatMetric(value, true)
+                : formatMetric(value);
+    });
+}
+
+function clearDashboardData() {
+    METRICS.forEach(([, elementId]) => {
+        const element = document.getElementById(elementId);
+        if (element) element.textContent = '—';
+    });
+    const activities = document.getElementById('intervals-activity-summary');
+    activities?.replaceChildren(createElement(
+        'p',
+        'col-span-full text-sm text-slate-400',
+        'In attesa dei dati Intervals.icu.'
+    ));
+}
+
+function renderActivities(activities) {
+    const container = document.getElementById('intervals-activity-summary');
+    if (!container) return;
+    container.replaceChildren();
+
+    if (activities.count === 0) {
+        container.append(createElement(
+            'p',
+            'col-span-full rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-400',
+            'Nessuna attività registrata negli ultimi 7 giorni.'
+        ));
+        return;
     }
 
-    container.innerHTML = `
-        <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
-            <span class="text-xs text-slate-400 font-medium">Km Corsi (Ultimi 7 gg)</span>
-            <div class="text-2xl font-bold text-emerald-400">${stats.runKm} km</div>
-            <span class="text-[10px] text-slate-400">Sincronizzato da Intervals</span>
-        </div>
-        <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
-            <span class="text-xs text-slate-400 font-medium">Metri Nuotati (7 gg)</span>
-            <div class="text-2xl font-bold text-cyan-400">${stats.swimMeters} m</div>
-            <span class="text-[10px] text-slate-400">Vasche / Acque libere</span>
-        </div>
-        <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
-            <span class="text-xs text-slate-400 font-medium">Ritmo Medio Globale</span>
-            <div class="text-2xl font-bold text-white">${stats.avgPace}</div>
-            <span class="text-[10px] text-slate-400">Media ultimi 7 giorni</span>
-        </div>
-        <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
-            <span class="text-xs text-slate-400 font-medium">Attività Registrate</span>
-            <div class="text-2xl font-bold text-amber-400">${stats.activitiesCount} sessioni</div>
-            <span class="text-[10px] text-slate-400">Lette dal tuo account</span>
-        </div>
-    `;
+    const values = [
+        ['Attività', String(activities.count)],
+        ['Corsa e trail', activities.runKm === null ? '—' : `${formatMetric(activities.runKm)} km`],
+        ['Nuoto', activities.swimMeters === null ? '—' : `${Math.round(activities.swimMeters)} m`],
+        ['Ritmo medio corsa', formatPace(activities.averageRunPaceSecondsPerKm)]
+    ];
+    values.forEach(([label, value]) => {
+        const card = createElement('div', 'rounded-xl border border-slate-800 bg-slate-950/60 p-3 sm:p-4');
+        card.append(createElement('p', 'text-xs text-slate-400', label));
+        card.append(createElement('p', 'mt-1 text-lg sm:text-xl font-semibold text-white', value));
+        container.append(card);
+    });
+}
+
+function setDashboardStatus(message, state) {
+    const container = document.getElementById('intervals-dashboard-status');
+    if (!container) return;
+    container.replaceChildren();
+    const className = state === 'error'
+        ? 'text-sm text-rose-300'
+        : state === 'success'
+            ? 'text-sm text-emerald-300'
+            : 'text-sm text-slate-300';
+    container.append(createElement('p', className, message));
+    if (state === 'empty') showConnectionButton(container);
+}
+
+function showConnectionButton(container = document.getElementById('intervals-dashboard-status')) {
+    if (!container) return;
+    const button = createElement(
+        'button',
+        'mt-3 min-h-11 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-emerald-400',
+        'Collega Intervals.icu'
+    );
+    button.type = 'button';
+    button.addEventListener('click', () => {
+        document.querySelector('[data-target="section-intervals"]')?.click();
+    });
+    container.append(button);
+}
+
+function showStatus(element, message, state) {
+    if (!element) return;
+    const stateClasses = {
+        error: 'bg-rose-500/10 text-rose-300 border border-rose-500/20',
+        success: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20',
+        loading: 'bg-slate-800 text-slate-300 border border-slate-700'
+    };
+    element.textContent = message;
+    element.className = `text-sm p-3 rounded-xl ${stateClasses[state]}`;
+}
+
+function formatMetric(value, signed = false) {
+    const formatted = Number.isInteger(value) ? String(value) : value.toFixed(1);
+    return signed && value > 0 ? `+${formatted}` : formatted;
+}
+
+function formatPace(secondsPerKm) {
+    if (secondsPerKm === null || !Number.isFinite(secondsPerKm)) return '—';
+    const roundedSeconds = Math.round(secondsPerKm);
+    const minutes = Math.floor(roundedSeconds / 60);
+    const seconds = String(roundedSeconds % 60).padStart(2, '0');
+    return `${minutes}:${seconds} /km`;
+}
+
+function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
+function formatDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function createElement(tag, className, text) {
+    const element = document.createElement(tag);
+    element.className = className;
+    element.textContent = text;
+    return element;
 }

@@ -106,9 +106,11 @@ function setupTabNavigation() {
             tabButtons.forEach(b => {
                 b.classList.remove('bg-emerald-500', 'text-slate-950');
                 b.classList.add('bg-slate-900', 'text-slate-400');
+                b.setAttribute('aria-selected', 'false');
             });
             btn.classList.remove('bg-slate-900', 'text-slate-400');
             btn.classList.add('bg-emerald-500', 'text-slate-950');
+            btn.setAttribute('aria-selected', 'true');
         });
     });
 }

@@ -18,7 +18,8 @@ test('genera sei settimane consecutive con regole coerenti al giorno', () => {
             assert.deepEqual(day.plannedSessions, []);
         });
     });
-    assert.equal(weeks[1].days[0].rule.type, 'FIXED_SESSION');
+    assert.ok(weeks[1].days.every(day => !('rule' in day)));
+    assert.ok(weeks.every(week => !('stats' in week)));
 });
 
 test('mantiene le date calendario locali senza spostarle al giorno precedente', () => {
