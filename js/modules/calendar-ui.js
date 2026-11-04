@@ -7,7 +7,6 @@ export function initCalendarModule(supabaseClient, userId) {
 
     if (!container) return;
 
-    // Genera 1 settimana passata, quella corrente, e 4 future
     const multiWeeks = calendarService.generateMultiWeekPlan(new Date(), 1, 4);
     renderMultiWeekView(container, multiWeeks);
 }
@@ -19,7 +18,6 @@ function renderMultiWeekView(container, weeks) {
         const weekSection = document.createElement('div');
         weekSection.className = `border ${week.isCurrent ? 'border-emerald-500/50 bg-slate-900/80 shadow-xl' : 'border-slate-800/80 bg-slate-900/30'} rounded-2xl p-5 space-y-4`;
 
-        // Intestazione Settimana con statistiche stile Intervals
         let headerHtml = `
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-800/80">
                 <div class="flex items-center gap-3">
@@ -39,16 +37,14 @@ function renderMultiWeekView(container, weeks) {
             </div>
         `;
 
-        // Griglia dei 7 giorni della settimana
         let daysHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-3">`;
 
         week.days.forEach(day => {
             const isFixed = day.rule.fixed;
             const isToday = day.date === new Date().toISOString().split('T')[0];
 
-            daysHtml ``; // (Placeholder sintattico, inserito nel template sottostante)
             daysHtml += `
-                <div draggable="true" data-date="${day.date}" class="border ${isFixed ? 'border-cyan-500/30 bg-cyan-950/10' : (isToday ? 'border-emerald-500/60 bg-emerald-950/10' : 'border-slate-800/80 bg-slate-950/50')} rounded-xl p-3 flex flex-col justify-between transition-all hover:border-slate-700 cursor-grab active:cursor-grabbing group">
+                <div data-date="${day.date}" class="border ${isFixed ? 'border-cyan-500/30 bg-cyan-950/10' : (isToday ? 'border-emerald-500/60 bg-emerald-950/10' : 'border-slate-800/80 bg-slate-950/50')} rounded-xl p-3 flex flex-col justify-between transition-all hover:border-slate-700 group">
                     <div>
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-[11px] font-bold text-slate-300 uppercase">
@@ -62,7 +58,7 @@ function renderMultiWeekView(container, weeks) {
                     <div class="space-y-2 pt-2 border-t border-slate-900">
                         <div class="text-[10px] text-slate-400 flex items-center justify-between">
                             <span>${isFixed ? '🏊 19:00 Nuoto' : '🏃 Massini'}</span>
-                            <button onclick="alert('Modifica / Rimodula allenamento per il ${day.date}')" class="text-emerald-400 hover:underline font-medium">Modifica</button>
+                            <button onclick="alert('Modifica allenamento per il ${day.date}')" class="text-emerald-400 hover:underline font-medium">Modifica</button>
                         </div>
                     </div>
                 </div>
