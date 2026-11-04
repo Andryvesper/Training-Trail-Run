@@ -1,4 +1,4 @@
-// js/modules/intervals.js - Servizio API Intervals.icu
+// js/modules/intervals.js - Servizio API Intervals.icu per Metriche e Attività
 
 export class IntervalsService {
     constructor(athleteId, apiKey) {
