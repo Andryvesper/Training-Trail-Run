@@ -1,108 +1,145 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Training Trail Run - Piattaforma Modulare</title>
-    <!-- Tailwind CSS -->
+    <title>Training Trail Run - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 500: '#10b981', 600: '#059669' }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500 selection:text-slate-950">
 
-    <!-- Schermata di Autenticazione (Visibile se non loggato) -->
-    <div id="auth-screen" class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md shadow-2xl space-y-6">
+    <!-- Schermata di Autenticazione -->
+    <div id="auth-screen" class="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl w-full max-w-md shadow-2xl space-y-6">
             <div class="text-center space-y-2">
-                <h1 class="text-xl font-bold text-emerald-400">Training Trail Run</h1>
-                <p class="text-xs text-slate-400">Accedi alla tua piattaforma di allenamento</p>
+                <div class="inline-flex p-3 bg-emerald-500/10 rounded-2xl text-emerald-400 mb-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight text-white">Training Trail Run</h1>
+                <p class="text-xs text-slate-400">Piattaforma di Programmazione Atletica</p>
             </div>
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Email</label>
-                    <input type="email" id="auth-email" placeholder="nome@esempio.it" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+                    <input type="email" id="auth-email" placeholder="nome@esempio.it" class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Password</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all">
                 </div>
-                <button id="btn-login" class="w-full bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-sm hover:bg-emerald-400 transition-colors">Accedi</button>
+                <button id="btn-login" class="w-full bg-emerald-500 text-slate-950 font-bold py-3.5 rounded-xl text-sm hover:bg-emerald-400 active:scale-[0.98] transition-all shadow-lg shadow-emerald-500/20">Accedi alla Piattaforma</button>
             </div>
-            <p id="auth-error" class="text-xs text-rose-400 text-center hidden"></p>
+            <p id="auth-error" class="text-xs text-rose-400 text-center hidden bg-rose-500/10 p-3 rounded-xl border border-rose-500/20"></p>
         </div>
     </div>
 
-    <!-- Applicazione Principale (Nascosta finché non si effettua il login) -->
+    <!-- Applicazione Principale -->
     <div id="main-app" class="hidden min-h-screen flex flex-col">
-        <!-- Header della Piattaforma -->
-        <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-4">
-                <h1 class="text-base font-bold text-emerald-400">Training Trail Run</h1>
-                <span id="user-role-badge" class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700">Ruolo: --</span>
-            </div>
-            <div class="flex items-center gap-4">
-                <span id="logged-user-email" class="text-xs text-slate-400"></span>
-                <button id="btn-logout" class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-xl text-xs hover:bg-slate-700 transition-colors">Esci</button>
+        <!-- Header -->
+        <header class="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <h1 class="text-sm font-bold tracking-tight text-white">Training Trail Run</h1>
+                    </div>
+                    <span id="user-role-badge" class="text-[10px] bg-slate-900 text-slate-300 px-3 py-1 rounded-full border border-slate-800 font-medium">--</span>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <span id="logged-user-email" class="text-xs text-slate-400 hidden sm:inline"></span>
+                    <button id="btn-logout" class="text-xs font-medium text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-800 transition-all">Esci</button>
+                </div>
             </div>
         </header>
 
-        <!-- Contenuto Principale con Tab / Sezioni -->
-        <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-            
-            <!-- Barra di Navigazione Moduli -->
-            <div class="flex gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
-                <button data-target="section-calendar" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 transition-colors">Calendario & Capisaldi</button>
-                <button data-target="section-intervals" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 hover:bg-slate-800 transition-colors">Intervals.icu</button>
-                <button data-target="section-admin" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 hover:bg-slate-800 transition-colors hidden" data-tab="admin">Amministrazione</button>
+        <!-- Navbar Moduli -->
+        <div class="border-b border-slate-900 bg-slate-900/30">
+            <div class="max-w-7xl mx-auto px-6 flex gap-3 py-3 overflow-x-auto">
+                <button data-target="section-calendar" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 transition-all shadow-md shadow-emerald-500/10 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Calendario Attività
+                </button>
+                <button data-target="section-intervals" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all border border-slate-800/80 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    Sincronizzazione Intervals.icu
+                </button>
+                <button data-target="section-admin" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all border border-slate-800/80 hidden items-center gap-2" data-tab="admin">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                    Amministrazione
+                </button>
             </div>
+        </div>
 
-            <!-- Contenitore delle Sezioni Modulari -->
+        <!-- Contenuto Principale -->
+        <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
             <div id="module-container" class="space-y-6">
                 
-                <!-- Modulo 2: Calendario e Capisaldi -->
-                <div id="section-calendar" class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-lg font-bold text-slate-100">Programmazione Settimanale (Capisaldi Massini)</h2>
-                        <span class="text-xs text-slate-400">Nuoto fisso: Lun / Gio (19:00 - 19:45)</span>
+                <!-- Modulo Calendario (Vista Principale) -->
+                <div id="section-calendar" class="space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl">
+                        <div>
+                            <h2 class="text-base font-bold text-white">Programmazione Settimanale</h2>
+                            <p class="text-xs text-slate-400 mt-0.5">Pilastri Massini & Capisaldi di Nuoto (Lun / Gio 19:00 - 19:45)</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-3 py-1 rounded-xl font-medium">🏊 Nuoto Fisso</span>
+                            <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-xl font-medium">🏃 Qualità / Trail</span>
+                        </div>
                     </div>
-                    <!-- Griglia dei 7 giorni -->
-                    <div id="calendar-grid" class="grid grid-cols-1 md:grid-cols-7 gap-3">
-                        <!-- Renderizzato dinamicamente via JS -->
+
+                    <!-- Griglia Calendario Settimanale -->
+                    <div id="calendar-grid" class="grid grid-cols-1 md:grid-cols-7 gap-4">
+                        <!-- Generato dinamicamente via JS -->
                     </div>
                 </div>
 
-                <!-- Modulo 1: Configurazione Intervals.icu -->
+                <!-- Modulo Intervals.icu -->
                 <div id="section-intervals" class="space-y-6 hidden">
-                    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4 shadow-xl max-w-2xl">
-                        <h2 class="text-lg font-bold text-emerald-400">Integrazione Intervals.icu</h2>
-                        <p class="text-xs text-slate-400">Inserisci le tue credenziali API per sincronizzare automaticamente allenamenti, carichi (CTL/TSB) e dislivello.</p>
+                    <div class="bg-slate-900/60 border border-slate-800/80 p-6 rounded-2xl space-y-5 max-w-2xl shadow-xl">
+                        <div>
+                            <h2 class="text-base font-bold text-white">Configurazione Intervals.icu</h2>
+                            <p class="text-xs text-slate-400 mt-1">Collega le tue credenziali per sincronizzare i dati reali e validare gli allenamenti.</p>
+                        </div>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-semibold text-slate-400 mb-1">Athlete ID (es. i12345 o me)</label>
-                                <input type="text" id="intervals-athlete-id" placeholder="es. i12345" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
+                                <label class="block text-xs font-medium text-slate-400 mb-1.5">Athlete ID</label>
+                                <input type="text" id="intervals-athlete-id" placeholder="es. i12345 o me" class="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-400 mb-1">API Key</label>
-                                <input type="password" id="intervals-api-key" placeholder="La tua API Key di Intervals" class="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
+                                <label class="block text-xs font-medium text-slate-400 mb-1.5">API Key</label>
+                                <input type="password" id="intervals-api-key" placeholder="Inserisci API Key" class="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
                             </div>
                         </div>
                         
-                        <div class="flex justify-end gap-4 pt-2">
-                            <button id="btn-test-intervals" class="bg-slate-800 text-slate-200 font-bold px-4 py-2.5 rounded-xl text-xs hover:bg-slate-700 transition-colors">Testa Connessione</button>
-                            <button id="btn-save-intervals" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs hover:bg-emerald-400 transition-colors">Salva Configurazione</button>
+                        <div class="flex justify-end gap-3 pt-2 border-t border-slate-800/60">
+                            <button id="btn-test-intervals" class="bg-slate-800 text-slate-200 font-bold px-4 py-2.5 rounded-xl text-xs hover:bg-slate-700 transition-all border border-slate-700">Testa Connessione</button>
+                            <button id="btn-save-intervals" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs hover:bg-emerald-400 transition-all shadow-md shadow-emerald-500/10">Salva Credenziali</button>
                         </div>
-                        <p id="intervals-status-msg" class="text-xs text-center hidden"></p>
+                        <p id="intervals-status-msg" class="text-xs text-center hidden p-3 rounded-xl"></p>
                     </div>
                 </div>
 
-                <!-- Sezione Admin (Riservata) -->
+                <!-- Sezione Admin -->
                 <div id="section-admin" class="space-y-4 hidden">
-                    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
-                        <h2 class="text-lg font-bold text-amber-400">Pannello Amministrazione</h2>
-                        <p class="text-xs text-slate-400">Gestione avanzata utenti e ruoli della piattaforma.</p>
+                    <div class="bg-slate-900/60 border border-slate-800/80 p-6 rounded-2xl space-y-4">
+                        <h2 class="text-base font-bold text-amber-400">Pannello Amministrazione</h2>
+                        <p class="text-xs text-slate-400">Gestione avanzata della piattaforma e degli utenti autorizzati.</p>
                     </div>
                 </div>
 
@@ -110,7 +147,6 @@
         </main>
     </div>
 
-    <!-- Script di Configurazione globale e Entry Point -->
     <script src="config.js"></script>
     <script type="module" src="js/app.js"></script>
 </body>
