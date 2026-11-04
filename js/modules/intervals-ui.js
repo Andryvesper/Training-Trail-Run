@@ -1,4 +1,4 @@
-import { IntervalsService, summarizeIntervalsData } from './intervals.js';
+import { getLastSevenDaysRange, IntervalsService, summarizeIntervalsData } from './intervals.js';
 
 const METRICS = [
     ['ctl', 'metric-ctl'],
@@ -123,7 +123,7 @@ async function syncDashboard(athleteId, apiKey) {
     const today = new Date();
     const newest = formatDateKey(today);
     const oldestWellness = formatDateKey(addDays(today, -30));
-    const oldestActivities = formatDateKey(addDays(today, -7));
+    const { oldest: oldestActivities } = getLastSevenDaysRange(today);
     const service = new IntervalsService(athleteId, apiKey);
     const [wellness, activities] = await Promise.all([
         service.getWellness(oldestWellness, newest),

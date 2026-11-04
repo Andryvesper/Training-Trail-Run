@@ -1,6 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { IntervalsService, summarizeIntervalsData } from '../js/modules/intervals.js';
+import {
+    getLastSevenDaysRange,
+    IntervalsService,
+    summarizeIntervalsData
+} from '../js/modules/intervals.js';
+
+test('limita l’intervallo alle ultime sette date, includendo oggi', () => {
+    assert.deepEqual(
+        getLastSevenDaysRange(new Date(2026, 10, 4, 12)),
+        { oldest: '2026-10-29', newest: '2026-11-04' }
+    );
+});
 
 test('usa le metriche più recenti disponibili e separa gli sport nel riepilogo', () => {
     const summary = summarizeIntervalsData([

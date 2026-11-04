@@ -43,6 +43,17 @@ export class IntervalsService {
     }
 }
 
+export function getLastSevenDaysRange(referenceDate = new Date()) {
+    const newest = new Date(referenceDate);
+    const oldest = new Date(referenceDate);
+    oldest.setDate(oldest.getDate() - 6);
+
+    return {
+        oldest: formatDateKey(oldest),
+        newest: formatDateKey(newest)
+    };
+}
+
 export function summarizeIntervalsData(wellness, activities) {
     const records = Array.isArray(wellness) ? wellness.filter(isRecord) : [];
     const latestWellness = records
@@ -113,4 +124,11 @@ function isRunActivity(activity) {
 function isSwimActivity(activity) {
     const type = activityType(activity);
     return type.includes('swim') || type.includes('nuoto');
+}
+
+function formatDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
