@@ -1,4 +1,4 @@
-// js/modules/intervals-ui.js - Sincronizzazione Completa Dashboard e Metriche Avanzate
+// js/modules/intervals-ui.js - Sincronizzazione Reale e Debug Dati Intervals.icu
 import { IntervalsService } from './intervals.js';
 
 export async function initIntervalsModule(supabaseClient, userId) {
@@ -23,7 +23,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
             if (apiKeyInput) apiKeyInput.value = apiKey;
 
             if (athleteId && apiKey) {
-                await loadDashboardData(athleteId, apiKey);
+                await loadRealDashboardData(athleteId, apiKey);
             }
         }
     } catch (err) {
@@ -53,7 +53,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
             showStatus("Errore durante il salvataggio nel database.", "rose");
         } else {
             showStatus("Configurazione salvata con successo!", "emerald");
-            await loadDashboardData(athleteId, apiKey);
+            await loadRealDashboardData(athleteId, apiKey);
         }
     });
 
@@ -66,13 +66,13 @@ export async function initIntervalsModule(supabaseClient, userId) {
             return;
         }
 
-        showStatus("Sincronizzazione in corso...", "amber");
-        const success = await loadDashboardData(athleteId, apiKey);
+        showStatus("Sincronizzazione reale in corso...", "amber");
+        const success = await loadRealDashboardData(athleteId, apiKey);
         
         if (success) {
-            showStatus("Sincronizzazione riuscita! Statistiche aggiornate.", "emerald");
+            showStatus("Sincronizzazione completata con i tuoi dati reali!", "emerald");
         } else {
-            showStatus("Connessione fallita. Verificare credenziali.", "rose");
+            showStatus("Errore di connessione o credenziali non valide.", "rose");
         }
     });
 
@@ -85,9 +85,9 @@ export async function initIntervalsModule(supabaseClient, userId) {
 }
 
 /**
- * Scarica wellness e attività recenti, calcolando tutte le metriche avanzate
+ * Scarica ed elabora esclusivamente i dati reali dall'API di Intervals.icu
  */
-async function loadDashboardData(athleteId, apiKey) {
+async function loadRealDashboardData(athleteId, apiKey) {
     try {
         const service = new IntervalsService(athleteId, apiKey);
         
@@ -95,43 +95,59 @@ async function loadDashboardData(athleteId, apiKey) {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-        // Fetch parallela di wellness e attività
+        console.log("Interrogazione API Intervals per atleta:", athleteId);
+
         const [wellness, activities] = await Promise.all([
             service.getWellness(thirtyDaysAgo, today),
             service.getActivities(sevenDaysAgo, today)
         ]);
 
-        // 1. Elaborazione Metriche di Carico (Wellness)
-        if (wellness && Array.isArray(wellness) && wellness.length > 0) {
-            const latest = wellness[wellness.length - 1];
-            const ctl = latest.ctl ? Math.round(latest.ctl) : '--';
-            const atl = latest.atl ? Math.round(latest.atl) : '--';
-            const tsb = (latest.ctl !== undefined && latest.atl !== undefined) ? Math.round(latest.ctl - latest.atl) : '--';
+        console.log("Risposta Grezza Wellness Intervals:", wellness);
+        console.log("Risposta Grezza Activities Intervals:", activities);
 
-            document.getElementById('metric-ctl').textContent = ctl;
-            document.getElementById('metric-atl').textContent = atl;
+        // 1. Gestione Wellness Reale (CTL, ATL, TSB)
+        let ctl = '--', atl = '--', tsb = '--', load = '--';
+
+        if (wellness) {
+            // Se wellness è un array, prendiamo l'ultimo elemento valido
+            const wellnessRecord = Array.isArray(wellness) ? wellness[wellness.length - 1] : wellness;
             
-            const elTsb = document.getElementById('metric-tsb');
-            if (elTsb) {
-                elTsb.textContent = (tsb > 0 ? `+${tsb}` : tsb);
-                elTsb.className = `text-2xl font-bold ${tsb >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            if (wellnessRecord) {
+                ctl = wellnessRecord.ctl !== undefined ? Math.round(wellnessRecord.ctl) : '--';
+                atl = wellnessRecord.atl !== undefined ? Math.round(wellnessRecord.atl) : '--';
+                load = wellnessRecord.load !== undefined ? Math.round(wellnessRecord.load) : '--';
+                
+                if (ctl !== '--' && atl !== '--') {
+                    tsb = ctl - atl;
+                }
             }
-            document.getElementById('metric-load').textContent = latest.load ? `${Math.round(latest.load)}` : '180';
         }
 
-        // 2. Elaborazione Statistiche Attività Ultimi 7 Giorni (Km corsa, metri nuoto, ritmo)
+        document.getElementById('metric-ctl').textContent = ctl;
+        document.getElementById('metric-atl').textContent = atl;
+        
+        const elTsb = document.getElementById('metric-tsb');
+        if (elTsb) {
+            elTsb.textContent = (typeof tsb === 'number' ? (tsb > 0 ? `+${tsb}` : tsb) : '--');
+            elTsb.className = `text-2xl font-bold ${typeof tsb === 'number' && tsb >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+        document.getElementById('metric-load').textContent = load;
+
+        // 2. Gestione Attività Reali (Ultimi 7 giorni)
+        let runKm = 0;
+        let swimMeters = 0;
+        let totalSeconds = 0;
+        let totalMeters = 0;
+        let validActivitiesCount = 0;
+
         if (activities && Array.isArray(activities)) {
-            let runKm = 0;
-            let swimMeters = 0;
-            let totalSeconds = 0;
-            let totalMeters = 0;
-
             activities.forEach(act => {
-                const type = (act.type || '').toLowerCase();
+                validActivitiesCount++;
+                const type = (act.type || act.sport_settings?.type || '').toLowerCase();
                 const distance = act.distance || 0; // in metri
-                const movingTime = act.moving_time || 0; // in secondi
+                const movingTime = act.moving_time || act.elapsed_time || 0; // in secondi
 
-                if (type.includes('run') || type.includes('trail')) {
+                if (type.includes('run') || type.includes('trail') || type.includes('walk')) {
                     runKm += distance / 1000;
                 } else if (type.includes('swim') || type.includes('nuoto')) {
                     swimMeters += distance;
@@ -142,28 +158,26 @@ async function loadDashboardData(athleteId, apiKey) {
                     totalMeters += distance;
                 }
             });
-
-            // Calcolo Ritmo Medio generale (min/km)
-            let avgPaceFormatted = '--';
-            if (totalMeters > 0) {
-                const secPerKm = (totalSeconds / (totalMeters / 1000));
-                const minutes = Math.floor(secPerKm / 60);
-                const seconds = Math.round(secPerKm % 60);
-                avgPaceFormatted = `${minutes}:${seconds < 10 ? '0' : ''}${seconds} /km`;
-            }
-
-            // Aggiorniamo i contenitori dedicati nella Dashboard se presenti
-            updateOrCreateStatCards({
-                runKm: runKm.toFixed(1),
-                swimMeters: Math.round(swimMeters),
-                avgPace: avgPaceFormatted,
-                activitiesCount: activities.length
-            });
         }
+
+        let avgPaceFormatted = '--';
+        if (totalMeters > 0 && totalSeconds > 0) {
+            const secPerKm = (totalSeconds / (totalMeters / 1000));
+            const minutes = Math.floor(secPerKm / 60);
+            const seconds = Math.round(secPerKm % 60);
+            avgPaceFormatted = `${minutes}:${seconds < 10 ? '0' : ''}${seconds} /km`;
+        }
+
+        updateOrCreateStatCards({
+            runKm: runKm.toFixed(1),
+            swimMeters: Math.round(swimMeters),
+            avgPace: avgPaceFormatted,
+            activitiesCount: validActivitiesCount
+        });
 
         return true;
     } catch (err) {
-        console.error("Errore sincronizzazione dati Dashboard:", err);
+        console.error("Errore critico nella sincronizzazione reale Intervals:", err);
     }
     return false;
 }
@@ -184,22 +198,22 @@ function updateOrCreateStatCards(stats) {
         <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
             <span class="text-xs text-slate-400 font-medium">Km Corsi (Ultimi 7 gg)</span>
             <div class="text-2xl font-bold text-emerald-400">${stats.runKm} km</div>
-            <span class="text-[10px] text-slate-400">Target Trail & Asfalto</span>
+            <span class="text-[10px] text-slate-400">Dati reali sincronizzati</span>
         </div>
         <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
             <span class="text-xs text-slate-400 font-medium">Metri Nuotati (7 gg)</span>
             <div class="text-2xl font-bold text-cyan-400">${stats.swimMeters} m</div>
-            <span class="text-[10px] text-slate-400">Sessioni fisse vasca</span>
+            <span class="text-[10px] text-slate-400">Dati reali vasca / acque libere</span>
         </div>
         <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
             <span class="text-xs text-slate-400 font-medium">Ritmo Medio Globale</span>
             <div class="text-2xl font-bold text-white">${stats.avgPace}</div>
-            <span class="text-[10px] text-slate-400">PAS / GAP medio</span>
+            <span class="text-[10px] text-slate-400">Media ultimi 7 giorni</span>
         </div>
         <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
             <span class="text-xs text-slate-400 font-medium">Attività Registrate</span>
             <div class="text-2xl font-bold text-amber-400">${stats.activitiesCount} sessioni</div>
-            <span class="text-[10px] text-slate-400">Sincronizzate da Intervals</span>
+            <span class="text-[10px] text-slate-400">Lette da Intervals.icu</span>
         </div>
     `;
 }
