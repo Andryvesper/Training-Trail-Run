@@ -1,4 +1,4 @@
-// js/modules/calendar.js - Modulo Gestione Calendario e Regole Capisaldi (Massini)
+// js/modules/calendar.js - Gestione Multi-Settimanale e Capisaldi Massini
 
 export const MASSINI_PILLARS = {
     0: { type: 'REST_OR_LONG', label: 'Domenica - Long Run / Trail Lungo' },
@@ -13,51 +13,56 @@ export const MASSINI_PILLARS = {
 export class TrainingCalendarService {
     constructor() {}
 
-    /**
-     * Ritorna la regola capisaldo per un determinato giorno della settimana (0 = Dom, 1 = Lun, ecc.)
-     */
     getDayRule(dayOfWeek) {
         return MASSINI_PILLARS[dayOfWeek] || { type: 'FREE', label: 'Giornata Libera' };
     }
 
     /**
-     * Valida un allenamento programmato rispetto ai capisaldi
+     * Genera un blocco di più settimane (es. 1 passata, corrente, 4 future)
      */
-    validateWorkoutPlacement(dateString, workoutType) {
-        const date = new Date(dateString);
-        const dayOfWeek = date.getDay();
-        const rule = this.getDayRule(dayOfWeek);
+    generateMultiWeekPlan(centerDate = new Date(), pastWeeks = 1, futureWeeks = 4) {
+        const weeks = [];
+        const currentCenter = new Date(centerDate);
+        
+        // Trova il lunedì della settimana di riferimento
+        const dayOfWeek = currentCenter.getDay();
+        const distanceToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+        const startOfCenterWeek = new Date(currentCenter);
+        startOfCenterWeek.setDate(currentCenter.getDate() + distanceToMonday);
 
-        // Controllo vincolo stringente sui giorni di nuoto
-        if ((dayOfWeek === 1 || dayOfWeek === 4) && workoutType !== 'SWIM') {
-            return {
-                valid: false,
-                warning: `Attenzione: Il ${rule.label.split(' - ')[0]} è riservato esclusivamente al Nuoto.`
-            };
-        }
+        const totalWeeks = pastWeeks + futureWeeks + 1;
+        const startGlobalDate = new Date(startOfCenterWeek);
+        startGlobalDate.setDate(startOfCenterWeek.getDate() - (pastWeeks * 7));
 
-        return { valid: true, rule };
-    }
+        for (let w = 0; w < totalWeeks; w++) {
+            const weekDays = [];
+            let weekLoad = 0;
+            let weekDistance = 0;
 
-    /**
-     * Genera la griglia settimanale base strutturata sui capisaldi
-     */
-    generateWeeklyTemplate(startDateStr) {
-        const startDate = new Date(startDateStr);
-        const week = [];
+            for (let d = 0; d < 7; d++) {
+                const currentDate = new Date(startGlobalDate);
+                currentDate.setDate(startGlobalDate.getDate() + (w * 7) + d);
+                const dayOfWeekNum = currentDate.getDay();
 
-        for (let i = 0; i < 7; i++) {
-            const currentDate = new Date(startDate);
-            currentDate.setDate(startDate.getDate() + i);
-            const dayOfWeek = currentDate.getDay();
+                weekDays.push({
+                    date: currentDate.toISOString().split('T')[0],
+                    dayOfWeek: dayOfWeekNum,
+                    rule: this.getDayRule(dayOfWeekNum),
+                    completed: false,
+                    actualData: null
+                });
+            }
 
-            week.push({
-                date: currentDate.toISOString().split('T')[0],
-                dayOfWeek,
-                rule: this.getDayRule(dayOfWeek)
+            weeks.push({
+                weekNumber: `Sett. ${w + 1}`,
+                startDate: weekDays[0].date,
+                endDate: weekDays[6].date,
+                isCurrent: w === pastWeeks,
+                days: weekDays,
+                stats: { load: 150, distance: '35 km', fitness: 52, form: 12 } // Predisposto per dati reali Intervals
             });
         }
 
-        return week;
+        return weeks;
     }
 }
