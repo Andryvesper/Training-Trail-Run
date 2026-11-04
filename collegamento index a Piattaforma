@@ -1,0 +1,28 @@
+// js/app.js - Entry Point della Piattaforma
+import { initializePlatform } from './core/platform.js';
+
+// Inizializziamo il client Supabase dal config globale
+const supabase = window.supabase.createClient(
+    window.SUPABASE_CONFIG.URL, 
+    window.SUPABASE_CONFIG.KEY
+);
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Verifichiamo la sessione Supabase attiva
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+        // 2. Se l'utente è loggato, inizializziamo la piattaforma e i ruoli
+        const userProfile = await initializePlatform(supabase, session.user);
+        
+        console.log("Piattaforma inizializzata per:", userProfile);
+        
+        // Mostriamo l'app principale e nascondiamo lo schermo di login
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('main-app').classList.remove('hidden');
+    } else {
+        // Mostriamo lo schermo di login
+        document.getElementById('auth-screen').style.display = 'flex';
+        document.getElementById('main-app').classList.add('hidden');
+    }
+});
