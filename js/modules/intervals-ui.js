@@ -1,4 +1,4 @@
-// js/modules/intervals-ui.js - Sincronizzazione Reale e Debug Dati Intervals.icu
+// js/modules/intervals-ui.js - Sincronizzazione Reale e Parsing Ottimizzato Intervals.icu
 import { IntervalsService } from './intervals.js';
 
 export async function initIntervalsModule(supabaseClient, userId) {
@@ -85,7 +85,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
 }
 
 /**
- * Scarica ed elabora esclusivamente i dati reali dall'API di Intervals.icu
+ * Elaborazione puntuale dei dati reali restituiti dalle API di Intervals.icu
  */
 async function loadRealDashboardData(athleteId, apiKey) {
     try {
@@ -95,29 +95,24 @@ async function loadRealDashboardData(athleteId, apiKey) {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-        console.log("Interrogazione API Intervals per atleta:", athleteId);
-
         const [wellness, activities] = await Promise.all([
             service.getWellness(thirtyDaysAgo, today),
             service.getActivities(sevenDaysAgo, today)
         ]);
 
-        console.log("Risposta Grezza Wellness Intervals:", wellness);
-        console.log("Risposta Grezza Activities Intervals:", activities);
-
-        // 1. Gestione Wellness Reale (CTL, ATL, TSB)
+        // 1. Estrazione CTL, ATL, TSB e Load dai dati di Wellness
         let ctl = '--', atl = '--', tsb = '--', load = '--';
 
-        if (wellness) {
-            // Se wellness è un array, prendiamo l'ultimo elemento valido
-            const wellnessRecord = Array.isArray(wellness) ? wellness[wellness.length - 1] : wellness;
+        if (wellness && Array.isArray(wellness) && wellness.length > 0) {
+            // Cerchiamo l'ultimo record che contiene effettivamente ctl/atl
+            const validWellness = wellness.reverse().find(w => w.ctl !== undefined || w.atl !== undefined) || wellness[0];
             
-            if (wellnessRecord) {
-                ctl = wellnessRecord.ctl !== undefined ? Math.round(wellnessRecord.ctl) : '--';
-                atl = wellnessRecord.atl !== undefined ? Math.round(wellnessRecord.atl) : '--';
-                load = wellnessRecord.load !== undefined ? Math.round(wellnessRecord.load) : '--';
+            if (validWellness) {
+                ctl = validWellness.ctl !== undefined ? Math.round(validWellness.ctl) : '--';
+                atl = validWellness.atl !== undefined ? Math.round(validWellness.atl) : '--';
+                load = validWellness.load !== undefined ? Math.round(validWellness.load) : '--';
                 
-                if (ctl !== '--' && atl !== '--') {
+                if (typeof ctl === 'number' && typeof atl === 'number') {
                     tsb = ctl - atl;
                 }
             }
@@ -133,7 +128,7 @@ async function loadRealDashboardData(athleteId, apiKey) {
         }
         document.getElementById('metric-load').textContent = load;
 
-        // 2. Gestione Attività Reali (Ultimi 7 giorni)
+        // 2. Calcolo Attività Ultimi 7 Giorni (Km corsa, metri nuoto, ritmo medio)
         let runKm = 0;
         let swimMeters = 0;
         let totalSeconds = 0;
@@ -144,10 +139,10 @@ async function loadRealDashboardData(athleteId, apiKey) {
             activities.forEach(act => {
                 validActivitiesCount++;
                 const type = (act.type || act.sport_settings?.type || '').toLowerCase();
-                const distance = act.distance || 0; // in metri
-                const movingTime = act.moving_time || act.elapsed_time || 0; // in secondi
+                const distance = act.distance || 0; // metri
+                const movingTime = act.moving_time || act.elapsed_time || 0; // secondi
 
-                if (type.includes('run') || type.includes('trail') || type.includes('walk')) {
+                if (type.includes('run') || type.includes('trail') || type.includes('virtualrun')) {
                     runKm += distance / 1000;
                 } else if (type.includes('swim') || type.includes('nuoto')) {
                     swimMeters += distance;
@@ -177,7 +172,7 @@ async function loadRealDashboardData(athleteId, apiKey) {
 
         return true;
     } catch (err) {
-        console.error("Errore critico nella sincronizzazione reale Intervals:", err);
+        console.error("Errore elaborazione dati reali Intervals:", err);
     }
     return false;
 }
@@ -198,12 +193,12 @@ function updateOrCreateStatCards(stats) {
         <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
             <span class="text-xs text-slate-400 font-medium">Km Corsi (Ultimi 7 gg)</span>
             <div class="text-2xl font-bold text-emerald-400">${stats.runKm} km</div>
-            <span class="text-[10px] text-slate-400">Dati reali sincronizzati</span>
+            <span class="text-[10px] text-slate-400">Sincronizzato da Intervals</span>
         </div>
         <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
             <span class="text-xs text-slate-400 font-medium">Metri Nuotati (7 gg)</span>
             <div class="text-2xl font-bold text-cyan-400">${stats.swimMeters} m</div>
-            <span class="text-[10px] text-slate-400">Dati reali vasca / acque libere</span>
+            <span class="text-[10px] text-slate-400">Vasche / Acque libere</span>
         </div>
         <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
             <span class="text-xs text-slate-400 font-medium">Ritmo Medio Globale</span>
@@ -213,7 +208,7 @@ function updateOrCreateStatCards(stats) {
         <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl space-y-2">
             <span class="text-xs text-slate-400 font-medium">Attività Registrate</span>
             <div class="text-2xl font-bold text-amber-400">${stats.activitiesCount} sessioni</div>
-            <span class="text-[10px] text-slate-400">Lette da Intervals.icu</span>
+            <span class="text-[10px] text-slate-400">Lette dal tuo account</span>
         </div>
     `;
 }
