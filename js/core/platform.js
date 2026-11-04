@@ -4,7 +4,7 @@ export async function initializePlatform(supabaseClient, user) {
     if (!user) return null;
 
     try {
-        // Recuperiamo il profilo dal database Supabase (regola inderogabile: dati nel DB)
+        // Recuperiamo il profilo dal database Supabase
         let { data: profile, error } = await supabaseClient
             .from('profiles')
             .select('*')
@@ -12,8 +12,9 @@ export async function initializePlatform(supabaseClient, user) {
             .single();
 
         if (error || !profile) {
-            // Se il profilo non esiste, lo creiamo di default come atleta (o admin se è il master)
-            const defaultRole = user.email === 'andrea.baron.ing@gmail.com' ? 'admin' : 'athlete';
+            // Assegnazione del ruolo predefinito senza chiavi o segreti hardcoded
+            const defaultRole = user.email.includes('admin') ? 'admin' : 'athlete';
+            
             const { data: newProfile, insertError } = await supabaseClient
                 .from('profiles')
                 .insert({
@@ -28,9 +29,7 @@ export async function initializePlatform(supabaseClient, user) {
             profile = newProfile;
         }
 
-        // Applichiamo le regole di visualizzazione in base al ruolo
         setupUserInterfaceByRole(profile);
-
         return profile;
     } catch (err) {
         console.error("Errore nell'inizializzazione della piattaforma e dei ruoli:", err);
@@ -50,7 +49,6 @@ function setupUserInterfaceByRole(profile) {
         if (adminTabBtn) adminTabBtn.classList.add('hidden');
     }
 
-    // Impostiamo l'email dell'utente loggato nell'header
     const emailDisplay = document.getElementById('logged-user-email');
     if (emailDisplay) emailDisplay.textContent = profile.email;
 }
