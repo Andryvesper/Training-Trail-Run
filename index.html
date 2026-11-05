@@ -84,6 +84,10 @@
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 21V5m0 0h12l-2 4 2 4H4m0-8v8m0 8h16"/></svg>
                     <span class="nav-label">Gare</span>
                 </button>
+                <button role="tab" aria-selected="false" data-target="section-planner" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Motore piani">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                    <span class="nav-label">Motore piani</span>
+                </button>
                 <button role="tab" aria-selected="false" data-target="section-dashboard" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Dashboard e metriche">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                     <span class="nav-label">Dashboard</span>
@@ -183,6 +187,73 @@
                     <div id="calendar-multi-container" class="space-y-4">
                         <!-- Renderizzato via JS -->
                     </div>
+                    <section id="training-plan-sharing-container" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5" aria-labelledby="training-plan-sharing-title">
+                        <div class="space-y-1">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Condivisione consensuale</p>
+                            <h2 id="training-plan-sharing-title" class="text-xl font-bold text-white">Clona un programma</h2>
+                            <p class="text-sm text-slate-400">Condividi sedute selezionate con un codice temporaneo oppure importa quelle di un altro atleta. L’importazione crea una copia senza modificare il piano originale.</p>
+                        </div>
+                        <p id="training-plan-sharing-status" class="hidden rounded-xl border p-3 text-sm" role="status" aria-live="polite"></p>
+                        <form id="training-plan-share-form" class="space-y-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                            <h3 class="text-sm font-semibold text-white">Condividi le tue sedute</h3>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Nome del programma</span>
+                                <input name="title" required maxlength="120" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200" placeholder="Es. Preparazione gara autunnale">
+                            </label>
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <label class="block space-y-1 text-xs text-slate-400">
+                                    <span>Dal</span>
+                                    <input name="start_date" type="date" required class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
+                                </label>
+                                <label class="block space-y-1 text-xs text-slate-400">
+                                    <span>Al</span>
+                                    <input name="end_date" type="date" required class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
+                                </label>
+                            </div>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Passo di riferimento dell’atleta (facoltativo, min:ss/km)</span>
+                                <input name="source_reference_pace" inputmode="decimal" pattern="\d{1,2}:[0-5]\d" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200" placeholder="es. 4:10; usa un test/criterio comparabile">
+                            </label>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Codice valido per</span>
+                                <select name="expires_in_days" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
+                                    <option value="7">7 giorni</option>
+                                    <option value="14" selected>14 giorni</option>
+                                    <option value="30">30 giorni</option>
+                                </select>
+                            </label>
+                            <p class="text-xs text-amber-200">Il codice consente l’importazione a chiunque lo possieda. Non condividerlo pubblicamente; contiene solo le sedute nell’intervallo scelto, non i dati personali o le attività completate.</p>
+                            <button type="submit" class="min-h-11 w-full rounded-xl bg-emerald-500 px-3 text-sm font-bold text-slate-950">Crea codice di condivisione</button>
+                            <div id="training-plan-share-created" aria-live="polite"></div>
+                        </form>
+
+                        <form id="training-plan-import-form" class="space-y-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                            <h3 class="text-sm font-semibold text-white">Importa un programma condiviso</h3>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Codice ricevuto</span>
+                                <input name="share_code" required autocomplete="off" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200" placeholder="UUID condiviso dall’atleta">
+                            </label>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Nuova data della prima seduta</span>
+                                <input name="new_start_date" type="date" required class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
+                            </label>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Il tuo passo di riferimento (min:ss/km)</span>
+                                <input name="target_reference_pace" inputmode="decimal" pattern="\d{1,2}:[0-5]\d" disabled class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200 disabled:opacity-50" placeholder="Richiesto solo per adattare i ritmi">
+                            </label>
+                            <button type="submit" class="min-h-11 w-full rounded-xl border border-slate-700 px-3 text-sm font-semibold text-slate-200">Mostra anteprima</button>
+                            <div id="training-plan-share-preview" aria-live="polite"></div>
+                        </form>
+
+                        <form id="training-plan-revoke-form" class="space-y-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                            <h3 class="text-sm font-semibold text-white">Revoca una condivisione</h3>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Codice creato da te</span>
+                                <input name="share_code" required autocomplete="off" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
+                            </label>
+                            <button type="submit" class="min-h-11 w-full rounded-xl border border-rose-500/40 px-3 text-sm font-semibold text-rose-300">Revoca codice</button>
+                        </form>
+                    </section>
                 </div>
 
                 <div id="section-races" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
@@ -282,6 +353,241 @@
                         <p class="rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400">Caricamento gare e risultati…</p>
                     </div>
                 </div>
+
+                <section id="section-planner" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
+                    <div class="space-y-2">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Profilo e obiettivi</p>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white">Motore piani</h2>
+                        <p class="max-w-3xl text-sm text-slate-400">Completa o aggiorna il profilo di pianificazione. Le richieste restano separate dal calendario: il motore non genera ancora piani perché nessuna regola è stata approvata per l’uso personalizzato.</p>
+                    </div>
+                    <p id="planner-status" class="hidden rounded-xl border p-3 text-sm" role="status" aria-live="polite"></p>
+                    <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+                        <form id="planner-form" class="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5">
+                            <fieldset class="space-y-3">
+                                <legend class="text-base font-bold text-white">1. Obiettivo</legend>
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Che cosa vuoi ottenere?</span>
+                                        <select name="goal_mode" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="">Seleziona</option>
+                                            <option value="race">Preparare una gara</option>
+                                            <option value="maintain">Mantenere la forma</option>
+                                            <option value="improve">Migliorare le prestazioni</option>
+                                            <option value="other">Altro obiettivo</option>
+                                        </select>
+                                    </label>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Gara obiettivo (gare pianificate)</span>
+                                        <select name="primary_race_id" id="planner-primary-race" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="">Nessuna gara selezionata</option>
+                                        </select>
+                                    </label>
+                                    <fieldset class="space-y-2 sm:col-span-2">
+                                        <legend class="text-xs font-medium text-slate-400">Altre gare da considerare (facoltativo)</legend>
+                                        <div id="planner-secondary-races" class="grid grid-cols-1 gap-2 sm:grid-cols-2" aria-live="polite">
+                                            <p class="text-xs text-slate-500">Caricamento gare pianificate…</p>
+                                        </div>
+                                        <p class="text-xs text-slate-500">Per ogni gara indica se punti a un tempo, vuoi correrla in modo controllato o partecipare senza obiettivo di prestazione. Gli avvisi sono controlli preliminari, non garanzie di compatibilità.</p>
+                                    </fieldset>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Orizzonte della bozza, se senza gara</span>
+                                        <select name="goal_horizon_weeks" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="">Da definire</option>
+                                            <option value="4">4 settimane</option>
+                                            <option value="8">8 settimane</option>
+                                            <option value="12">12 settimane</option>
+                                            <option value="16">16 settimane</option>
+                                            <option value="24">24 settimane</option>
+                                        </select>
+                                    </label>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Se vuoi migliorare, su cosa?</span>
+                                        <select name="goal_focus" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="">Non specificato</option>
+                                            <option value="continuity">Continuità</option>
+                                            <option value="comfort">Comfort nella corsa</option>
+                                            <option value="distance">Distanza</option>
+                                            <option value="performance">Prestazione</option>
+                                        </select>
+                                    </label>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400 sm:col-span-2">
+                                        <span>Descrivi l'altro obiettivo (se selezionato)</span>
+                                        <textarea name="goal_description" rows="2" maxlength="500" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></textarea>
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="space-y-3 border-t border-slate-800 pt-4">
+                                <legend class="text-base font-bold text-white">2. Esperienza e continuità</legend>
+                                <p class="text-xs text-slate-500">È un'autodescrizione, non una classificazione automatica del tuo livello.</p>
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Come descrivi il tuo rapporto con la corsa?</span>
+                                        <select name="self_profile" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="">Seleziona</option>
+                                            <option value="returning_or_new">Ho iniziato da poco o sto riprendendo</option>
+                                            <option value="regular_recreational">Corro con regolarità per passione</option>
+                                            <option value="structured_experienced">Seguo allenamenti strutturati da tempo</option>
+                                            <option value="prefer_not_to_say">Preferisco non indicarlo</option>
+                                        </select>
+                                    </label>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Nelle ultime settimane, com'è stata la continuità?</span>
+                                        <select name="consistency_status" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="">Seleziona</option>
+                                            <option value="consistent">Regolare</option>
+                                            <option value="interrupted">Con interruzioni</option>
+                                            <option value="returning">Sto riprendendo</option>
+                                            <option value="unknown">Non so / non disponibile</option>
+                                        </select>
+                                    </label>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Sedute medie a settimana (facoltativo)</span>
+                                        <input name="recent_sessions_per_week" type="number" min="0" max="14" step="0.5" inputmode="decimal" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                    </label>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400 sm:col-span-2">
+                                        <span>Attività recenti o contesto che vuoi considerare (facoltativo)</span>
+                                        <textarea name="recent_activity_summary" rows="2" maxlength="500" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" placeholder="Puoi indicare il periodo o un'attività di riferimento. Non viene dedotto automaticamente che fosse un test."></textarea>
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="space-y-3 border-t border-slate-800 pt-4">
+                                <legend class="text-base font-bold text-white">3. Disponibilità settimanale</legend>
+                                <p class="text-xs text-slate-500">Seleziona i giorni possibili e il tempo massimo realistico per ciascuno.</p>
+                                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                    <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
+                                        <input type="checkbox" name="available_days" value="mon" class="h-5 w-5 accent-emerald-500">
+                                        <span class="w-24 shrink-0">Lunedì</span>
+                                        <input type="number" data-day-minutes="mon" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi lunedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <span class="text-xs text-slate-500">min</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
+                                        <input type="checkbox" name="available_days" value="tue" class="h-5 w-5 accent-emerald-500">
+                                        <span class="w-24 shrink-0">Martedì</span>
+                                        <input type="number" data-day-minutes="tue" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi martedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <span class="text-xs text-slate-500">min</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
+                                        <input type="checkbox" name="available_days" value="wed" class="h-5 w-5 accent-emerald-500">
+                                        <span class="w-24 shrink-0">Mercoledì</span>
+                                        <input type="number" data-day-minutes="wed" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi mercoledì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <span class="text-xs text-slate-500">min</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
+                                        <input type="checkbox" name="available_days" value="thu" class="h-5 w-5 accent-emerald-500">
+                                        <span class="w-24 shrink-0">Giovedì</span>
+                                        <input type="number" data-day-minutes="thu" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi giovedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <span class="text-xs text-slate-500">min</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
+                                        <input type="checkbox" name="available_days" value="fri" class="h-5 w-5 accent-emerald-500">
+                                        <span class="w-24 shrink-0">Venerdì</span>
+                                        <input type="number" data-day-minutes="fri" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi venerdì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <span class="text-xs text-slate-500">min</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
+                                        <input type="checkbox" name="available_days" value="sat" class="h-5 w-5 accent-emerald-500">
+                                        <span class="w-24 shrink-0">Sabato</span>
+                                        <input type="number" data-day-minutes="sat" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi sabato" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <span class="text-xs text-slate-500">min</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
+                                        <input type="checkbox" name="available_days" value="sun" class="h-5 w-5 accent-emerald-500">
+                                        <span class="w-24 shrink-0">Domenica</span>
+                                        <input type="number" data-day-minutes="sun" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi domenica" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <span class="text-xs text-slate-500">min</span>
+                                    </label>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="space-y-3 border-t border-slate-800 pt-4">
+                                <legend class="text-base font-bold text-white">4. Terreno e riferimenti (facoltativi)</legend>
+                                <div class="space-y-3">
+                                    <div class="space-y-2 text-sm text-slate-300">
+                                        <p>Terreni preferiti o disponibili</p>
+                                        <div class="flex flex-wrap gap-3">
+                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="road" class="h-4 w-4 accent-emerald-500"> Strada</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="trail" class="h-4 w-4 accent-emerald-500"> Trail/sterrato</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="mixed" class="h-4 w-4 accent-emerald-500"> Misto</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="treadmill" class="h-4 w-4 accent-emerald-500"> Tapis roulant</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="other" class="h-4 w-4 accent-emerald-500"> Altro</label>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <label class="space-y-1 text-xs font-medium text-slate-400">
+                                            <span>Esperienza sui percorsi trail (se pertinente)</span>
+                                            <select name="trail_experience" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                                <option value="">Non indicata</option>
+                                                <option value="none">Nessuna o poca</option>
+                                                <option value="some">Qualche esperienza</option>
+                                                <option value="regular">Regolare</option>
+                                            </select>
+                                        </label>
+                                        <label class="space-y-1 text-xs font-medium text-slate-400">
+                                            <span>Protocollo del test VR già svolto (facoltativo)</span>
+                                            <select name="reference_test_protocol" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                                <option value="">Nessun test dichiarato</option>
+                                                    <option value="three_km_plus_10">Test 3 km + 10% (metodo del manuale)</option>
+                                                    <option value="ten_km">Test di campo 10 km</option>
+                                                <option value="race">Gara usata come riferimento</option>
+                                                <option value="other">Altro protocollo</option>
+                                            </select>
+                                        </label>
+                                        <label class="space-y-1 text-xs font-medium text-slate-400">
+                                            <span>Data del test</span>
+                                            <input name="reference_test_date" type="date" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                        </label>
+                                        <label class="space-y-1 text-xs font-medium text-slate-400">
+                                                <span>Tempo cronometrato del test (mm:ss o hh:mm:ss)</span>
+                                                <input name="reference_test_time" inputmode="numeric" pattern="(?:\d{1,3}:[0-5]\d|\d{1,2}:[0-5]\d:[0-5]\d)" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200" placeholder="Es. 15:12 per 3 km; 00:50:00 per 10 km">
+                                        </label>
+                                            <label class="space-y-1 text-xs font-medium text-slate-400">
+                                                <span>Risultato aggiuntivo / note (facoltativo)</span>
+                                                <input name="reference_test_result" maxlength="120" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200" placeholder="Es. tempo, percorso, condizioni">
+                                            </label>
+                                            <label class="space-y-1 text-xs font-medium text-slate-400 sm:col-span-2">
+                                                <span>Condizioni del test (percorso, fondo e contesto)</span>
+                                                <input name="reference_test_conditions" maxlength="300" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200" placeholder="Es. pista misurata, piano e asciutto; condizioni confrontabili">
+                                            </label>
+                                            <p id="planner-reference-vr" class="sm:col-span-2 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-300" role="status" aria-live="polite">La velocità di riferimento (VR) verrà calcolata solo da un protocollo supportato e dal suo tempo dichiarato.</p>
+                                        <label class="space-y-1 text-xs font-medium text-slate-400 sm:col-span-2">
+                                            <span>Vincoli pratici di calendario (facoltativo; non inserire diagnosi)</span>
+                                            <textarea name="practical_constraints" rows="2" maxlength="500" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></textarea>
+                                        </label>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div class="space-y-3 border-t border-slate-800 pt-4">
+                                <div id="planner-readiness" class="rounded-xl border border-slate-700 bg-slate-950/70 p-3 text-sm text-slate-300" role="status" aria-live="polite">Salva il questionario anche se incompleto; il riepilogo indicherà cosa serve per preparare una richiesta di bozza.</div>
+                                <div id="planner-methodology-preview" class="space-y-2 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-300" aria-live="polite">
+                                    <p class="font-semibold text-white">Stato delle regole metodologiche</p>
+                                    <p class="text-slate-400">Seleziona un obiettivo per vedere i riferimenti pertinenti. Nessun esempio viene usato come prescrizione automatica.</p>
+                                </div>
+                                <div class="flex flex-col gap-2 sm:flex-row">
+                                    <button type="submit" name="action" value="save" class="min-h-11 rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800">Salva questionario</button>
+                                    <button id="planner-create-draft" type="submit" name="action" value="draft" disabled class="min-h-11 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 enabled:hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40">Prepara richiesta di bozza</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <aside class="space-y-4">
+                            <section class="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5">
+                                <h3 class="text-base font-bold text-white">Richieste di bozza</h3>
+                                <p class="text-sm text-slate-400">Le richieste salvate non sono piani attivi e non aggiungono sedute al calendario.</p>
+                                <div id="planner-drafts-list" class="space-y-3" aria-live="polite">
+                                    <p class="text-sm text-slate-500">Caricamento…</p>
+                                </div>
+                            </section>
+                            <section class="space-y-2 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                                <h3 class="text-sm font-bold text-amber-200">Cosa succede dopo?</h3>
+                                <p class="text-sm text-slate-300">Questa fase salva il profilo, la richiesta e i riferimenti compatibili. Le regole di generazione devono ancora essere verificate e approvate: perciò non vengono inventati allenamenti, ritmi o test.</p>
+                                <p class="text-xs text-slate-400">Ogni piano futuro sarà una proposta da rivedere e confermare prima di proiettarla sul calendario.</p>
+                            </section>
+                        </aside>
+                    </div>
+                </section>
 
                 <!-- Modulo Intervals.icu -->
                 <div id="section-intervals" role="tabpanel" class="space-y-5 sm:space-y-6 hidden">

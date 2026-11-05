@@ -1,2 +1,6 @@
 /docs/manuali/*.pdf
 /docs/manuali/*.PDF
+/docs/manuali/client_secret_*.json
+/docs/manuali/*.docx
+/docs/manuali/~$*
+/supabase/.temp/

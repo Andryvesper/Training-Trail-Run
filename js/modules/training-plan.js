@@ -1,5 +1,5 @@
 const TABLE_NAME = 'training_sessions';
-const SESSION_FIELDS = 'id, user_id, scheduled_date, session_order, title, sport_type, distance_km, duration_minutes, notes';
+const SESSION_FIELDS = 'id, user_id, scheduled_date, session_order, title, sport_type, distance_km, duration_minutes, target_pace_seconds_per_km, notes, intervals_activity_id, completed_at, adherence_score, completed_activity';
 
 export class TrainingPlanService {
     constructor(supabaseClient) {
@@ -51,6 +51,51 @@ export class TrainingPlanService {
         if (error) throw error;
         if (!data) throw new Error('La seduta non è stata eliminata.');
     }
+
+    async confirmActivity(userId, sessionId, activity, score) {
+        const activityId = activity?.id === null || activity?.id === undefined
+            ? ''
+            : String(activity.id).trim();
+        if (!activityId) throw new Error('L’attività non ha un ID Intervals valido.');
+        if (!Number.isInteger(score) || score < 1 || score > 5) {
+            throw new Error('Seleziona un voto da 1 a 5.');
+        }
+
+        const { data, error } = await this.supabaseClient
+            .from(TABLE_NAME)
+            .update({
+                intervals_activity_id: activityId,
+                completed_at: new Date().toISOString(),
+                adherence_score: score,
+                completed_activity: activity
+            })
+            .eq('id', sessionId)
+            .eq('user_id', userId)
+            .select(SESSION_FIELDS)
+            .single();
+
+        if (error) throw error;
+        if (!data) throw new Error('L’associazione dell’attività non è stata salvata.');
+        return data;
+    }
+
+    async unlinkActivity(userId, sessionId) {
+        const { data, error } = await this.supabaseClient
+            .from(TABLE_NAME)
+            .update({
+                intervals_activity_id: null,
+                completed_at: null,
+                adherence_score: null,
+                completed_activity: null
+            })
+            .eq('id', sessionId)
+            .eq('user_id', userId)
+            .select('id')
+            .single();
+
+        if (error) throw error;
+        if (!data) throw new Error('L’associazione dell’attività non è stata rimossa.');
+    }
 }
 
 function validateSession(session) {
@@ -72,12 +117,18 @@ function validateSession(session) {
     const duration = session.duration_minutes === '' || session.duration_minutes == null
         ? null
         : Number(session.duration_minutes);
+    const targetPace = session.target_pace_seconds_per_km === '' || session.target_pace_seconds_per_km == null
+        ? null
+        : Number(session.target_pace_seconds_per_km);
 
     if (distance !== null && (!Number.isFinite(distance) || distance < 0)) {
         throw new Error('La distanza deve essere un numero non negativo.');
     }
     if (duration !== null && (!Number.isInteger(duration) || duration < 0)) {
         throw new Error('La durata deve essere un numero intero non negativo.');
+    }
+    if (targetPace !== null && (!Number.isInteger(targetPace) || targetPace < 120 || targetPace > 1800)) {
+        throw new Error('Il passo obiettivo deve essere compreso tra 2:00 e 30:00 min/km.');
     }
 
     return {
@@ -87,6 +138,7 @@ function validateSession(session) {
         sport_type: sportType,
         distance_km: distance,
         duration_minutes: duration,
+        target_pace_seconds_per_km: targetPace,
         notes: session.notes.trim() || null
     };
 }

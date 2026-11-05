@@ -94,6 +94,7 @@ export async function initRacesModule(supabaseClient, userId) {
                 : [...races, saved];
             resetForm();
             showStatus('Gara salvata.', 'success');
+            notifyRaceChanges(races);
         } catch (error) {
             console.error('Errore durante il salvataggio della gara:', error);
             showStatus(`Impossibile salvare la gara: ${error.message}`, 'error');
@@ -121,12 +122,19 @@ export async function initRacesModule(supabaseClient, userId) {
             races = races.filter(item => item.id !== race.id);
             render();
             showStatus('Gara eliminata.', 'success');
+            notifyRaceChanges(races);
         } catch (error) {
             console.error('Errore durante l’eliminazione della gara:', error);
             showStatus(`Impossibile eliminare la gara: ${error.message}`, 'error');
             button.disabled = false;
         }
     });
+}
+
+function notifyRaceChanges(races) {
+    document.dispatchEvent(new CustomEvent('training-races:changed', {
+        detail: { races }
+    }));
 }
 
 function renderRace(race) {

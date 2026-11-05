@@ -3,6 +3,7 @@ import { initializePlatform } from './core/platform.js';
 import { initIntervalsModule } from './modules/intervals-ui.js';
 import { initCalendarModule } from './modules/calendar-ui.js';
 import { initRacesModule } from './modules/races-ui.js';
+import { initTrainingPlannerModule } from './modules/training-planner-ui.js';
 
 const supabase = window.supabase.createClient(
     window.SUPABASE_CONFIG.URL, 
@@ -79,6 +80,9 @@ async function startApp(user) {
 
         console.log("Inizializzazione Modulo Gare...");
         await initRacesModule(supabase, user.id);
+
+        console.log("Inizializzazione Motore piani...");
+        await initTrainingPlannerModule(supabase, user.id);
 
         console.log("Mostro la dashboard principale...");
         document.getElementById('auth-screen').style.display = 'none';
