@@ -282,7 +282,7 @@ function renderSelectedWeek(container, weeks, weekIndex, sessions, editingSessio
     const week = weeks[weekIndex];
     weekLabel.textContent = `${formatDateIt(week.startDate)} – ${formatDateIt(week.endDate)}${week.isCurrent ? ' · Questa settimana' : ''}`;
 
-    const daysGrid = createElement('div', 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3');
+    const daysGrid = createElement('div', 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7');
     week.days.forEach(day => {
         day.plannedSessions = sessions.filter(session => session.scheduled_date === day.date);
         daysGrid.append(renderDayCard(day, editingSession, pendingAssociation, sessions));
@@ -296,7 +296,7 @@ function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
     const isToday = day.date === formatDateKey(new Date());
     const card = createElement(
         'article',
-        `day-card border ${isToday ? 'border-emerald-500/60 bg-emerald-950/10' : 'border-slate-800 bg-slate-900/70'} rounded-2xl p-4 flex flex-col gap-3`
+        `day-card border ${isToday ? 'border-emerald-500/60 bg-emerald-950/10' : 'border-slate-800 bg-slate-900/70'} rounded-2xl p-3 flex flex-col gap-3`
     );
     const dayLabel = new Date(`${day.date}T12:00:00`).toLocaleDateString('it-IT', {
         weekday: 'long',
@@ -390,12 +390,15 @@ function renderActivity(activity, daySessions, allSessions, pendingAssociation) 
 
     const matches = getMatchingSessions(activity, daySessions);
     if (!matches.length) {
+        const message = !activityId
+            ? 'Intervals non ha fornito un ID: non è possibile salvare un’associazione.'
+            : daySessions.length
+                ? 'Attività sincronizzata da Intervals.icu; non c’è una seduta pianificata dello stesso giorno e sport da associare.'
+                : 'Attività sincronizzata da Intervals.icu; non hai una seduta pianificata per questo giorno.';
         section.append(createElement(
             'p',
             'text-xs text-slate-400',
-            activityId
-                ? 'Nessuna seduta dello stesso giorno e sport da proporre.'
-                : 'Intervals non ha fornito un ID: non è possibile salvare un’associazione.'
+            message
         ));
         return section;
     }
