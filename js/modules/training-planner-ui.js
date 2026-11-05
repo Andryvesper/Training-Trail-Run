@@ -11,6 +11,15 @@ import { TrainingRacesService } from './training-races.js';
 import { formatPace } from './training-reference-pace.js';
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const DAY_LABELS = {
+    mon: 'Lunedì',
+    tue: 'Martedì',
+    wed: 'Mercoledì',
+    thu: 'Giovedì',
+    fri: 'Venerdì',
+    sat: 'Sabato',
+    sun: 'Domenica'
+};
 
 export async function initTrainingPlannerModule(supabaseClient, userId) {
     const form = document.getElementById('planner-form');
@@ -22,12 +31,16 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
     const raceSelect = document.getElementById('planner-primary-race');
     const secondaryRaceContainer = document.getElementById('planner-secondary-races');
     const draftsList = document.getElementById('planner-drafts-list');
+    const otherSportsList = document.getElementById('planner-other-sports-list');
+    const addOtherSportButton = document.getElementById('planner-add-other-sport');
     if (!form || !status || !readinessMessage || !methodologyPreview || !createDraftButton
-        || !raceSelect || !secondaryRaceContainer || !draftsList) return;
+        || !raceSelect || !secondaryRaceContainer || !draftsList
+        || !otherSportsList || !addOtherSportButton) return;
 
     const plannerService = new TrainingPlannerService(supabaseClient);
     const racesService = new TrainingRacesService(supabaseClient);
     let races = [];
+    renderOtherSportRows(otherSportsList, []);
 
     try {
         races = await racesService.listRaces(userId);
@@ -43,6 +56,7 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
         if (savedProfile?.questionnaire) {
             preserveUnavailableRaceOption(raceSelect, savedProfile.questionnaire.primary_race_id);
             fillForm(form, savedProfile.questionnaire);
+            renderOtherSportRows(otherSportsList, savedProfile.questionnaire.weekly_other_sports || []);
             renderSecondaryRaceOptions(
                 secondaryRaceContainer,
                 races,
@@ -55,6 +69,7 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
         console.error('Errore nel caricamento del questionario di pianificazione:', error);
         showStatus(status, `Impossibile caricare il questionario: ${error.message}`, 'error');
     }
+    updatePeakWeekControls(form);
 
     try {
         renderDrafts(draftsList, await plannerService.listDraftRequests(userId));
@@ -74,9 +89,19 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
             if (!checkbox.checked) minutesInput.value = '';
             updateReadiness();
         });
+        addOtherSportButton.addEventListener('click', () => {
+            const sessions = collectOtherSportRows(otherSportsList);
+            sessions.push({});
+            renderOtherSportRows(otherSportsList, sessions);
+            updateReadiness();
+        });
     });
-    form.addEventListener('input', updateReadiness);
+    form.addEventListener('input', () => {
+        updatePeakWeekControls(form);
+        updateReadiness();
+    });
     form.addEventListener('change', event => {
+        updatePeakWeekControls(form);
         if (event.target === raceSelect) {
             renderSecondaryRaceOptions(
                 secondaryRaceContainer,
@@ -150,7 +175,9 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
             createDraftButton.disabled = !readiness.ready;
             if (readiness.ready) {
                 readinessMessage.className = 'rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200';
-                readinessMessage.textContent = 'Dati minimi presenti. Puoi salvare una richiesta di bozza; il piano non verrà generato né attivato in questa fase.';
+                readinessMessage.textContent = `Dati minimi presenti. Settimana tipo: ${readiness.profile.target_running_sessions_per_week} corse${readiness.profile.peak_week_proposal_mode === 'suggest_with_reason'
+                    ? `; settimane candidate fino a ${readiness.profile.peak_week_max_running_sessions} corse`
+                    : ''}; altri sport: ${readiness.profile.weekly_other_sports.length} sedute. Puoi salvare una richiesta di bozza; il piano non verrà generato né attivato in questa fase.`;
             } else {
                 readinessMessage.className = 'rounded-xl border border-slate-700 bg-slate-950/70 p-3 text-sm text-slate-300';
                 readinessMessage.replaceChildren(makeElement('p', 'font-semibold', 'Per preparare la richiesta manca:'));
@@ -172,6 +199,110 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
     }
 }
 
+function updatePeakWeekControls(form) {
+    const mode = form.elements.namedItem('peak_week_proposal_mode');
+    const maxSessions = form.elements.namedItem('peak_week_max_running_sessions');
+    if (!mode || !maxSessions) return;
+    const proposalsEnabled = mode.value === 'suggest_with_reason';
+    maxSessions.disabled = !proposalsEnabled;
+    if (!proposalsEnabled) maxSessions.value = '';
+}
+
+function renderOtherSportRows(container, sessions) {
+    container.replaceChildren();
+    if (!sessions.length) {
+        container.append(makeElement('p', 'text-xs text-slate-500', 'Nessuna seduta di altri sport indicata.'));
+        return;
+    }
+
+    sessions.forEach(session => {
+        const row = makeElement('div', 'grid grid-cols-1 gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-3 sm:grid-cols-2');
+        row.dataset.otherSportRow = 'true';
+        const sport = createSelectField('Sport', 'other-sport', [
+            ['', 'Seleziona'],
+            ['swimming', 'Nuoto'],
+            ['cycling', 'Ciclismo'],
+            ['strength', 'Forza / palestra'],
+            ['other', 'Altro']
+        ], session.sport || '');
+        const customSport = makeElement('input', 'min-h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-200');
+        customSport.dataset.otherSportField = 'custom_sport';
+        customSport.type = 'text';
+        customSport.maxLength = 60;
+        customSport.placeholder = 'Specifica lo sport';
+        customSport.value = session.custom_sport || '';
+        const customSportLabel = makeElement('label', 'space-y-1 text-xs text-slate-400');
+        customSportLabel.append(makeElement('span', 'block', 'Nome dello sport'));
+        customSportLabel.append(customSport);
+        customSportLabel.hidden = sport.value !== 'other';
+        sport.addEventListener('change', () => {
+            customSportLabel.hidden = sport.value !== 'other';
+            if (sport.value !== 'other') customSport.value = '';
+        });
+
+        const day = createSelectField('Giorno', 'day', [
+            ['', 'Seleziona'],
+            ...DAYS.map(dayKey => [dayKey, DAY_LABELS[dayKey]])
+        ], session.day || '');
+        const durationLabel = makeElement('label', 'space-y-1 text-xs text-slate-400');
+        durationLabel.append(makeElement('span', 'block', 'Durata (minuti)'));
+        const duration = makeElement('input', 'min-h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-200');
+        duration.dataset.otherSportField = 'duration_minutes';
+        duration.type = 'number';
+        duration.min = '10';
+        duration.max = '360';
+        duration.step = '5';
+        duration.value = session.duration_minutes ?? '';
+        durationLabel.append(duration);
+
+        const schedule = createSelectField('Flessibilità', 'schedule_type', [
+            ['', 'Seleziona'],
+            ['fixed', 'Giorno fisso'],
+            ['movable', 'Spostabile']
+        ], session.schedule_type || '');
+        const remove = makeElement('button', 'min-h-10 self-end rounded-lg border border-slate-700 px-3 text-sm text-slate-300 hover:bg-slate-800', 'Rimuovi');
+        remove.type = 'button';
+        remove.addEventListener('click', () => {
+            row.remove();
+            if (!container.querySelector('[data-other-sport-row]')) {
+                container.append(makeElement('p', 'text-xs text-slate-500', 'Nessuna seduta di altri sport indicata.'));
+            }
+            container.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+
+        row.append(sport.parentElement, customSportLabel, day.parentElement, durationLabel, schedule.parentElement, remove);
+        container.append(row);
+    });
+}
+
+function createSelectField(labelText, field, options, value) {
+    const label = makeElement('label', 'space-y-1 text-xs text-slate-400');
+    label.append(makeElement('span', 'block', labelText));
+    const select = makeElement('select', 'min-h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-200');
+    select.dataset.otherSportField = field;
+    options.forEach(([optionValue, text]) => {
+        const option = makeElement('option', '', text);
+        option.value = optionValue;
+        select.append(option);
+    });
+    select.value = value;
+    label.append(select);
+    return select;
+}
+
+function collectOtherSportRows(container) {
+    return [...container.querySelectorAll('[data-other-sport-row="true"]')].map(row => {
+        const getValue = field => row.querySelector(`[data-other-sport-field="${field}"]`).value;
+        return {
+            sport: getValue('other-sport'),
+            custom_sport: getValue('custom_sport'),
+            day: getValue('day'),
+            duration_minutes: getValue('duration_minutes'),
+            schedule_type: getValue('schedule_type')
+        };
+    });
+}
+
 function renderMethodologyPreview(container, profile, races) {
     if (!container) return;
     container.replaceChildren(makeElement('p', 'font-semibold text-white', 'Stato delle regole metodologiche'));
@@ -189,6 +320,11 @@ function renderMethodologyPreview(container, profile, races) {
         'p',
         'text-slate-300',
         `${candidateCount} pattern candidati e ${exampleCount} ${exampleLabel} al contesto selezionato.`
+    ));
+    container.append(makeElement(
+        'p',
+        'text-xs text-slate-400',
+        `Stato pipeline: ${getRulePipelineLabel(assessment.status)}. Regole pronte: ${assessment.ready_pattern_ids.length}.`
     ));
 
     if (assessment.candidate_pattern_ids.length) {
@@ -226,11 +362,11 @@ function renderMethodologyPreview(container, profile, races) {
         container.append(card);
     });
 
-    container.append(makeElement(
-        'p',
-        'text-xs text-amber-200',
-        'Generazione non disponibile: gli esempi sono consultivi e le regole non sono approvate per piani personalizzati.'
-    ));
+    if (assessment.blockers.length) {
+        const blockers = makeElement('ul', 'list-disc space-y-1 pl-5 text-xs text-amber-200');
+        assessment.blockers.forEach(blocker => blockers.append(makeElement('li', '', blocker)));
+        container.append(blockers);
+    }
 
     if (profile.goal_mode === 'race' && Number(race?.distance_km) === 10) {
         const prototype = getTenKmPrototypeReadiness(profile, races);
@@ -241,6 +377,16 @@ function renderMethodologyPreview(container, profile, races) {
         gate.append(list);
         container.append(gate);
     }
+}
+
+function getRulePipelineLabel(status) {
+    const labels = {
+        awaiting_approved_rules: 'in attesa di regole approvate',
+        awaiting_rule_contract: 'contratto delle regole incompleto',
+        awaiting_required_inputs: 'input richiesti mancanti',
+        rules_ready: 'regole valutate; generazione disattivata'
+    };
+    return labels[status] || 'stato non disponibile';
 }
 
 function renderReferenceVrPreview(container, profile) {
@@ -270,6 +416,9 @@ function describeSourceExample(example) {
     if (example.id === 'ten_km_breathing_cycle_outline') {
         return `Tabella ${example.source.table}: ${example.structure.durationWeeks} settimane, ${example.structure.runningSessionsPerWeek} sedute/settimana; test di verifica alla settimana ${example.structure.referenceTestWeek} (protocollo non specificato nella tabella), gara alla settimana ${example.structure.raceWeek}; riscaldamento di riferimento pp. ${example.structure.warmup.sourcePrintedPages} (non prescritto come schema universale).`;
     }
+    if (example.structure.kind === 'distance_time_cycle_outline') {
+        return `Tabella ${example.source.table}: ${example.structure.goalDistanceKm} km, ${example.structure.durationWeeks} settimane, ${example.structure.runningSessionsPerWeek} sedute/settimana. Sono registrati solo i dati strutturali; le singole sedute non sono riportate.`;
+    }
     return 'Riferimento fonte catalogato; dettagli non disponibili.';
 }
 
@@ -290,7 +439,10 @@ function getMethodRuleLabel(id) {
         trail_specificity: 'Specificità trail',
         recovery_and_cycle: 'Riposo, recupero e scarico',
         field_test_reference: 'Test di campo e riferimento di forma',
-        ten_km_breathing_cycle: 'Esempio ciclico 10 km, metodo respiratorio'
+        ten_km_breathing_cycle: 'Esempio ciclico 10 km, metodo respiratorio',
+        ten_km_distance_time_cycle: 'Esempio ciclico 10 km, metodo distanza-tempo',
+        half_marathon_distance_time_cycle: 'Esempio ciclico mezza maratona, metodo distanza-tempo',
+        marathon_distance_time_cycle: 'Esempio ciclico maratona, metodo distanza-tempo'
     };
     return labels[id] || id;
 }
@@ -312,6 +464,7 @@ function collectForm(form) {
             max_minutes: checkbox.checked ? minutes.value : null
         }];
     }));
+    values.weekly_other_sports = collectOtherSportRows(document.getElementById('planner-other-sports-list'));
     return values;
 }
 

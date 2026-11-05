@@ -39,6 +39,9 @@ function readyProfile(overrides = {}) {
         goal_focus: 'continuity',
         self_profile: 'regular_recreational',
         consistency_status: 'consistent',
+        target_running_sessions_per_week: 2,
+        peak_week_proposal_mode: 'suggest_with_reason',
+        peak_week_max_running_sessions: 4,
         weekly_availability: {
             mon: { available: true, max_minutes: 45 },
             tue: { available: false, max_minutes: null },
@@ -101,6 +104,83 @@ test('rifiuta profili con valori fuori dai limiti o protocolli non validi', () =
     assert.throws(() => normalizePlanningProfile({
         secondary_race_ids: Array.from({ length: 11 }, (_, index) => `race-${index}`)
     }), /al massimo 10 gare secondarie/);
+    assert.throws(() => normalizePlanningProfile({
+        target_running_sessions_per_week: 8
+    }), /comprese tra 1 e 7/);
+    assert.throws(() => normalizePlanningProfile({
+        target_running_sessions_per_week: 3,
+        peak_week_proposal_mode: 'suggest_with_reason',
+        peak_week_max_running_sessions: 3
+    }), /deve superare la frequenza settimanale di base/);
+});
+
+test('normalizza frequenza base e limite delle proposte di picco', () => {
+    const profile = normalizePlanningProfile(readyProfile());
+    assert.equal(profile.target_running_sessions_per_week, 2);
+    assert.equal(profile.peak_week_proposal_mode, 'suggest_with_reason');
+    assert.equal(profile.peak_week_max_running_sessions, 4);
+    assert.equal(profile.weekly_availability_mode, 'typical_week_with_exceptions');
+    assert.equal(profile.schedule_overflow_policy, 'ask_before_reduce');
+
+    const withoutPeak = normalizePlanningProfile({
+        target_running_sessions_per_week: 2,
+        peak_week_proposal_mode: 'disabled'
+    });
+    assert.equal(withoutPeak.peak_week_max_running_sessions, null);
+});
+
+test('salva altri sport come impegni settimanali espliciti e non li deduce se assenti', () => {
+    const empty = normalizePlanningProfile({
+        weekly_availability: Object.fromEntries([
+            ['mon', { available: true, max_minutes: 45 }],
+            ['tue', { available: true, max_minutes: 45 }],
+            ['wed', { available: true, max_minutes: 60 }],
+            ['sat', { available: true, max_minutes: 90 }]
+        ])
+    });
+    assert.deepEqual(empty.weekly_other_sports, []);
+    assert.deepEqual(normalizePlanningProfile({
+        weekly_other_sports: [{ sport: '', day: '', duration_minutes: '', schedule_type: '' }]
+    }).weekly_other_sports, []);
+
+    const profile = normalizePlanningProfile({
+        weekly_other_sports: [{
+            sport: 'swimming',
+            day: 'wed',
+            duration_minutes: '60',
+            schedule_type: 'fixed'
+        }]
+    });
+    assert.deepEqual(profile.weekly_other_sports, [{
+        sport: 'swimming',
+        custom_sport: null,
+        day: 'wed',
+        duration_minutes: 60,
+        schedule_type: 'fixed'
+    }]);
+});
+
+test('valida sedute incomplete e limiti degli altri sport', () => {
+    assert.throws(() => normalizePlanningProfile({
+        weekly_other_sports: [{ sport: 'swimming', day: 'wed' }]
+    }), /Completa sport, giorno, durata e flessibilità/);
+    assert.throws(() => normalizePlanningProfile({
+        weekly_other_sports: [{
+            sport: 'other',
+            custom_sport: '',
+            day: 'wed',
+            duration_minutes: 45,
+            schedule_type: 'fixed'
+        }]
+    }), /Specifica lo sport/);
+    assert.throws(() => normalizePlanningProfile({
+        weekly_other_sports: [{
+            sport: 'swimming',
+            day: 'wed',
+            duration_minutes: 5,
+            schedule_type: 'fixed'
+        }]
+    }), /durata.*tra 10 e 360 minuti/);
 });
 
 test('registra la VR calcolata solo da un protocollo supportato e dal tempo del test', () => {
@@ -170,6 +250,7 @@ test('il prototipo 10 km usa la VR come prerequisito ma resta bloccato da regole
     assert.ok(!readiness.missing.some(item => item.includes('VR')));
     assert.ok(readiness.blockers.some(item => item.includes('non può dedurre')));
     assert.ok(readiness.blockers.some(item => item.includes('non sono ancora trascritte')));
+    assert.ok(readiness.blockers.some(item => item.includes('adattamento non ancora implementato')));
 });
 
 test('la bozza senza gara richiede obiettivo, esperienza, continuità, orizzonte e disponibilità completa', () => {
@@ -180,6 +261,68 @@ test('la bozza senza gara richiede obiettivo, esperienza, continuità, orizzonte
     assert.equal(readiness.ready, false);
     assert.ok(readiness.missing.some(item => item.includes('tempo massimo')));
     assert.ok(!readiness.missing.some(item => item.includes('ritmo')));
+});
+
+test('la frequenza scelta deve rientrare nei giorni tipici e le settimane di picco restano esplicite', () => {
+    const tooManyBaseRuns = getPlanningReadiness(readyProfile({
+        target_running_sessions_per_week: 3
+    }));
+    assert.ok(tooManyBaseRuns.missing.some(item => item.includes('supera i giorni attualmente disponibili')));
+
+    const peakNeedsExceptionalAvailability = getPlanningReadiness(readyProfile({
+        peak_week_max_running_sessions: 4
+    }));
+    assert.ok(peakNeedsExceptionalAvailability.warnings.some(item => item.includes('eccezioni di calendario esplicite')));
+
+    const missingPeakLimit = getPlanningReadiness(readyProfile({
+        peak_week_max_running_sessions: null
+    }));
+    assert.ok(missingPeakLimit.missing.some(item => item.includes('limite di corse')));
+});
+
+test('quattro corse restano compatibili senza altri sport ma rispettano gli impegni fissi', () => {
+    const availability = {
+        mon: { available: true, max_minutes: 45 },
+        tue: { available: true, max_minutes: 45 },
+        wed: { available: true, max_minutes: 60 },
+        thu: { available: true, max_minutes: 90 }
+    };
+    const noOtherSports = getPlanningReadiness(readyProfile({
+        target_running_sessions_per_week: 4,
+        peak_week_proposal_mode: 'disabled',
+        peak_week_max_running_sessions: null,
+        weekly_availability: availability
+    }));
+    assert.equal(noOtherSports.ready, true);
+
+    const fixedSwim = getPlanningReadiness(readyProfile({
+        target_running_sessions_per_week: 4,
+        peak_week_proposal_mode: 'disabled',
+        peak_week_max_running_sessions: null,
+        weekly_availability: availability,
+        weekly_other_sports: [{
+            sport: 'swimming',
+            day: 'wed',
+            duration_minutes: 60,
+            schedule_type: 'movable'
+        }]
+    }));
+    assert.ok(fixedSwim.missing.some(item => item.includes('impegni fissi degli altri sport')));
+
+    const movableSwim = getPlanningReadiness(readyProfile({
+        target_running_sessions_per_week: 4,
+        peak_week_proposal_mode: 'disabled',
+        peak_week_max_running_sessions: null,
+        weekly_availability: availability,
+        weekly_other_sports: [{
+            sport: 'swimming',
+            day: 'wed',
+            duration_minutes: 60,
+            schedule_type: 'movable'
+        }]
+    }));
+    assert.equal(movableSwim.ready, true);
+    assert.ok(movableSwim.warnings.some(item => item.includes('seduta di altro sport è spostabile')));
 });
 
 test('consente di dichiarare continuità sconosciuta senza dedurre il livello', () => {
@@ -272,7 +415,13 @@ test('crea una richiesta di bozza non attiva con snapshot della gara selezionata
         trail_experience: 'some',
         preferred_terrains: ['trail'],
         secondary_race_ids: ['race-2'],
-        secondary_race_intents: { 'race-2': 'time_goal' }
+        secondary_race_intents: { 'race-2': 'time_goal' },
+        weekly_other_sports: [{
+            sport: 'swimming',
+            day: 'wed',
+            duration_minutes: 60,
+            schedule_type: 'movable'
+        }]
     });
 
     assert.equal(await service.createDraftRequest('user-1', profile, [plannedRace, secondaryRace]), saved);
@@ -293,6 +442,17 @@ test('crea una richiesta di bozza non attiva con snapshot della gara selezionata
     });
     assert.equal(insert.profile_snapshot.methodology_assessment.status, 'awaiting_approved_rules');
     assert.equal(insert.profile_snapshot.methodology_assessment.generation_enabled, false);
+    assert.equal(insert.profile_snapshot.target_running_sessions_per_week, 2);
+    assert.equal(insert.profile_snapshot.peak_week_proposal_mode, 'suggest_with_reason');
+    assert.equal(insert.profile_snapshot.peak_week_max_running_sessions, 4);
+    assert.equal(insert.profile_snapshot.schedule_overflow_policy, 'ask_before_reduce');
+    assert.deepEqual(insert.profile_snapshot.weekly_other_sports, [{
+        sport: 'swimming',
+        custom_sport: null,
+        day: 'wed',
+        duration_minutes: 60,
+        schedule_type: 'movable'
+    }]);
     assert.ok(insert.profile_snapshot.methodology_assessment.candidate_pattern_ids.includes('trail_specificity'));
     assert.ok(!insert.profile_snapshot.methodology_assessment.candidate_pattern_ids.includes('ten_km_breathing_cycle'));
     assert.ok(insert.profile_snapshot.methodology_assessment.source_example_ids.includes('bis_time_p175'));

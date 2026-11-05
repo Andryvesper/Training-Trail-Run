@@ -53,8 +53,11 @@ seguenti:
 |---|---|---|
 | pp. 163–169 (parte 2.pdf, scansioni 8–11) | La valutazione della VR, la necessità di condizioni confrontabili, i diversi test da campo e la cautela sull'interpretazione del Conconi sono leggibili. I test indicati per profili diversi non sono intercambiabili. | Le descrizioni possono guidare il modello dei riferimenti di forma. Non automatizzare test massimali, percentuali o risultati dai dati Intervals.icu. |
 | pp. 174–179 (parte 2.pdf, scansioni 14–16) | Differenza tra lentissimo/lento, esempi di variazioni (bis/tris), medio/progressivo e lunghissimo sono leggibili; le intensità sono espresse con più indicatori e variano tra profili/obiettivi. | Buona base per la tassonomia e lo schema dei blocchi. Le prescrizioni numeriche vanno selezionate solo da pattern verificati e applicabili. |
-| pp. 198–203 | Le tabelle mostrano programmi distinti per 10 km e mezza maratona, con metodo respiratorio o distanza-tempo, giorni di riposo e settimane/test di verifica in punti specifici. | È leggibile che i piani sono specifici e differenziati; non convertire automaticamente tutte le celle OCR in template eseguibili. |
+| pp. 198–204 | Le tabelle mostrano programmi distinti per 10 km e mezza maratona, con metodo respiratorio o distanza-tempo, giorni di riposo e settimane/test di verifica in punti specifici. | È leggibile che i piani sono specifici e differenziati; non convertire automaticamente tutte le celle OCR in template eseguibili. |
 | pp. 204–209 | Le tabelle per maratona/ultra hanno orizzonti diversi e includono sedute specifiche, recuperi ed elementi di scarico; il testo avverte che gli esempi non sono personalizzati. | Gli esempi servono da riferimento editoriale e non da generatore automatico o combinazione di sedute. |
+| p. 200 (scansione 27), tabella 6 | Verificati visivamente intestazione e perimetro: esempio di nove settimane per 10 km, metodo distanza-tempo, quattro sedute settimanali. La tabella è distinta dal ciclo respiratorio della tabella 5. | Solo struttura di alto livello registrata; le singole celle non sono ancora trascritte e revisionate come regole. |
+| pp. 203–204 (scansioni 28–29), tabella 8 | Verificati visivamente titolo e continuazione: esempio di dodici settimane per la mezza maratona, metodo distanza-tempo e quattro sedute settimanali. | Solo struttura di alto livello registrata; non fondere con la tabella 7 a metodo respiratorio né dedurre i dettagli mancanti. |
+| pp. 207–208 (scansioni 31–32), tabella 10 | Verificati visivamente titolo e continuazione: esempio di quindici settimane per la maratona, metodo distanza-tempo e quattro sedute settimanali. | Solo struttura di alto livello registrata; l’esperienza individuale non rende trasferibile la tabella né approva le sue sedute. |
 | pp. 212–215 | Gli esempi trail esplicitano allenamento su percorsi simili, dislivello e gestione del terreno; per l'ultratrail sono citati anche cancelli orari e adattamento specifico. | Il modello gara trail deve poter rappresentare dislivello/percorso e target non basati solo sul passo. |
 
 Il controllo è stato limitato a questi passaggi e tabelle pertinenti al primo
@@ -80,6 +83,9 @@ ancora una regola eseguibile.
 | `recovery_and_cycle` | Riposo, recupero e scarico | pp. 198–209: gli esempi di piano differenziati contengono giorni di riposo e settimane con funzioni diverse. | Annotazione del ruolo di recupero o scarico all'interno dell'esempio cui appartiene. | Nessuna cadenza, percentuale di scarico o regola universale. Non eseguibile. |
 | `field_test_reference` | Test di campo e riferimento di forma | pp. 163–169: sono leggibili protocolli distinti e la necessità di condizioni confrontabili. | Protocollo dichiarato, fonte, data e condizioni, separati dal piano di allenamento. | Non rendere i test massimali obbligatori, non equiparare protocolli diversi e non dedurre risultati da attività ordinarie. Non eseguibile. |
 | `ten_km_breathing_cycle` | Esempio ciclico 10 km, metodo respiratorio | pp. 197–199 (parte 2.pdf, scansioni 25–26): il testo lo presenta per l'“amatore vero”; nove settimane, quattro sedute settimanali, verifica della VR alla settimana 3 e gara alla settimana 9. La tabella non identifica il protocollo del test. | Riferimento contestuale a una tabella specifica, separato da qualsiasi piano personale. | Non applicare a distanze, profili o disponibilità diverse; non inventare il protocollo di test e non considerare approvata la sequenza delle sedute. Non eseguibile. |
+| `ten_km_distance_time_cycle` | Esempio ciclico 10 km, metodo distanza-tempo (tabella 6) | p. 200 (parte 2.pdf, scansione 27): nove settimane e quattro sedute settimanali. | Outline del ciclo con fonte e orizzonte; dettaglio delle sedute da trascrivere. | Esempio fonte, non regola approvata; non intercambiabile con la tabella 5. Non eseguibile. |
+| `half_marathon_distance_time_cycle` | Esempio ciclico mezza maratona, metodo distanza-tempo (tabella 8) | pp. 203–204 (parte 2.pdf, scansioni 28–29): dodici settimane e quattro sedute settimanali. | Outline del ciclo con fonte e orizzonte, compresa la continuazione a p. 204. | Esempio fonte, non regola approvata; non fondere con la tabella 7. Non eseguibile. |
+| `marathon_distance_time_cycle` | Esempio ciclico maratona, metodo distanza-tempo (tabella 10) | pp. 207–208 (parte 2.pdf, scansioni 31–32): quindici settimane e quattro sedute settimanali. | Outline del ciclo con fonte e orizzonte, compresa la continuazione a p. 208. | Esempio fonte, non regola approvata; l'esperienza personale di adattamento resta un caso di test separato. Non eseguibile. |
 
 #### Perimetro del primo prototipo 10 km (verifica fonte, 5 novembre 2026)
 
@@ -110,6 +116,45 @@ della VR; i test di campo descritti alle pp. 165–166 hanno protocolli diversi.
 Per iniziare si registra un test VR già eseguito e la sua provenienza: l'app
 non ordina all'atleta di fare un test massimale. Non si presume che la verifica
 della settimana 3 abbia lo stesso protocollo finché non è specificato.
+
+#### Nuovi cicli candidati: tabelle 6, 8 e 10 (struttura verificata)
+
+Il controllo visivo locale delle pagine stampate conferma i tre perimetri:
+tabella 6, 10 km in nove settimane; tabella 8, mezza maratona in dodici
+settimane; tabella 10, maratona in quindici settimane. Sono tutti esempi a
+metodo distanza-tempo con quattro sedute settimanali. La tabella 8 continua
+alla pagina successiva e lo stesso vale per la tabella 10; una trascrizione
+che si fermi alla prima pagina sarebbe incompleta.
+
+Questa verifica copre intestazioni, orizzonte e frequenza, non certifica ogni
+cella, sigla, recupero o criterio di selezione. I tre cicli restano esempi
+fonte non eseguibili e non vanno combinati con le corrispondenti tabelle a
+metodo respiratorio. Prima di usarli come casi di confronto del generatore
+occorre completare una trascrizione strutturata indipendente e una seconda
+revisione, mantenendo espliciti i campi assenti. La fonte resta un riferimento
+editoriale, non una validazione scientifica del programma.
+
+#### Scenario di variante a tre sedute (esperienza dichiarata, non prescrittiva)
+
+È stato raccolto questo scenario per valutare la flessibilità del motore
+rispetto al programma di quattro sedute della tabella 10: svolgerne tre,
+saltando di solito una delle sedute meno impegnative; nelle due sedute non
+lunghe aggiungere circa 2 km di riscaldamento prima del lavoro previsto e
+circa 1 km di defaticamento; aumentare il lungo del fine settimana di circa la
+distanza della seduta saltata, in genere quella più breve. Riscaldamento e
+defaticamento aggiuntivi non venivano fatti nel lungo. È un adattamento
+individuale riferito dall'atleta, non una variante presente nella fonte né
+una regola approvata.
+
+Non va applicato automaticamente né presentato come equivalente al ciclo
+originale: concentrare sul lungo il volume della seduta omessa cambia la
+distribuzione del carico. Prima di poterlo rappresentare come opzione, il
+motore dovrà chiedere conferma esplicita, calcolare la distanza in base alla
+seduta effettivamente omessa, rispettare disponibilità e limiti dichiarati e
+mostrare chiaramente la differenza dall'esempio a quattro sedute. La variante
+resta un caso da valutare, non una raccomandazione trasferibile. Il motore non
+deve colmare volume mancante con un incremento inventato né modificare il
+calendario attivo senza conferma.
 
 #### Riferimento VR strutturato
 
@@ -439,6 +484,33 @@ versionate. Un modello generativo può aiutare a formulare domande o spiegare
 una bozza, ma non deve inventare prescrizioni, test, ritmi o modificare il
 piano attivo.
 
+### Frequenza di corsa e sport complementari (primo step implementato)
+
+Il questionario ora salva:
+
+- il numero scelto dall'atleta di sedute di corsa nella settimana tipo
+  (1–7), controllato rispetto ai giorni e ai tempi dichiarati disponibili;
+- se consentire proposte motivate di settimane di picco e il limite massimo
+  di corse settimanali che una proposta potrà considerare;
+- zero o più sedute settimanali di altri sport, con sport, giorno, durata
+  dichiarata e flessibilità (giorno fisso o spostabile);
+- l'avviso se tale limite supera i giorni della settimana tipo, perché
+  serviranno eccezioni di calendario esplicite.
+
+Questo è un contratto di preferenze, non il generatore delle settimane di
+picco: non ne decide ancora la collocazione, non aumenta volume o intensità e
+non crea sedute. In caso di conflitto futuro dovrà mostrare le alternative e
+chiedere conferma; non recupererà automaticamente una seduta omessa
+aggiungendone i chilometri al lungo. Se non vengono dichiarati altri sport,
+non si riservano giorni aggiuntivi e quattro corse restano compatibili quando
+quattro giorni e tempi sufficienti sono disponibili. Un altro sport fisso
+riserva il suo giorno per il controllo di fattibilità; uno spostabile sullo
+stesso giorno di corsa produce un avviso, non uno spostamento automatico.
+Questo non stima il carico incrociato, la fatica o l'equivalenza tra sport; il
+motore deve chiedere conferma dei conflitti quando verrà implementato.
+La disponibilità rimane una settimana tipo con eccezioni manuali, non un
+calendario variabile settimana per settimana.
+
 ## Cosa non si può codificare direttamente dal manuale
 
 - Le categorie e i chilometraggi descrittivi non sono classificatori
@@ -465,24 +537,34 @@ piano attivo.
 2. Il questionario MVP salva compilazioni parziali e richieste non attive; i
    profili restano autodescritti. La migrazione necessaria al suo uso non è
    stata applicata al progetto Supabase remoto.
-3. Sono state approfondite una seduta bis a tempo (p. 175) e la struttura
-   settimanale di un programma di 9 settimane per la 10 km (pp. 197–199).
-   Entrambe restano non eseguibili. Il registro applicativo v0.1 archivia
-   metadati, blocchi fonte e candidati pertinenti senza generare sedute.
-   Prima di codificare singole sedute della tabella occorre ricontrollare le
-   celle e le definizioni dei mezzi, senza completare per analogia i dettagli
-   assenti. Il primo perimetro candidato è circoscritto sopra; il metodo
-   distanza-tempo e i programmi di sei settimane restano fuori ambito.
-4. Il questionario consente di selezionare una gara primaria e gare secondarie
+3. Sono state controllate a livello strutturale le tabelle 5, 6, 8 e 10:
+   metodo respiratorio 10 km, distanza-tempo 10 km, mezza maratona e
+   maratona. Sono stati annotati titolo/perimetro, durata e frequenza, ma
+   nessuna sequenza completa di sedute è approvata o eseguibile. Le tabelle 6,
+   8 e 10 ampliano il catalogo candidato; prima di una generazione servono
+   trascrizione e seconda revisione delle celle, definizioni dei mezzi e test
+   che confrontino output e casi fuori ambito senza completare per analogia i
+   dettagli assenti. Il metodo distanza-tempo ora è un caso da valutare, non
+   una prescrizione pronta.
+4. Il questionario salva la frequenza di corsa voluta nella settimana tipo,
+   il limite delle eventuali settimane di picco e il criterio di non
+   riassorbire automaticamente sedute omesse nel lungo. Registra anche nuoto
+   e altri sport per giorno, durata e flessibilità; non calcola ancora un
+   carico combinato né pianifica le sedute extra-sport.
+5. Il questionario consente di selezionare una gara primaria e gare secondarie
    già pianificate; le date esattamente coincidenti sono mostrate come avviso,
    senza riordinare gli obiettivi o risolvere i conflitti. Le modifiche nella
    scheda Gare aggiornano la selezione del motore.
-5. Prima di generare bozze, definire e testare casi per piano senza gara,
-   gara primaria e secondaria, indisponibilità, riferimento di ritmo
-   assente/datato, trail, fatica dichiarata e nuova gara su un piano attivo.
-6. Implementare il generatore solo sui pattern promossi a
-   `approved_for_drafts`, con differenze spiegabili e nessuna modifica al
-   calendario attivo senza conferma esplicita.
+6. La pipeline deterministica valuta i pattern applicabili e blocca quelli
+   privi di approvazione, tracciabilità completa, contratto di applicabilità o
+   input richiesti. Un pattern approvato deve dichiarare versione,
+   approvatore/data, affidabilità e fonte verificata, input, esclusioni,
+   struttura della seduta e spiegazione. La valutazione non genera sedute.
+7. Prima di implementare la generazione, definire e testare casi per piano
+   senza gara, gara primaria e secondaria, indisponibilità, riferimento di
+   ritmo assente/datato, trail, fatica dichiarata e nuova gara su un piano
+   attivo. Generare solo sui pattern approvati e pronti, con differenze
+   spiegabili e nessuna modifica al calendario attivo senza conferma esplicita.
 
 Per la sintesi breve e la legenda delle sigle vedere
 [`training-methodology.md`](./training-methodology.md). Questa analisi non

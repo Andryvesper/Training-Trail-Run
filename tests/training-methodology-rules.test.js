@@ -50,6 +50,34 @@ test('gli esempi fonte hanno blocchi tracciabili ma restano non eseguibili', () 
     assert.ok(cycle.limitations.some(item => item.includes('controllata visivamente')));
 });
 
+test('le tabelle 6, 8 e 10 sono catalogate solo come outline non eseguibili', () => {
+    const expected = [
+        { id: 'ten_km_distance_time_cycle_outline', table: '6', weeks: 9, distance: 10, pages: '200', scans: '27' },
+        { id: 'half_marathon_distance_time_cycle_outline', table: '8', weeks: 12, distance: 21.1, pages: '203-204', scans: '28-29' },
+        { id: 'marathon_distance_time_cycle_outline', table: '10', weeks: 15, distance: 42.195, pages: '207-208', scans: '31-32' }
+    ];
+
+    expected.forEach(({ id, table, weeks, distance, pages, scans }) => {
+        const example = TRAINING_METHOD_SOURCE_EXAMPLES.find(item => item.id === id);
+        assert.ok(example, `outline table ${table} exists`);
+        assert.equal(example.executable, false);
+        assert.equal(example.status, 'source_outline_not_executable');
+        assert.equal(example.source.printedPages, pages);
+        assert.equal(example.source.scanPages, scans);
+        assert.equal(example.source.table, table);
+        assert.equal(example.structure.goalDistanceKm, distance);
+        assert.equal(example.structure.durationWeeks, weeks);
+        assert.equal(example.structure.runningSessionsPerWeek, 4);
+        assert.equal(example.structure.reviewScope, 'structure_only');
+        assert.equal(example.structure.sessionDetailsTranscribed, false);
+        assert.deepEqual(example.structure.checkpoints, [
+            { week: 3, kind: 'reference_vr_check' },
+            { week: weeks, kind: 'goal_race' }
+        ]);
+        assert.ok(example.limitations.some(item => item.includes('celle delle sedute non sono riprodotte')));
+    });
+});
+
 test('la valutazione espone i candidati pertinenti ma blocca la generazione', () => {
     const assessment = assessTrainingMethodology({
         goal_mode: 'improve',
@@ -61,9 +89,11 @@ test('la valutazione espone i candidati pertinenti ma blocca la generazione', ()
     assert.ok(assessment.candidate_pattern_ids.includes('easy_effort'));
     assert.ok(assessment.candidate_pattern_ids.includes('rhythm_variation'));
     assert.ok(assessment.source_example_ids.includes('bis_time_p175'));
+    assert.deepEqual(assessment.ready_pattern_ids, []);
+    assert.equal(assessment.rule_pipeline_ready, false);
     assert.equal(assessment.generation_enabled, false);
-    assert.ok(assessment.blockers.some(item => item.includes('approvato')));
-    assert.ok(assessment.blockers.some(item => item.includes('non è ancora implementato')));
+    assert.ok(assessment.blockers.some(item => item.includes('approvata')));
+    assert.ok(assessment.blockers.some(item => item.includes('conferma non sono ancora attive')));
 });
 
 test('il candidato trail e il ciclo 10 km rispettano terreno e distanza', () => {
@@ -87,6 +117,25 @@ test('il candidato trail e il ciclo 10 km rispettano terreno e distanza', () => 
     assert.ok(!road.candidate_pattern_ids.includes('ten_km_breathing_cycle'));
 });
 
+test('seleziona l’outline distanza-tempo in base alla gara stradale', () => {
+    const cases = [
+        { distance: 10, ruleId: 'ten_km_distance_time_cycle', exampleId: 'ten_km_distance_time_cycle_outline' },
+        { distance: 21.0975, ruleId: 'half_marathon_distance_time_cycle', exampleId: 'half_marathon_distance_time_cycle_outline' },
+        { distance: 42.195, ruleId: 'marathon_distance_time_cycle', exampleId: 'marathon_distance_time_cycle_outline' }
+    ];
+
+    cases.forEach(({ distance, ruleId, exampleId }) => {
+        const assessment = assessTrainingMethodology({
+            goal_mode: 'race',
+            preferred_terrains: ['road']
+        }, { distance_km: distance });
+
+        assert.ok(assessment.candidate_pattern_ids.includes(ruleId));
+        assert.ok(assessment.source_example_ids.includes(exampleId));
+        assert.equal(assessment.generation_enabled, false);
+    });
+});
+
 test('non valuta la metodologia senza un obiettivo riconosciuto', () => {
     assert.throws(
         () => assessTrainingMethodology({ goal_mode: 'automatic' }),
@@ -94,7 +143,7 @@ test('non valuta la metodologia senza un obiettivo riconosciuto', () => {
     );
 });
 
-test('anche una regola approvata non abilita un generatore che non esiste ancora', () => {
+test('una regola promossa senza contratto di approvazione resta inutilizzabile', () => {
     const approvedRule = {
         ...TRAINING_METHOD_RULES[0],
         ruleStatus: 'approved_for_drafts'
@@ -103,8 +152,49 @@ test('anche una regola approvata non abilita un generatore che non esiste ancora
         goal_mode: 'maintain'
     }, null, [approvedRule]);
 
-    assert.equal(assessment.status, 'approved_rules_available');
+    assert.equal(assessment.status, 'awaiting_rule_contract');
     assert.deepEqual(assessment.approved_pattern_ids, ['easy_effort']);
+    assert.deepEqual(assessment.ready_pattern_ids, []);
+    assert.equal(assessment.rule_pipeline_ready, false);
     assert.equal(assessment.generation_enabled, false);
-    assert.ok(assessment.blockers.some(item => item.includes('non è ancora implementato')));
+    assert.ok(assessment.blockers.some(item => item.includes('contratto di applicabilità')));
+});
+
+function completeApprovedRule(overrides = {}) {
+    return {
+        ...TRAINING_METHOD_RULES[0],
+        ruleStatus: 'approved_for_drafts',
+        sourceConfidence: 'high',
+        approval: { approvedBy: 'reviewer', approvedAt: '2026-11-05' },
+        requiredProfileFields: ['consistency_status'],
+        requiredRaceFields: [],
+        exclusions: [],
+        sessionPattern: { kind: 'explicit_template' },
+        explanation: 'Pattern approvato con limiti dichiarati.',
+        ...overrides
+    };
+}
+
+test('la pipeline espone gli input mancanti richiesti dalla regola approvata', () => {
+    const assessment = assessTrainingMethodology({
+        goal_mode: 'maintain'
+    }, null, [completeApprovedRule()]);
+
+    assert.equal(assessment.status, 'awaiting_required_inputs');
+    assert.equal(assessment.rule_pipeline_ready, false);
+    assert.ok(assessment.blockers.some(item => item.includes('profilo.consistency_status')));
+    assert.equal(assessment.generation_enabled, false);
+});
+
+test('una regola approvata e completa passa la valutazione senza attivare sedute', () => {
+    const assessment = assessTrainingMethodology({
+        goal_mode: 'maintain',
+        consistency_status: 'unknown'
+    }, null, [completeApprovedRule()]);
+
+    assert.equal(assessment.status, 'rules_ready');
+    assert.deepEqual(assessment.ready_pattern_ids, ['easy_effort']);
+    assert.equal(assessment.rule_pipeline_ready, true);
+    assert.equal(assessment.generation_enabled, false);
+    assert.ok(assessment.blockers.some(item => item.includes('conferma non sono ancora attive')));
 });

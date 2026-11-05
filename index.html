@@ -502,7 +502,55 @@
                             </fieldset>
 
                             <fieldset class="space-y-3 border-t border-slate-800 pt-4">
-                                <legend class="text-base font-bold text-white">4. Terreno e riferimenti (facoltativi)</legend>
+                                <legend class="text-base font-bold text-white">4. Nuoto e altri sport</legend>
+                                <p class="text-xs text-slate-500">Facoltativo. Se non pratichi altri sport, lascia vuota la lista: i giorni selezionati restano disponibili per la corsa. Gli impegni fissi riservano quel giorno e non vengono sovrapposti automaticamente a una corsa; quelli spostabili saranno segnalati come da coordinare.</p>
+                                <div id="planner-other-sports-list" class="space-y-2"></div>
+                                <button id="planner-add-other-sport" type="button" class="min-h-10 rounded-lg border border-slate-700 px-3 text-sm text-slate-200 hover:bg-slate-800">Aggiungi nuoto o altro sport</button>
+                                <p class="text-xs text-slate-500">Per ogni seduta indica sport, giorno, durata e se il giorno è fisso o spostabile. La durata non viene trasformata automaticamente in carico di corsa.</p>
+                            </fieldset>
+
+                            <fieldset class="space-y-3 border-t border-slate-800 pt-4">
+                                <legend class="text-base font-bold text-white">5. Frequenza e settimane di picco</legend>
+                                <p class="text-xs text-slate-500">Scegli quante corse vuoi nella settimana tipo. Il motore non aggiunge sedute o chilometri automaticamente: le proposte di picco richiederanno disponibilità specifica e conferma.</p>
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Corse desiderate nella settimana tipo</span>
+                                        <select name="target_running_sessions_per_week" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="">Seleziona</option>
+                                            <option value="1">1 corsa</option>
+                                            <option value="2">2 corse</option>
+                                            <option value="3">3 corse</option>
+                                            <option value="4">4 corse</option>
+                                            <option value="5">5 corse</option>
+                                            <option value="6">6 corse</option>
+                                            <option value="7">7 corse</option>
+                                        </select>
+                                    </label>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Settimane di picco</span>
+                                        <select name="peak_week_proposal_mode" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="disabled">Non proporle</option>
+                                            <option value="suggest_with_reason" selected>Il motore può proporle, con motivazione</option>
+                                        </select>
+                                    </label>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Massimo di corse nelle settimane candidate</span>
+                                        <select name="peak_week_max_running_sessions" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="">Seleziona</option>
+                                            <option value="2">2 corse</option>
+                                            <option value="3">3 corse</option>
+                                            <option value="4">4 corse</option>
+                                            <option value="5">5 corse</option>
+                                            <option value="6">6 corse</option>
+                                            <option value="7">7 corse</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <p class="text-xs text-slate-500">Se una settimana è troppo piena, il motore dovrà mostrarti cosa non entra e chiederti come procedere. Non recupererà automaticamente una seduta omessa aggiungendo chilometri al lungo. Gli altri sport, come il nuoto, saranno registrati nel passaggio successivo; per ora le proposte di picco non vengono ancora generate.</p>
+                            </fieldset>
+
+                            <fieldset class="space-y-3 border-t border-slate-800 pt-4">
+                                <legend class="text-base font-bold text-white">6. Terreno e riferimenti (facoltativi)</legend>
                                 <div class="space-y-3">
                                     <div class="space-y-2 text-sm text-slate-300">
                                         <p>Terreni preferiti o disponibili</p>

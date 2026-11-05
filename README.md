@@ -33,14 +33,24 @@ caricamento dei PDF in Supabase Storage non è implementato. La sintesi
 metodologica rielaborata e non testuale è documentata in
 [`docs/training-methodology.md`](./docs/training-methodology.md) e archiviata
 nella tabella `training_methodology_core` di Supabase.
-L'analisi progettuale per un futuro motore di bozze è in
+La specifica del motore di bozze e lo stato della pipeline sono in
 [`docs/training-engine-paradigm.md`](./docs/training-engine-paradigm.md); non
 costituisce ancora regole di allenamento attive.
 
 La scheda **Motore piani** permette di salvare il questionario, selezionare una
 gara principale e altre gare da considerare, vedere gli esempi metodologici
-pertinenti e registrare una richiesta di bozza. Le date coincidenti vengono
-segnalate senza risolvere automaticamente le priorità. Per i test VR già svolti
+pertinenti e registrare una richiesta di bozza. Una pipeline deterministica
+valuta applicabilità, approvazione, tracciabilità della fonte e input richiesti
+dalle regole. Gli outline strutturali delle tabelle 6, 8 e 10 non riportano le
+singole sedute e restano non eseguibili; nessuna seduta viene generata o
+attivata. Il questionario salva anche il numero di corse desiderato nella
+settimana tipo, il limite delle eventuali proposte di picco e le sedute
+settimanali di altri sport (giorno, durata e flessibilità). Gli sport non
+indicati non riducono la disponibilità per la corsa; gli impegni fissi
+riducono i giorni liberi, mentre quelli spostabili generano un avviso. Il
+conteggio del carico incrociato e la logica che colloca le settimane di picco
+non sono ancora implementati. Le date coincidenti vengono segnalate senza risolvere
+automaticamente le priorità. Per i test VR già svolti
 si possono registrare protocollo, tempo, data e condizioni; la VR è calcolata
 solo per i metodi 3 km + 10% e test 10 km documentati. Il calcolo non ordina un
 test e non prescrive un passo di allenamento. Il primo prototipo è circoscritto

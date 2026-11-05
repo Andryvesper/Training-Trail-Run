@@ -21,6 +21,9 @@ const VALID_FOCI = ['continuity', 'comfort', 'distance', 'performance'];
 const VALID_TERRAINS = ['road', 'trail', 'mixed', 'treadmill', 'other'];
 const VALID_TRAIL_EXPERIENCE = ['none', 'some', 'regular'];
 const VALID_TESTS = ['three_km', 'three_km_plus_10', 'ten_km', 'race', 'other'];
+const VALID_PEAK_WEEK_MODES = ['disabled', 'suggest_with_reason'];
+const VALID_CROSS_TRAINING_SPORTS = ['swimming', 'cycling', 'strength', 'other'];
+const VALID_SCHEDULE_TYPES = ['fixed', 'movable'];
 const VALID_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 export function normalizePlanningProfile(input = {}) {
@@ -32,11 +35,25 @@ export function normalizePlanningProfile(input = {}) {
     const testProtocol = optionalEnum(input.reference_test_protocol, VALID_TESTS, 'Seleziona un protocollo di test valido.');
     const horizon = optionalInteger(input.goal_horizon_weeks, 'L’orizzonte deve essere un numero intero di settimane.');
     const recentSessions = optionalNumber(input.recent_sessions_per_week, 'La frequenza recente deve essere un numero.');
+    const targetRunningSessions = optionalInteger(
+        input.target_running_sessions_per_week,
+        'Le sedute di corsa desiderate devono essere un numero intero.'
+    );
+    const peakWeekProposalMode = optionalEnum(
+        input.peak_week_proposal_mode,
+        VALID_PEAK_WEEK_MODES,
+        'Seleziona una modalità valida per le settimane di picco.'
+    ) || 'disabled';
+    const peakWeekMaxRunningSessions = optionalInteger(
+        input.peak_week_max_running_sessions,
+        'Il limite delle sedute di corsa nelle settimane di picco deve essere un numero intero.'
+    );
     const testDate = optionalDate(input.reference_test_date, 'La data del test non è valida.');
     const testDuration = input.reference_test_time === '' || input.reference_test_time == null
         ? null
         : parseTestDuration(input.reference_test_time);
     const availability = normalizeAvailability(input.weekly_availability);
+    const otherSports = normalizeOtherSports(input.weekly_other_sports);
     const terrains = normalizeEnumArray(input.preferred_terrains, VALID_TERRAINS, 'Seleziona un terreno valido.');
     const secondaryRaceIds = normalizeIdArray(input.secondary_race_ids, 10, 'Seleziona al massimo 10 gare secondarie valide.');
     const secondaryRaceIntents = normalizeSecondaryRaceIntents(input.secondary_race_intents, secondaryRaceIds);
@@ -53,6 +70,20 @@ export function normalizePlanningProfile(input = {}) {
     if (recentSessions !== null && (!Number.isFinite(recentSessions) || recentSessions < 0 || recentSessions > 14)) {
         throw new Error('La frequenza recente deve essere compresa tra 0 e 14 sedute settimanali.');
     }
+    if (targetRunningSessions !== null && (targetRunningSessions < 1 || targetRunningSessions > 7)) {
+        throw new Error('Le sedute di corsa desiderate devono essere comprese tra 1 e 7 a settimana.');
+    }
+    if (peakWeekMaxRunningSessions !== null
+        && (peakWeekMaxRunningSessions < 1 || peakWeekMaxRunningSessions > 7)) {
+        throw new Error('Il limite delle sedute di corsa nelle settimane di picco deve essere tra 1 e 7.');
+    }
+    if (peakWeekProposalMode === 'disabled' && peakWeekMaxRunningSessions !== null) {
+        throw new Error('Rimuovi il limite di corsa nelle settimane di picco se le proposte sono disattivate.');
+    }
+    if (targetRunningSessions !== null && peakWeekMaxRunningSessions !== null
+        && peakWeekMaxRunningSessions <= targetRunningSessions) {
+        throw new Error('Il limite della settimana di picco deve superare la frequenza settimanale di base.');
+    }
     return {
         goal_mode: goalMode,
         primary_race_id: raceId,
@@ -64,8 +95,14 @@ export function normalizePlanningProfile(input = {}) {
         self_profile: selfProfile,
         consistency_status: consistency,
         recent_sessions_per_week: recentSessions,
+        target_running_sessions_per_week: targetRunningSessions,
+        peak_week_proposal_mode: peakWeekProposalMode,
+        peak_week_max_running_sessions: peakWeekMaxRunningSessions,
+        weekly_availability_mode: 'typical_week_with_exceptions',
+        schedule_overflow_policy: 'ask_before_reduce',
         recent_activity_summary: activitySummary,
         weekly_availability: availability,
+        weekly_other_sports: otherSports,
         preferred_terrains: terrains,
         trail_experience: trailExperience,
         reference_test_protocol: testProtocol,
@@ -96,6 +133,38 @@ export function getPlanningReadiness(input, races = []) {
         missing.push('Seleziona almeno un giorno disponibile.');
     } else if (availableDays.some(([, day]) => day.max_minutes === null)) {
         missing.push('Indica il tempo massimo per ogni giorno selezionato.');
+    }
+    if (profile.target_running_sessions_per_week === null) {
+        missing.push('Indica quante sedute di corsa vuoi nella settimana tipo.');
+    } else if (availableDays.length && profile.target_running_sessions_per_week > availableDays.length) {
+        missing.push('La frequenza di corsa scelta supera i giorni attualmente disponibili nella settimana tipo.');
+    }
+    const fixedOtherSportDays = new Set(
+        profile.weekly_other_sports
+            .filter(session => session.schedule_type === 'fixed')
+            .map(session => session.day)
+    );
+    const availableRunningDays = availableDays.filter(([day]) => !fixedOtherSportDays.has(day));
+    if (profile.target_running_sessions_per_week !== null
+        && profile.target_running_sessions_per_week > availableRunningDays.length) {
+        missing.push('Gli impegni fissi degli altri sport lasciano meno giorni liberi delle corse desiderate. Rivedi giorni o frequenza; il piano non sovrappone automaticamente due sedute.');
+    }
+    if (profile.weekly_other_sports.some(session =>
+        session.schedule_type === 'movable' && availableDays.some(([day]) => day === session.day)
+    )) {
+        warnings.push('Una seduta di altro sport è spostabile ma coincide con un giorno disponibile per la corsa: la bozza dovrà chiarire lo spostamento, senza presumerlo.');
+    }
+    if (profile.peak_week_proposal_mode === 'suggest_with_reason') {
+        if (profile.peak_week_max_running_sessions === null) {
+            missing.push('Indica il limite di corse che il motore può proporre nelle settimane di picco.');
+        } else if (profile.target_running_sessions_per_week !== null
+            && profile.peak_week_max_running_sessions <= profile.target_running_sessions_per_week) {
+            missing.push('Il limite della settimana di picco deve superare la frequenza della settimana tipo.');
+        }
+        if (profile.peak_week_max_running_sessions !== null
+            && profile.peak_week_max_running_sessions > availableDays.length) {
+            warnings.push('Il limite di picco supera i giorni disponibili nella settimana tipo: serviranno eccezioni di calendario esplicite.');
+        }
     }
 
     if (profile.goal_mode === 'race') {
@@ -199,6 +268,9 @@ export function getTenKmPrototypeReadiness(input, races = []) {
     const availableDays = Object.values(profile.weekly_availability).filter(day => day.available);
     if (availableDays.length !== 4) {
         missing.push('Lo schema di riferimento prevede quattro sedute settimanali: seleziona esattamente quattro giorni disponibili.');
+    }
+    if (profile.target_running_sessions_per_week !== 4) {
+        missing.push('Lo schema fonte prevede quattro corse settimanali; la frequenza selezionata richiede un motore di adattamento non ancora implementato.');
     }
     if (!['three_km_plus_10', 'ten_km'].includes(profile.reference_test_protocol)
         || profile.reference_test_time_seconds === null
@@ -326,6 +398,69 @@ function normalizeAvailability(value = {}) {
         };
     }
     return availability;
+}
+
+function normalizeOtherSports(value = []) {
+    if (!Array.isArray(value)) {
+        throw new Error('Le sedute degli altri sport devono essere indicate come elenco.');
+    }
+    const sessions = value.filter(session => {
+        if (!session || typeof session !== 'object' || Array.isArray(session)) {
+            throw new Error('Una seduta degli altri sport non è valida.');
+        }
+        return Object.values(session)
+            .some(field => field !== null && field !== undefined && String(field).trim());
+    });
+    if (sessions.length > 14) {
+        throw new Error('Puoi indicare al massimo 14 sedute settimanali di altri sport.');
+    }
+
+    return sessions.map((session, index) => {
+        const row = index + 1;
+        const sport = optionalEnum(
+            session?.sport,
+            VALID_CROSS_TRAINING_SPORTS,
+            `Seleziona uno sport valido per la seduta ${row}.`
+        );
+        const day = optionalEnum(
+            session?.day,
+            VALID_DAYS,
+            `Seleziona un giorno valido per la seduta ${row}.`
+        );
+        const scheduleType = optionalEnum(
+            session?.schedule_type,
+            VALID_SCHEDULE_TYPES,
+            `Indica se la seduta ${row} è fissa o spostabile.`
+        );
+        const duration = optionalInteger(
+            session?.duration_minutes,
+            `Indica la durata della seduta ${row} in minuti interi.`
+        );
+        const customSport = optionalText(
+            session?.custom_sport,
+            60,
+            `Il nome dello sport della seduta ${row} non può superare 60 caratteri.`
+        );
+        if (!sport || !day || !scheduleType || duration === null) {
+            throw new Error(`Completa sport, giorno, durata e flessibilità per la seduta ${row} degli altri sport.`);
+        }
+        if (duration < 10 || duration > 360) {
+            throw new Error(`La durata della seduta ${row} deve essere tra 10 e 360 minuti.`);
+        }
+        if (sport === 'other' && !customSport) {
+            throw new Error(`Specifica lo sport per la seduta ${row} selezionando “Altro”.`);
+        }
+        if (sport !== 'other' && customSport) {
+            throw new Error(`Rimuovi il nome personalizzato dalla seduta ${row} oppure seleziona “Altro”.`);
+        }
+        return {
+            sport,
+            custom_sport: sport === 'other' ? customSport : null,
+            day,
+            duration_minutes: duration,
+            schedule_type: scheduleType
+        };
+    });
 }
 
 function normalizeEnumArray(values, allowed, message) {
