@@ -304,7 +304,7 @@ test('quattro corse restano compatibili senza altri sport ma rispettano gli impe
             sport: 'swimming',
             day: 'wed',
             duration_minutes: 60,
-            schedule_type: 'movable'
+            schedule_type: 'fixed'
         }]
     }));
     assert.ok(fixedSwim.missing.some(item => item.includes('impegni fissi degli altri sport')));
