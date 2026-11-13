@@ -252,6 +252,7 @@
                                 <input name="share_code" required autocomplete="off" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
                             </label>
                             <button type="submit" class="min-h-11 w-full rounded-xl border border-rose-500/40 px-3 text-sm font-semibold text-rose-300">Revoca codice</button>
+                            <div id="training-plan-active-shares" class="space-y-2" aria-live="polite"></div>
                         </form>
                     </section>
                 </div>
@@ -524,6 +525,22 @@
                                             <option value="5">5 corse</option>
                                             <option value="6">6 corse</option>
                                             <option value="7">7 corse</option>
+                                        </select>
+                                    </label>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Metodo del ciclo per la gara</span>
+                                        <select name="preferred_cycle_method" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="">Seleziona</option>
+                                            <option value="distance_time">Distanza-tempo (km; 3, 4 o 5 corse)</option>
+                                            <option value="breathing">Respiratorio (minuti; solo 10 km, 4 corse)</option>
+                                        </select>
+                                    </label>
+                                    <label class="space-y-1 text-xs font-medium text-slate-400">
+                                        <span>Variante con 5 corse (cicli distanza-tempo)</span>
+                                        <select name="five_session_option" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                            <option value="">Seleziona</option>
+                                            <option value="spread_plus_10">Quinta corsa facile: +10% dei km settimanali</option>
+                                            <option value="extra_quality_or_strength">Seduta di qualità o in palestra, scelta da me</option>
                                         </select>
                                     </label>
                                     <label class="space-y-1 text-xs font-medium text-slate-400">

@@ -1,8 +1,12 @@
 alter table public.training_sessions
-    add column intervals_activity_id text,
-    add column completed_at timestamptz,
-    add column adherence_score smallint,
-    add column completed_activity jsonb;
+    add column if not exists intervals_activity_id text,
+    add column if not exists completed_at timestamptz,
+    add column if not exists adherence_score smallint,
+    add column if not exists completed_activity jsonb;
+
+alter table public.training_sessions
+    drop constraint if exists training_sessions_adherence_score_check,
+    drop constraint if exists training_sessions_completion_data_check;
 
 alter table public.training_sessions
     add constraint training_sessions_adherence_score_check
@@ -24,6 +28,6 @@ alter table public.training_sessions
             )
         );
 
-create unique index training_sessions_user_intervals_activity_idx
+create unique index if not exists training_sessions_user_intervals_activity_idx
     on public.training_sessions (user_id, intervals_activity_id)
     where intervals_activity_id is not null;

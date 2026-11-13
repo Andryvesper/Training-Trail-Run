@@ -85,8 +85,14 @@ function validateRace(race) {
     if (!Number.isFinite(distance) || distance <= 0) {
         throw new Error('La distanza deve essere un numero maggiore di zero.');
     }
+    if (distance > 1000) {
+        throw new Error('La distanza non può superare 1000 km.');
+    }
     if (elevation !== null && (!Number.isInteger(elevation) || elevation < 0)) {
         throw new Error('Il dislivello deve essere un numero intero non negativo.');
+    }
+    if (elevation !== null && elevation > 100000) {
+        throw new Error('Il dislivello non può superare 100000 m.');
     }
     if (!Number.isInteger(priority) || priority < 1 || priority > 3) {
         throw new Error('La priorità deve essere 1, 2 o 3.');
@@ -139,6 +145,9 @@ function parsePosition(value, label) {
     const position = Number(value);
     if (!Number.isInteger(position) || position < 1) {
         throw new Error(`${label} deve essere un intero positivo.`);
+    }
+    if (position > 1000000) {
+        throw new Error(`${label} non può superare 1000000.`);
     }
     return position;
 }

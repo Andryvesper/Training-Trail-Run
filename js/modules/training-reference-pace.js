@@ -57,3 +57,63 @@ export function formatTestDuration(totalSeconds) {
 export function canCalculateReferencePace(protocol) {
     return VR_PROTOCOLS.includes(protocol);
 }
+
+// Regola di prodotto approvata dall'atleta il 13 novembre 2026: un test VR
+// (3 km + 10% o 10 km) resta valido per 6 settimane dalla data del test.
+// Oltre questa soglia il generatore si blocca e chiede un nuovo test; non
+// stima mai una VR aggiornata.
+export const REFERENCE_TEST_VALIDITY_RULE = Object.freeze({
+    id: 'reference_test_validity',
+    version: '1.0.0',
+    ruleStatus: 'approved_for_drafts',
+    maxAgeDays: 42,
+    approval: Object.freeze({ approvedBy: 'Andrea Baron', approvedAt: '2026-11-13' }),
+    explanation: 'Il test VR deve essere stato svolto al massimo 6 settimane prima della bozza.'
+});
+
+export function assessReferenceTestValidity(testDate, asOfDate, rule = REFERENCE_TEST_VALIDITY_RULE) {
+    if (!isIsoDate(asOfDate)) {
+        throw new Error('La data di riferimento per la validità del test non è valida.');
+    }
+    if (!testDate) {
+        return { status: 'missing', age_days: null, valid_until: null, message: 'Manca la data del test VR.' };
+    }
+    if (!isIsoDate(testDate)) {
+        return { status: 'invalid', age_days: null, valid_until: null, message: 'La data del test VR non è valida.' };
+    }
+    const ageDays = daysBetween(testDate, asOfDate);
+    const validUntil = addDays(testDate, rule.maxAgeDays);
+    if (ageDays < 0) {
+        return { status: 'future', age_days: ageDays, valid_until: validUntil, message: 'La data del test VR è nel futuro.' };
+    }
+    if (ageDays > rule.maxAgeDays) {
+        return {
+            status: 'expired',
+            age_days: ageDays,
+            valid_until: validUntil,
+            message: `Il test VR del ${testDate} è scaduto il ${validUntil}: la validità massima è di ${rule.maxAgeDays / 7} settimane. Ripeti il test prima di generare la bozza.`
+        };
+    }
+    return {
+        status: 'valid',
+        age_days: ageDays,
+        valid_until: validUntil,
+        message: `Test VR valido fino al ${validUntil}.`
+    };
+}
+
+function isIsoDate(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function daysBetween(from, to) {
+    return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000);
+}
+
+function addDays(dateKey, days) {
+    const date = new Date(`${dateKey}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+}

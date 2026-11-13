@@ -213,7 +213,7 @@ test('non considera le sole condizioni come risultato di un test VR', () => {
     assert.ok(readiness.missing.some(item => item.includes('tipo, data e risultato')));
 });
 
-test('il prototipo 10 km usa la VR come prerequisito ma resta bloccato da regole non approvate', () => {
+test('il prototipo 10 km usa la VR come prerequisito e segnala i limiti metodologici residui', () => {
     const race = {
         id: 'road-10k',
         name: '10 km su strada',
@@ -244,13 +244,14 @@ test('il prototipo 10 km usa la VR come prerequisito ma resta bloccato da regole
         reference_test_conditions: 'Pianeggiante e asciutto'
     });
 
-    const readiness = getTenKmPrototypeReadiness(profile, [race]);
+    const readiness = getTenKmPrototypeReadiness(profile, [race], { today: '2026-11-13' });
     assert.equal(readiness.reference_vr_seconds_per_km, 300);
     assert.equal(readiness.ready, false);
     assert.ok(!readiness.missing.some(item => item.includes('VR')));
     assert.ok(readiness.blockers.some(item => item.includes('non può dedurre')));
-    assert.ok(readiness.blockers.some(item => item.includes('non sono ancora trascritte')));
-    assert.ok(readiness.blockers.some(item => item.includes('adattamento non ancora implementato')));
+    assert.ok(!readiness.blockers.some(item => item.includes('non ancora approvate')));
+    assert.ok(readiness.blockers.some(item => item.includes('Seleziona 4 corse')));
+    assert.ok(!readiness.blockers.some(item => item.includes('validità temporale')));
 });
 
 test('la bozza senza gara richiede obiettivo, esperienza, continuità, orizzonte e disponibilità completa', () => {
@@ -485,4 +486,147 @@ test('non crea richieste se il questionario non è pronto o manca la gara selezi
         /Completa il questionario/
     );
     assert.deepEqual(mock.calls, []);
+});
+
+function cycleProfile(overrides = {}) {
+    return readyProfile({
+        goal_mode: 'race',
+        primary_race_id: 'race-10k',
+        goal_horizon_weeks: null,
+        goal_focus: null,
+        preferred_terrains: ['road'],
+        target_running_sessions_per_week: 4,
+        peak_week_proposal_mode: 'disabled',
+        peak_week_max_running_sessions: null,
+        reference_test_protocol: 'ten_km',
+        reference_test_date: '2026-11-01',
+        reference_test_time: '45:00',
+        reference_test_conditions: 'Pista',
+        preferred_cycle_method: 'distance_time',
+        weekly_availability: {
+            mon: { available: false, max_minutes: null },
+            tue: { available: true, max_minutes: 60 },
+            wed: { available: false, max_minutes: null },
+            thu: { available: true, max_minutes: 60 },
+            fri: { available: false, max_minutes: null },
+            sat: { available: true, max_minutes: 60 },
+            sun: { available: true, max_minutes: 120 }
+        },
+        ...overrides
+    });
+}
+
+const roadTenKm = {
+    id: 'race-10k',
+    name: 'Dieci su strada',
+    event_date: '2027-03-21',
+    target_period: null,
+    distance_km: 10,
+    elevation_gain_m: 20,
+    priority: 1,
+    goal: null,
+    status: 'planned'
+};
+
+test('genera la bozza del ciclo solo quando la regola è approvata e la salva come da confermare', async () => {
+    const { TRAINING_METHOD_RULES } = await import('../js/modules/training-methodology-rules.js');
+    const approvedRules = TRAINING_METHOD_RULES;
+    const unapprovedRules = TRAINING_METHOD_RULES.map(rule => rule.ruleStatus !== 'approved_for_drafts' ? rule : {
+        ...rule,
+        ruleStatus: 'candidate',
+        approval: undefined
+    });
+
+    const notApproved = createSupabaseMock({ data: { id: 'draft-a' }, error: null });
+    await new TrainingPlannerService(notApproved.client)
+        .createDraftRequest('user-1', cycleProfile(), [roadTenKm], { today: '2026-11-13', rules: unapprovedRules });
+    const pending = notApproved.calls.find(call => call[0] === 'insert')[1];
+    assert.equal(pending.status, 'awaiting_methodology');
+    assert.equal(pending.profile_snapshot.generated_draft, null);
+
+    const approved = createSupabaseMock({ data: { id: 'draft-b' }, error: null });
+    await new TrainingPlannerService(approved.client)
+        .createDraftRequest('user-1', cycleProfile(), [roadTenKm], { today: '2026-11-13', rules: approvedRules });
+    const generated = approved.calls.find(call => call[0] === 'insert')[1];
+    assert.equal(generated.status, 'draft_generated');
+    assert.equal(generated.profile_snapshot.generated_draft.rule_id, 'ten_km_distance_time_cycle');
+    assert.equal(generated.profile_snapshot.generated_draft.status, 'draft_ready_for_confirmation');
+    assert.equal(generated.profile_snapshot.generated_draft.weeks.length, 9);
+});
+
+test('scrive la bozza nel calendario solo con conferma esplicita e senza sovrascrivere sedute esistenti', async () => {
+    const { generateCycleDraft } = await import('../js/modules/training-planner.js');
+    const { TRAINING_METHOD_RULES } = await import('../js/modules/training-methodology-rules.js');
+    const rule = TRAINING_METHOD_RULES.find(item => item.id === 'ten_km_distance_time_cycle');
+    const profile = normalizePlanningProfile(cycleProfile());
+    const draft = {
+        id: 'draft-1',
+        status: 'draft_generated',
+        profile_snapshot: { generated_draft: generateCycleDraft(profile, roadTenKm, rule) }
+    };
+
+    const calls = [];
+    const results = [
+        { data: [{ id: 'draft-1' }], error: null },
+        { data: [{ scheduled_date: '2027-01-19', session_order: 1 }], error: null },
+        { data: Array.from({ length: 36 }, (_, index) => ({ id: `s${index}` })), error: null },
+        { data: [], error: null }
+    ];
+    const client = {
+        from(table) {
+            calls.push(['from', table]);
+            const result = results.shift();
+            const query = {};
+            ['select', 'eq', 'gte', 'lte', 'insert', 'update'].forEach(method => {
+                query[method] = (...args) => { calls.push([method, ...args]); return query; };
+            });
+            query.then = (resolve, reject) => Promise.resolve(result).then(resolve, reject);
+            return query;
+        }
+    };
+    const service = new TrainingPlannerService(client);
+
+    await assert.rejects(service.applyDraftToCalendar('user-1', draft), /conferma esplicita/);
+    assert.deepEqual(calls, []);
+
+    const outcome = await service.applyDraftToCalendar('user-1', draft, { confirmed: true, today: '2026-11-13' });
+    assert.equal(outcome.session_count, 36);
+    assert.deepEqual(outcome.overlapping_dates, ['2027-01-19']);
+    const rows = calls.find(call => call[0] === 'insert')[1];
+    assert.equal(rows.length, 36);
+    assert.ok(rows.every(row => row.user_id === 'user-1'));
+    assert.equal(rows.find(row => row.scheduled_date === '2027-01-19').session_order, 2);
+    assert.deepEqual(calls.find(call => call[0] === 'update'), ['update', { status: 'confirmed' }]);
+    assert.ok(calls.some(call => call[0] === 'eq' && call[1] === 'status' && call[2] === 'draft_generated'));
+
+    await assert.rejects(
+        service.applyDraftToCalendar('user-1', draft, { confirmed: true, today: '2026-11-13' }),
+        /già stata confermata/
+    );
+    await assert.rejects(
+        service.applyDraftToCalendar('user-1', draft, { confirmed: true, today: '2027-02-01' }),
+        /prima di oggi/
+    );
+});
+
+test('blocca gare obiettivo già passate e test VR futuri, avvisa per test scaduti', () => {
+    const past = getPlanningReadiness(cycleProfile(), [{ ...roadTenKm, event_date: '2026-10-01' }], { today: '2026-11-13' });
+    assert.ok(past.missing.some(item => item.includes('data già passata')));
+
+    const futureTest = getPlanningReadiness(cycleProfile({ reference_test_date: '2026-12-01' }), [roadTenKm], { today: '2026-11-13' });
+    assert.ok(futureTest.missing.some(item => item.includes('nel futuro')));
+
+    const expiredTest = getPlanningReadiness(cycleProfile({ reference_test_date: '2026-09-01' }), [roadTenKm], { today: '2026-11-13' });
+    assert.ok(expiredTest.warnings.some(item => item.includes('scaduto')));
+
+    const five = getPlanningReadiness(cycleProfile({
+        target_running_sessions_per_week: 5,
+        weekly_availability: { ...cycleProfile().weekly_availability, mon: { available: true, max_minutes: 45 } }
+    }), [roadTenKm], { today: '2026-11-13' });
+    assert.ok(five.warnings.some(item => item.includes('scegli la variante')));
+    assert.equal(normalizePlanningProfile(cycleProfile({ five_session_option: 'spread_plus_10' })).five_session_option, null);
+    assert.equal(normalizePlanningProfile(cycleProfile({
+        target_running_sessions_per_week: 5,
+        five_session_option: 'spread_plus_10'
+    })).five_session_option, 'spread_plus_10');
 });

@@ -19,6 +19,16 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
     const sourcePaceInput = shareForm.elements.source_reference_pace;
     const targetPaceInput = importForm.elements.target_reference_pace;
     let activePreview = null;
+    const activeShares = container.querySelector('#training-plan-active-shares');
+    const refreshActiveShares = async () => {
+        if (!activeShares) return;
+        try {
+            renderActiveShares(activeShares, await service.listMyShares(), revokeForm);
+        } catch (error) {
+            console.error('Errore nel caricamento delle condivisioni attive:', error);
+            activeShares.replaceChildren(createElement('p', 'text-xs text-rose-300', `Impossibile elencare le condivisioni attive: ${error.message}`));
+        }
+    };
 
     const today = formatDateKey(new Date());
     const inTwoWeeks = new Date();
@@ -53,6 +63,7 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
                 sourceReferencePace: sourcePace
             });
             renderCreatedShare(created, result);
+            await refreshActiveShares();
             showStatus(status, `Condivisione creata per ${result.session_count} sedute.`, 'success');
         } catch (error) {
             console.error('Errore durante la creazione della condivisione del programma:', error);
@@ -111,6 +122,7 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
             await service.revokeShare(revokeForm.elements.share_code.value);
             showStatus(status, 'Condivisione revocata.', 'success');
             revokeForm.reset();
+            await refreshActiveShares();
         } catch (error) {
             console.error('Errore durante la revoca della condivisione:', error);
             showStatus(status, `Impossibile revocare la condivisione: ${error.message}`, 'error');
@@ -169,6 +181,7 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
             preview.replaceChildren();
             importForm.reset();
             targetPaceInput.disabled = true;
+            document.dispatchEvent(new CustomEvent('training-sessions:changed'));
             showStatus(status, `Importate ${result.session_count} sedute nel tuo calendario. Verifica carichi e ritmi prima di seguirle.`, 'success');
         } catch (error) {
             console.error('Errore durante l’importazione del programma condiviso:', error);
@@ -176,6 +189,33 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
             button.disabled = false;
         }
     });
+
+    refreshActiveShares();
+}
+
+function renderActiveShares(container, shares, revokeForm) {
+    if (!shares.length) {
+        container.replaceChildren(createElement('p', 'text-xs text-slate-500', 'Nessuna condivisione attiva.'));
+        return;
+    }
+    const list = createElement('ul', 'space-y-2');
+    shares.forEach(share => {
+        const item = createElement('li', 'flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 p-2');
+        item.append(createElement(
+            'span',
+            'text-xs text-slate-300',
+            `${share.title} · ${share.session_count} sedute · scade il ${new Date(share.expires_at).toLocaleString('it-IT')}`
+        ));
+        const select = createElement('button', 'min-h-11 rounded-xl border border-slate-700 px-3 text-xs text-slate-200', 'Seleziona per revoca');
+        select.type = 'button';
+        select.addEventListener('click', () => {
+            revokeForm.elements.share_code.value = share.share_code;
+            revokeForm.elements.share_code.focus();
+        });
+        item.append(select);
+        list.append(item);
+    });
+    container.replaceChildren(createElement('p', 'text-xs font-semibold text-slate-400', 'Condivisioni attive'), list);
 }
 
 function renderCreatedShare(container, result) {

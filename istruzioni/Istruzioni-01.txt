@@ -1,0 +1,16 @@
+Per completare la validazione e l'attivazione del motore di generazione degli allenamenti (superando lo stato attuale in cui le regole e gli schemi sono catalogati ma bloccati o non eseguibili), mancano principalmente questi passaggi chiave:
+
+Trascrizione e approvazione formale delle sedute nei cicli (es. 10 km, Mezza, Maratona):
+
+Attualmente le tabelle (come le tabelle 6, 8, 10 o il ciclo respiratorio 10 km) sono catalogate solo come outline non eseguibili (la struttura e le settimane sono note, ma le singole sedute e i loro contenuti specifici non sono trascritti in formato regola).
+Servirà definire contratti di approvazione (ruleStatus = 'approved_for_drafts') con pattern di seduta espliciti per ogni settimana del ciclo.
+Regole di transizione e adattamento della frequenza:
+
+Il motore deve poter adattare il programma standard (es. 4 sedute settimanali) alle reali disponibilità e preferenze dell'utente (es. se l'utente seleziona 3 o 5 giorni o ha impegni fissi con altri sport).
+Servono regole approvate su come gestire le eccezioni di calendario e le settimane di picco in modo dinamico.
+Validità e scadenza del Test VR:
+
+Serve definire e approvare una regola metodologica che stabilisca la validità temporale del test di riferimento (es. quanto tempo prima della bozza può essere stato effettuato un test VR per essere considerato valido).
+Attivazione del flag di generazione:
+
+Una volta che le regole passano dai test di idoneità e dai contratti di approvazione formale, il flag generation_enabled potrà essere abilitato per consentire la creazione e la scrittura automatica delle sedute nel calendario dell'utente.

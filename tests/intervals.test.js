@@ -77,3 +77,11 @@ test('segnala risposte API con formato inatteso', async () => {
         globalThis.fetch = originalFetch;
     }
 });
+
+test('legge data e carico dai campi reali del wellness Intervals.icu', () => {
+    const summary = summarizeIntervalsData([
+        { id: '2026-11-13', ctl: 42, atl: 38, ctlLoad: 70 },
+        { id: '2026-11-12', ctl: 40, atl: 35, ctlLoad: 60 }
+    ], []);
+    assert.deepEqual(summary.metrics, { ctl: 42, atl: 38, tsb: 4, load: 70 });
+});

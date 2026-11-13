@@ -124,8 +124,14 @@ function validateSession(session) {
     if (distance !== null && (!Number.isFinite(distance) || distance < 0)) {
         throw new Error('La distanza deve essere un numero non negativo.');
     }
+    if (distance !== null && distance > 1000) {
+        throw new Error('La distanza della seduta non può superare 1000 km.');
+    }
     if (duration !== null && (!Number.isInteger(duration) || duration < 0)) {
         throw new Error('La durata deve essere un numero intero non negativo.');
+    }
+    if (duration !== null && duration > 2880) {
+        throw new Error('La durata della seduta non può superare 2880 minuti.');
     }
     if (targetPace !== null && (!Number.isInteger(targetPace) || targetPace < 120 || targetPace > 1800)) {
         throw new Error('Il passo obiettivo deve essere compreso tra 2:00 e 30:00 min/km.');

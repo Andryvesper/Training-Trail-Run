@@ -67,6 +67,12 @@ export class TrainingPlanSharingService {
         return data;
     }
 
+    async listMyShares() {
+        const { data, error } = await this.supabase.rpc('list_my_training_plan_shares');
+        if (error) throw error;
+        return Array.isArray(data) ? data : [];
+    }
+
     async revokeShare(shareCode) {
         const { data, error } = await this.supabase.rpc('revoke_training_plan_share', {
             p_share_code: validateShareCode(shareCode)

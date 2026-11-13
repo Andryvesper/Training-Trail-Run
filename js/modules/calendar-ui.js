@@ -53,7 +53,9 @@ export async function initCalendarModule(supabaseClient, userId) {
         nextButton.disabled = selectedWeekIndex === weeks.length - 1;
     };
 
+    let activitiesRequestId = 0;
     const refreshActivities = async () => {
+        const requestId = ++activitiesRequestId;
         try {
             const { data, error } = await supabaseClient
                 .from('profiles')
@@ -65,11 +67,11 @@ export async function initCalendarModule(supabaseClient, userId) {
             const athleteId = data?.intervals_id || data?.intervals_athlete_id;
             const apiKey = data?.intervals_key || data?.intervals_api_key;
 
-            weeks.forEach(week => week.days.forEach(day => {
-                day.intervalsActivities = [];
-            }));
-
+            if (requestId !== activitiesRequestId) return;
             if (!athleteId || !apiKey) {
+                weeks.forEach(week => week.days.forEach(day => {
+                    day.intervalsActivities = [];
+                }));
                 showStatus(status, 'Collega Intervals.icu per visualizzare le attività svolte. Il piano resta disponibile.', 'info');
                 render();
                 return;
@@ -77,14 +79,20 @@ export async function initCalendarModule(supabaseClient, userId) {
 
             const activities = await new IntervalsService(athleteId, apiKey)
                 .getActivities(weeks[0].startDate, weeks[weeks.length - 1].endDate);
+            if (requestId !== activitiesRequestId) return;
+            const byDate = new Map();
             activities.forEach(activity => {
                 if (!activity.start_date_local) return;
                 const date = activity.start_date_local.slice(0, 10);
-                const day = weeks.flatMap(week => week.days).find(item => item.date === date);
-                if (day) day.intervalsActivities.push(activity);
+                if (!byDate.has(date)) byDate.set(date, []);
+                byDate.get(date).push(activity);
             });
+            weeks.forEach(week => week.days.forEach(day => {
+                day.intervalsActivities = byDate.get(day.date) || [];
+            }));
             render();
         } catch (error) {
+            if (requestId !== activitiesRequestId) return;
             console.error('Errore nel caricamento delle attività Intervals per il calendario:', error);
             showStatus(status, `Attività Intervals non disponibili: ${error.message}`, 'error');
             render();
@@ -106,6 +114,17 @@ export async function initCalendarModule(supabaseClient, userId) {
         render();
     });
     document.addEventListener('intervals:sync', refreshActivities);
+    document.addEventListener('training-sessions:changed', async () => {
+        try {
+            sessions = await planService.listSessions(userId, weeks[0].startDate, weeks[weeks.length - 1].endDate);
+            editingSession = null;
+            pendingAssociation = null;
+            render();
+        } catch (error) {
+            console.error('Errore nel ricaricamento delle sedute:', error);
+            showStatus(status, `Impossibile aggiornare le sedute: ${error.message}`, 'error');
+        }
+    });
 
     await refreshActivities();
     render();

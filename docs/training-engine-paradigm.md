@@ -57,7 +57,7 @@ seguenti:
 | pp. 204–209 | Le tabelle per maratona/ultra hanno orizzonti diversi e includono sedute specifiche, recuperi ed elementi di scarico; il testo avverte che gli esempi non sono personalizzati. | Gli esempi servono da riferimento editoriale e non da generatore automatico o combinazione di sedute. |
 | p. 200 (scansione 27), tabella 6 | Verificati visivamente intestazione e perimetro: esempio di nove settimane per 10 km, metodo distanza-tempo, quattro sedute settimanali. La tabella è distinta dal ciclo respiratorio della tabella 5. | Solo struttura di alto livello registrata; le singole celle non sono ancora trascritte e revisionate come regole. |
 | pp. 203–204 (scansioni 28–29), tabella 8 | Verificati visivamente titolo e continuazione: esempio di dodici settimane per la mezza maratona, metodo distanza-tempo e quattro sedute settimanali. | Solo struttura di alto livello registrata; non fondere con la tabella 7 a metodo respiratorio né dedurre i dettagli mancanti. |
-| pp. 207–208 (scansioni 31–32), tabella 10 | Verificati visivamente titolo e continuazione: esempio di quindici settimane per la maratona, metodo distanza-tempo e quattro sedute settimanali. | Solo struttura di alto livello registrata; l’esperienza individuale non rende trasferibile la tabella né approva le sue sedute. |
+| pp. 207–208 (scansioni 30–31), tabella 10 | Verificati visivamente titolo e continuazione: esempio di quindici settimane per la maratona, metodo distanza-tempo e quattro sedute settimanali. | Solo struttura di alto livello registrata; l’esperienza individuale non rende trasferibile la tabella né approva le sue sedute. |
 | pp. 212–215 | Gli esempi trail esplicitano allenamento su percorsi simili, dislivello e gestione del terreno; per l'ultratrail sono citati anche cancelli orari e adattamento specifico. | Il modello gara trail deve poter rappresentare dislivello/percorso e target non basati solo sul passo. |
 
 Il controllo è stato limitato a questi passaggi e tabelle pertinenti al primo
@@ -82,10 +82,10 @@ ancora una regola eseguibile.
 | `trail_specificity` | Lavoro specifico su terreno e dislivello | pp. 212–215: gli esempi trail fanno riferimento a percorsi simili, dislivello e gestione del terreno. | Requisiti di specificità da confrontare con percorso, terreno e dislivello dichiarati. | Non convertire il dislivello in carico o passo; non generare una seduta senza struttura verificata. Non eseguibile. |
 | `recovery_and_cycle` | Riposo, recupero e scarico | pp. 198–209: gli esempi di piano differenziati contengono giorni di riposo e settimane con funzioni diverse. | Annotazione del ruolo di recupero o scarico all'interno dell'esempio cui appartiene. | Nessuna cadenza, percentuale di scarico o regola universale. Non eseguibile. |
 | `field_test_reference` | Test di campo e riferimento di forma | pp. 163–169: sono leggibili protocolli distinti e la necessità di condizioni confrontabili. | Protocollo dichiarato, fonte, data e condizioni, separati dal piano di allenamento. | Non rendere i test massimali obbligatori, non equiparare protocolli diversi e non dedurre risultati da attività ordinarie. Non eseguibile. |
-| `ten_km_breathing_cycle` | Esempio ciclico 10 km, metodo respiratorio | pp. 197–199 (parte 2.pdf, scansioni 25–26): il testo lo presenta per l'“amatore vero”; nove settimane, quattro sedute settimanali, verifica della VR alla settimana 3 e gara alla settimana 9. La tabella non identifica il protocollo del test. | Riferimento contestuale a una tabella specifica, separato da qualsiasi piano personale. | Non applicare a distanze, profili o disponibilità diverse; non inventare il protocollo di test e non considerare approvata la sequenza delle sedute. Non eseguibile. |
-| `ten_km_distance_time_cycle` | Esempio ciclico 10 km, metodo distanza-tempo (tabella 6) | p. 200 (parte 2.pdf, scansione 27): nove settimane e quattro sedute settimanali. | Outline del ciclo con fonte e orizzonte; dettaglio delle sedute da trascrivere. | Esempio fonte, non regola approvata; non intercambiabile con la tabella 5. Non eseguibile. |
-| `half_marathon_distance_time_cycle` | Esempio ciclico mezza maratona, metodo distanza-tempo (tabella 8) | pp. 203–204 (parte 2.pdf, scansioni 28–29): dodici settimane e quattro sedute settimanali. | Outline del ciclo con fonte e orizzonte, compresa la continuazione a p. 204. | Esempio fonte, non regola approvata; non fondere con la tabella 7. Non eseguibile. |
-| `marathon_distance_time_cycle` | Esempio ciclico maratona, metodo distanza-tempo (tabella 10) | pp. 207–208 (parte 2.pdf, scansioni 31–32): quindici settimane e quattro sedute settimanali. | Outline del ciclo con fonte e orizzonte, compresa la continuazione a p. 208. | Esempio fonte, non regola approvata; l'esperienza personale di adattamento resta un caso di test separato. Non eseguibile. |
+| `ten_km_breathing_cycle` | Esempio ciclico 10 km, metodo respiratorio (tabella 5) | pp. 197–199 (parte 2.pdf, scansioni 25–26): il testo lo presenta per l'“amatore vero”; nove settimane, quattro sedute settimanali, verifica della VR alla settimana 3 e gara alla settimana 9. La tabella non identifica il protocollo del test. | Celle trascritte (doppia lettura riconciliata) in `training-cycle-transcriptions.js`. | Approvata dall'atleta (14/11/2026); solo 4 sedute (ciclo in minuti). Non inventare il protocollo del test. |
+| `ten_km_distance_time_cycle` | Esempio ciclico 10 km, metodo distanza-tempo (tabella 6) | p. 200 (parte 2.pdf, scansione 27): nove settimane e quattro sedute settimanali. | Celle trascritte (doppia lettura riconciliata). | Approvata dall'atleta (14/11/2026); 3, 4 o 5 sedute con le varianti approvate. |
+| `half_marathon_distance_time_cycle` | Esempio ciclico mezza maratona, metodo distanza-tempo (tabella 8) | pp. 203–204 (parte 2.pdf, scansioni 28–29): dodici settimane e quattro sedute settimanali. | Celle trascritte, compresa la continuazione a p. 204. | Approvata dall'atleta (14/11/2026); non fondere con la tabella 7. |
+| `marathon_distance_time_cycle` | Esempio ciclico maratona, metodo distanza-tempo (tabella 10) | pp. 207–208 (parte 2.pdf, scansioni 30–31): quindici settimane e quattro sedute settimanali. | Celle trascritte, compresa la continuazione a p. 208. | Approvata dall'atleta (14/11/2026); 3, 4 o 5 sedute con le varianti approvate. |
 
 #### Perimetro del primo prototipo 10 km (verifica fonte, 5 novembre 2026)
 
@@ -167,9 +167,15 @@ documentati e non ambigui il dato al km è derivato così:
 
 Il valore resta un riferimento dichiarato dal runner, non una diagnosi o una
 validazione automatica delle condizioni del test. Gara/altro protocollo non
-vengono convertiti automaticamente. Non è stato stabilito un limite universale
-di validità temporale: il generatore deve continuare a segnalare la data e
-restare bloccato finché non si approva una regola esplicita di aggiornamento.
+vengono convertiti automaticamente.
+
+**Validità temporale (regola approvata dall'atleta, 13 novembre 2026):** un
+test VR resta valido per 6 settimane (42 giorni) dalla data del test. Oltre
+questa soglia il questionario mostra un avviso e il generatore si blocca
+finché non viene registrato un nuovo test; una data futura è rifiutata. Il
+motore non stima mai una VR aggiornata. Implementazione:
+`REFERENCE_TEST_VALIDITY_RULE` e `assessReferenceTestValidity` in
+[`training-reference-pace.js`](../js/modules/training-reference-pace.js).
 
 #### Dettagli verificati sulle pagine 174–179
 
@@ -304,6 +310,54 @@ di bozza conservano una fotografia dei candidati e degli esempi compatibili
 con obiettivo e terreno dichiarati; la scheda Motore piani li mostra insieme
 alla fonte e ai limiti del relativo esempio. Questa valutazione è solo
 informativa. Il generatore resta disabilitato e nessuna seduta viene creata.
+
+## Chiusura dei punti aperti (Istruzioni-01, 13 novembre 2026)
+
+1. **Trascrizione delle sedute.** Le tabelle 5, 6, 8 e 10 sono trascritte
+   cella per cella in
+   [`training-cycle-transcriptions.js`](../js/modules/training-cycle-transcriptions.js):
+   due letture indipendenti, riconciliate sulla scansione, nessuna cella
+   irrisolta. Il controllo ha corretto le scansioni della tabella 10 (30–31,
+   non 31–32). Le regole di ciclo hanno un pattern `explicit_weekly_cycle`
+   completo e sono state approvate dall'atleta il 14 novembre 2026
+   (`CYCLE_RULE_APPROVALS`, revisione in
+   [`cycle-transcriptions-review.md`](./cycle-transcriptions-review.md)).
+   Per la 10 km sono pronti due cicli: il questionario chiede il metodo
+   (respiratorio o distanza-tempo) e senza scelta la generazione si ferma.
+2. **Adattamento della frequenza.** Regole dettate e approvate dall'atleta,
+   valide solo per i cicli distanza-tempo (sedute in km), in
+   [`training-cycle-engine.js`](../js/modules/training-cycle-engine.js):
+   - *3 corse:* si omette la seduta facile più breve (prima quelle che la
+     tabella indica come facoltative); le altre due sedute non lunghe
+     ricevono 2 km di riscaldamento e 1 km di defaticamento; il lungo del
+     fine settimana aumenta della distanza omessa. Il lungo è solo una corsa
+     facile (L, M, LLM): se il fine settimana ha test, gara, prova o un lavoro
+     di qualità (T, P, B, RME, RMA, ritmo gara), i km omessi non vengono
+     riassegnati.
+   - *5 corse, variante A:* le quattro sedute restano invariate; una quinta
+     corsa facile (L) aggiunge il 10% dei km settimanali, arrotondato a 0,5 km.
+   - *5 corse, variante B:* le quattro sedute restano invariate; si aggiunge
+     una seduta di qualità o in palestra, il cui contenuto è scelto
+     dall'atleta prima della conferma (il motore non lo inventa).
+   - Nella settimana di gara la quinta seduta non viene aggiunta (scelta
+     prudenziale del motore). Il ciclo respiratorio, in minuti, resta a
+     4 sedute; 1, 2, 6 e 7 corse non hanno regole approvate e bloccano la
+     generazione.
+   - Le settimane vengono collocate a ritroso dalla data di gara sui giorni
+     disponibili, esclusi quelli con altri sport fissi; la gara resta sulla
+     sua data. Ogni seduta va sul giorno disponibile più vicino al suo giorno
+     nel libro. Giorni insufficienti, o un ciclo che dovrebbe iniziare prima
+     di oggi perché la gara è troppo vicina, producono un conflitto da
+     risolvere. La conferma è prenotata sul database prima di scrivere, quindi
+     una seconda conferma della stessa bozza viene rifiutata.
+3. **Validità del test VR.** 6 settimane, vedi sopra.
+4. **Attivazione della generazione.** `generation_enabled` diventa vero solo
+   se almeno una regola di ciclo è approvata, il contratto è completo e gli
+   input sono presenti: profilo, frequenza supportata (con variante scelta per
+   5 corse), gara con data e distanza, test VR valido. La bozza generata viene
+   salvata nella richiesta (`draft_generated`) e scritta nel calendario solo
+   dopo conferma esplicita; le sedute esistenti non vengono modificate.
+   Approvate le tabelle, la generazione è attiva quando gli input sono completi.
 
 ## Paradigma operativo
 
@@ -559,7 +613,9 @@ calendario variabile settimana per settimana.
    privi di approvazione, tracciabilità completa, contratto di applicabilità o
    input richiesti. Un pattern approvato deve dichiarare versione,
    approvatore/data, affidabilità e fonte verificata, input, esclusioni,
-   struttura della seduta e spiegazione. La valutazione non genera sedute.
+   struttura della seduta e spiegazione. Un outline senza sedute trascritte
+   non può essere approvato. La generazione si attiva solo per cicli
+   trascritti, approvati e pronti (vedi «Chiusura dei punti aperti»).
 7. Prima di implementare la generazione, definire e testare casi per piano
    senza gara, gara primaria e secondaria, indisponibilità, riferimento di
    ritmo assente/datato, trail, fatica dichiarata e nuova gara su un piano

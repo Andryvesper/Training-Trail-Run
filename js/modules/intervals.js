@@ -43,6 +43,16 @@ export class IntervalsService {
     }
 }
 
+// Intervals.icu identifica il record wellness con la data in `id`;
+// `date` resta supportato per compatibilità con dati già normalizzati.
+function wellnessDate(record) {
+    return String(record.date ?? record.id ?? '');
+}
+
+function wellnessLoad(record) {
+    return readNumber(record.load) ?? readNumber(record.ctlLoad);
+}
+
 export function getLastSevenDaysRange(referenceDate = new Date()) {
     const newest = new Date(referenceDate);
     const oldest = new Date(referenceDate);
@@ -58,14 +68,16 @@ export function summarizeIntervalsData(wellness, activities) {
     const records = Array.isArray(wellness) ? wellness.filter(isRecord) : [];
     const latestWellness = records
         .slice()
-        .sort((left, right) => String(left.date || '').localeCompare(String(right.date || '')))
+        .sort((left, right) => wellnessDate(left).localeCompare(wellnessDate(right)))
         .reverse()
-        .find(record => ['ctl', 'atl', 'load'].some(key => readNumber(record[key]) !== null));
+        .find(record => readNumber(record.ctl) !== null
+            || readNumber(record.atl) !== null
+            || wellnessLoad(record) !== null);
 
     const ctl = readNumber(latestWellness?.ctl);
     const atl = readNumber(latestWellness?.atl);
     const explicitTsb = readNumber(latestWellness?.tsb);
-    const load = readNumber(latestWellness?.load);
+    const load = latestWellness ? wellnessLoad(latestWellness) : null;
     const activityRecords = Array.isArray(activities) ? activities.filter(isRecord) : [];
     const runActivities = activityRecords.filter(activity => isRunActivity(activity));
     const swimActivities = activityRecords.filter(activity => isSwimActivity(activity));

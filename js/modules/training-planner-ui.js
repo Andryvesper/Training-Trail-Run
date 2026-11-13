@@ -9,6 +9,7 @@ import {
 } from './training-planner.js';
 import { TrainingRacesService } from './training-races.js';
 import { formatPace } from './training-reference-pace.js';
+import { resolveExtraSession } from './training-cycle-engine.js';
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const DAY_LABELS = {
@@ -89,12 +90,49 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
             if (!checkbox.checked) minutesInput.value = '';
             updateReadiness();
         });
-        addOtherSportButton.addEventListener('click', () => {
-            const sessions = collectOtherSportRows(otherSportsList);
-            sessions.push({});
-            renderOtherSportRows(otherSportsList, sessions);
-            updateReadiness();
-        });
+    });
+    draftsList.addEventListener('click', async event => {
+        const button = event.target.closest('button[data-action="apply-draft"]');
+        if (!button) return;
+        const card = button.closest('[data-draft-id]');
+        const draft = DRAFTS_BY_ID.get(card?.dataset.draftId);
+        if (!draft) return;
+        const confirmation = card.querySelector('input[name="confirm_draft"]');
+        if (!confirmation?.checked) {
+            showStatus(status, 'Spunta la conferma per scrivere le sedute nel calendario.', 'error');
+            return;
+        }
+        button.disabled = true;
+        try {
+            let generated = draft.profile_snapshot.generated_draft;
+            card.querySelectorAll('[data-extra-week]').forEach(row => {
+                generated = resolveExtraSession(generated, Number(row.dataset.extraWeek), {
+                    kind: row.querySelector('select').value,
+                    description: row.querySelector('input').value
+                });
+            });
+            const result = await plannerService.applyDraftToCalendar(
+                userId,
+                { ...draft, profile_snapshot: { ...draft.profile_snapshot, generated_draft: generated } },
+                { confirmed: true }
+            );
+            document.dispatchEvent(new CustomEvent('training-sessions:changed'));
+            const overlap = result.overlapping_dates.length
+                ? ` Nelle date ${result.overlapping_dates.join(', ')} c'erano già sedute: non sono state modificate.`
+                : '';
+            showStatus(status, `Scritte ${result.session_count} sedute nel calendario.${overlap}`, 'success');
+            renderDrafts(draftsList, await plannerService.listDraftRequests(userId));
+        } catch (error) {
+            console.error('Errore nella conferma della bozza:', error);
+            showStatus(status, `Impossibile confermare la bozza: ${error.message}`, 'error');
+            button.disabled = false;
+        }
+    });
+    addOtherSportButton.addEventListener('click', () => {
+        const sessions = collectOtherSportRows(otherSportsList);
+        sessions.push({});
+        renderOtherSportRows(otherSportsList, sessions);
+        updateReadiness();
     });
     form.addEventListener('input', () => {
         updatePeakWeekControls(form);
@@ -147,7 +185,9 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
             await plannerService.saveProfile(userId, profile);
             if (action === 'draft') {
                 const draft = await plannerService.createDraftRequest(userId, profile, races);
-                showStatus(status, 'Richiesta di bozza salvata. Il piano non è attivo e non sono state create sedute.', 'success');
+                showStatus(status, draft.status === 'draft_generated'
+                    ? 'Bozza generata: rivedila qui sotto e confermala per scriverla nel calendario.'
+                    : 'Richiesta di bozza salvata. Il piano non è attivo e non sono state create sedute.', 'success');
                 const drafts = await plannerService.listDraftRequests(userId);
                 renderDrafts(draftsList, drafts);
                 draftsList.querySelector(`[data-draft-id="${CSS.escape(draft.id)}"]`)?.scrollIntoView({
@@ -200,6 +240,12 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
 }
 
 function updatePeakWeekControls(form) {
+    const frequency = form.elements.namedItem('target_running_sessions_per_week');
+    const fiveOption = form.elements.namedItem('five_session_option');
+    if (frequency && fiveOption) {
+        fiveOption.disabled = frequency.value !== '5';
+        if (fiveOption.disabled) fiveOption.value = '';
+    }
     const mode = form.elements.namedItem('peak_week_proposal_mode');
     const maxSessions = form.elements.namedItem('peak_week_max_running_sessions');
     if (!mode || !maxSessions) return;
@@ -384,7 +430,7 @@ function getRulePipelineLabel(status) {
         awaiting_approved_rules: 'in attesa di regole approvate',
         awaiting_rule_contract: 'contratto delle regole incompleto',
         awaiting_required_inputs: 'input richiesti mancanti',
-        rules_ready: 'regole valutate; generazione disattivata'
+        rules_ready: 'regole pronte'
     };
     return labels[status] || 'stato non disponibile';
 }
@@ -417,7 +463,7 @@ function describeSourceExample(example) {
         return `Tabella ${example.source.table}: ${example.structure.durationWeeks} settimane, ${example.structure.runningSessionsPerWeek} sedute/settimana; test di verifica alla settimana ${example.structure.referenceTestWeek} (protocollo non specificato nella tabella), gara alla settimana ${example.structure.raceWeek}; riscaldamento di riferimento pp. ${example.structure.warmup.sourcePrintedPages} (non prescritto come schema universale).`;
     }
     if (example.structure.kind === 'distance_time_cycle_outline') {
-        return `Tabella ${example.source.table}: ${example.structure.goalDistanceKm} km, ${example.structure.durationWeeks} settimane, ${example.structure.runningSessionsPerWeek} sedute/settimana. Sono registrati solo i dati strutturali; le singole sedute non sono riportate.`;
+        return `Tabella ${example.source.table}: ${example.structure.goalDistanceKm} km, ${example.structure.durationWeeks} settimane, ${example.structure.runningSessionsPerWeek} sedute/settimana. Sedute trascritte cella per cella e approvate dall’atleta.`;
     }
     return 'Riferimento fonte catalogato; dettagli non disponibili.';
 }
@@ -564,8 +610,12 @@ function preserveUnavailableRaceOption(select, raceId) {
     select.append(option);
 }
 
+const DRAFTS_BY_ID = new Map();
+
 function renderDrafts(container, drafts) {
     container.replaceChildren();
+    DRAFTS_BY_ID.clear();
+    drafts.forEach(draft => DRAFTS_BY_ID.set(draft.id, draft));
     if (!drafts.length) {
         container.append(makeElement('p', 'text-sm text-slate-500', 'Non hai ancora salvato richieste di bozza.'));
         return;
@@ -577,7 +627,14 @@ function renderDrafts(container, drafts) {
         const snapshot = draft.profile_snapshot || {};
         const race = snapshot.primary_race;
         card.append(makeElement('h4', 'text-sm font-semibold text-white', getGoalLabel(draft.goal_mode, snapshot, race)));
-        card.append(makeElement('p', 'text-xs text-amber-200', 'Richiesta salvata · in attesa di regole verificate · non attiva'));
+        const generated = snapshot.generated_draft;
+        if (draft.status === 'confirmed') {
+            card.append(makeElement('p', 'text-xs text-emerald-300', 'Bozza confermata e scritta nel calendario.'));
+        } else if (draft.status === 'draft_generated' && generated) {
+            renderGeneratedDraft(card, generated);
+        } else {
+            card.append(makeElement('p', 'text-xs text-amber-200', 'Richiesta salvata · in attesa di regole verificate · non attiva'));
+        }
         const methodologyAssessment = snapshot.methodology_assessment;
         const candidateCount = methodologyAssessment?.candidate_pattern_ids?.length;
         const sourceExampleCount = methodologyAssessment?.source_example_ids?.length;
@@ -591,6 +648,54 @@ function renderDrafts(container, drafts) {
         card.append(makeElement('p', 'text-xs text-slate-500', `Salvata il ${formatDateTime(draft.created_at)}`));
         container.append(card);
     });
+}
+
+function renderGeneratedDraft(card, generated) {
+    const sessionCount = generated.weeks.reduce((total, week) => total + week.sessions.length, 0);
+    card.append(makeElement(
+        'p',
+        'text-xs text-sky-200',
+        `Bozza generata dalla tabella ${generated.source.table}: ${generated.weeks.length} settimane, ${sessionCount} sedute dal ${generated.startDate} al ${generated.endDate}. Non è ancora nel calendario.`
+    ));
+    const notes = [...new Set(generated.weeks.flatMap(week => week.notes))];
+    if (notes.length) {
+        const list = makeElement('ul', 'list-disc space-y-1 pl-5 text-xs text-slate-400');
+        notes.forEach(note => list.append(makeElement('li', '', note)));
+        card.append(list);
+    }
+    if (generated.issues.length) {
+        const issues = makeElement('ul', 'list-disc space-y-1 pl-5 text-xs text-rose-300');
+        generated.issues.forEach(issue => issues.append(makeElement('li', '', issue)));
+        card.append(issues);
+        return;
+    }
+    generated.weeks
+        .filter(week => week.sessions.some(session => session.requiresSelection))
+        .forEach(week => {
+            const row = makeElement('div', 'flex flex-wrap gap-2 text-xs text-slate-300');
+            row.dataset.extraWeek = String(week.weekNumber);
+            row.append(makeElement('span', 'self-center', `Settimana ${week.weekNumber}: seduta extra`));
+            const select = makeElement('select', 'min-h-11 rounded-xl border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200');
+            [['quality', 'Qualità'], ['strength', 'Palestra']].forEach(([value, label]) => {
+                const option = makeElement('option', '', label);
+                option.value = value;
+                select.append(option);
+            });
+            const input = makeElement('input', 'min-h-11 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200');
+            input.maxLength = 100;
+            input.placeholder = 'Descrivi la seduta scelta';
+            row.append(select, input);
+            card.append(row);
+        });
+    const confirmLabel = makeElement('label', 'flex items-start gap-2 text-xs text-slate-300');
+    const checkbox = makeElement('input', 'mt-0.5');
+    checkbox.type = 'checkbox';
+    checkbox.name = 'confirm_draft';
+    confirmLabel.append(checkbox, makeElement('span', '', 'Ho rivisto la bozza e voglio scrivere queste sedute nel mio calendario. Le sedute già presenti non vengono modificate.'));
+    const button = makeElement('button', 'min-h-11 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white', 'Conferma e scrivi nel calendario');
+    button.type = 'button';
+    button.dataset.action = 'apply-draft';
+    card.append(confirmLabel, button);
 }
 
 function getGoalLabel(goalMode, profile, race) {

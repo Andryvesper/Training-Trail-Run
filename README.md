@@ -34,16 +34,19 @@ metodologica rielaborata e non testuale è documentata in
 [`docs/training-methodology.md`](./docs/training-methodology.md) e archiviata
 nella tabella `training_methodology_core` di Supabase.
 La specifica del motore di bozze e lo stato della pipeline sono in
-[`docs/training-engine-paradigm.md`](./docs/training-engine-paradigm.md); non
-costituisce ancora regole di allenamento attive.
+[`docs/training-engine-paradigm.md`](./docs/training-engine-paradigm.md). Le
+tabelle-ciclo trascritte da approvare sono in
+[`docs/cycle-transcriptions-review.md`](./docs/cycle-transcriptions-review.md).
 
 La scheda **Motore piani** permette di salvare il questionario, selezionare una
 gara principale e altre gare da considerare, vedere gli esempi metodologici
 pertinenti e registrare una richiesta di bozza. Una pipeline deterministica
 valuta applicabilità, approvazione, tracciabilità della fonte e input richiesti
-dalle regole. Gli outline strutturali delle tabelle 6, 8 e 10 non riportano le
-singole sedute e restano non eseguibili; nessuna seduta viene generata o
-attivata. Il questionario salva anche il numero di corse desiderato nella
+dalle regole. Le tabelle 5, 6, 8 e 10 sono trascritte cella per cella e
+approvate dall'atleta. Con gara su strada, metodo scelto e test VR di al
+massimo 6 settimane, la richiesta contiene una bozza (anche adattata a 3 o 5
+corse settimanali) che scrive le sedute nel calendario solo dopo conferma
+esplicita. Il questionario salva anche il numero di corse desiderato nella
 settimana tipo, il limite delle eventuali proposte di picco e le sedute
 settimanali di altri sport (giorno, durata e flessibilità). Gli sport non
 indicati non riducono la disponibilità per la corsa; gli impegni fissi
@@ -105,6 +108,13 @@ richiedere una nuova autorizzazione dopo sette giorni.
 5. **Gare:** obiettivi e risultati sono salvati per atleta, con date flessibili e priorità.
 6. **Metodo:** sintesi versionata dei manuali e paradigma progettuale per bozze, senza assegnazioni o carichi automatici non verificati.
 
+Per applicare al database Supabase tutte le migrazioni non ancora eseguite,
+usa la connessione cifrata creata per i backup
+(`scripts/backup/configure-supabase-connection.ps1`) e lancia
+`scripts/supabase/apply-migrations.ps1` (elenco) poi
+`scripts/supabase/apply-migrations.ps1 -Apply`. Le migrazioni sono
+rieseguibili e vengono registrate in `app_migrations.applied`.
+
 Prima di usare il calendario, applica la migrazione
 [`20261104205800_create_training_sessions.sql`](./supabase/migrations/20261104205800_create_training_sessions.sql)
 al progetto Supabase collegato (SQL Editor o Supabase CLI). Senza la tabella e
@@ -119,6 +129,9 @@ scheda Gare:
 - [`20261105100901_add_training_session_completion.sql`](./supabase/migrations/20261105100901_add_training_session_completion.sql), per memorizzare l'associazione confermata e la valutazione personale delle sedute completate.
 - [`20261105110000_create_training_planner_drafts.sql`](./supabase/migrations/20261105110000_create_training_planner_drafts.sql), per salvare il questionario e le richieste di bozza per utente.
 - [`20261105123000_add_training_plan_sharing.sql`](./supabase/migrations/20261105123000_add_training_plan_sharing.sql), per i passi obiettivo e la condivisione/importazione consensuale di sedute.
+- [`20261113120000_list_owned_training_plan_shares.sql`](./supabase/migrations/20261113120000_list_owned_training_plan_shares.sql), per elencare e revocare le proprie condivisioni attive anche senza il codice.
+- [`20261113121000_allow_generated_training_plan_drafts.sql`](./supabase/migrations/20261113121000_allow_generated_training_plan_drafts.sql), per salvare bozze generate e segnarle come confermate.
+- [`20261114090000_secure_profiles_role.sql`](./supabase/migrations/20261114090000_secure_profiles_role.sql), per impedire che un utente scelga o modifichi il proprio ruolo.
 
 ## Test
 

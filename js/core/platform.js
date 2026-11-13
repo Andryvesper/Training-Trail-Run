@@ -12,15 +12,14 @@ export async function initializePlatform(supabaseClient, user) {
             .single();
 
         if (error || !profile) {
-            // Assegnazione del ruolo predefinito senza chiavi o segreti hardcoded
-            const defaultRole = user.email.includes('admin') ? 'admin' : 'athlete';
-            
-            const { data: newProfile, insertError } = await supabaseClient
+            // Il ruolo non è mai scelto dal client: ogni nuovo profilo è "athlete".
+            // La promozione ad admin va fatta lato database da un amministratore.
+            const { data: newProfile, error: insertError } = await supabaseClient
                 .from('profiles')
                 .insert({
                     id: user.id,
                     email: user.email,
-                    role: defaultRole
+                    role: 'athlete'
                 })
                 .select()
                 .single();
@@ -28,6 +27,7 @@ export async function initializePlatform(supabaseClient, user) {
             if (insertError) throw insertError;
             profile = newProfile;
         }
+        if (!profile) throw new Error('Profilo utente non disponibile.');
 
         setupUserInterfaceByRole(profile);
         return profile;

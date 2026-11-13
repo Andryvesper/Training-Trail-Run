@@ -156,5 +156,17 @@ test('rifiuta date incoerenti, tempi non validi e posizioni negative senza scriv
         }),
         /intero positivo/
     );
+    await assert.rejects(
+        service.saveRace('user-1', { name: 'Refuso', event_date: '2027-06-01', distance_km: '12000', status: 'planned' }),
+        /1000 km/
+    );
+    await assert.rejects(
+        service.saveRace('user-1', { name: 'Refuso', event_date: '2027-06-01', distance_km: '20', elevation_gain_m: '3000000000', status: 'planned' }),
+        /100000 m/
+    );
+    await assert.rejects(
+        service.saveRace('user-1', { name: 'Venicemarathon', event_date: '2026-10-25', distance_km: '42.195', status: 'completed', overall_position: '99999999999' }),
+        /1000000/
+    );
     assert.deepEqual(mock.calls, []);
 });
