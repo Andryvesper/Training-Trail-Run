@@ -359,6 +359,22 @@ informativa. Il generatore resta disabilitato e nessuna seduta viene creata.
    dopo conferma esplicita; le sedute esistenti non vengono modificate.
    Approvate le tabelle, la generazione è attiva quando gli input sono completi.
 
+## Passi ricavati dalla VR (14 novembre 2026)
+
+[`training-pace-zones.js`](../js/modules/training-pace-zones.js) traduce le
+sigle delle tabelle in fasce di passo, come scarto in secondi/km dalla VR
+stampato nel libro: lento (CRF) +40/+50 (pp. 176–177), medio +10/+15/+20 per
+10 km/mezza/maratona (p. 178), bis/tris/progressivo CRF, CRLI +15/+25, CRI
++5/+10 (p. 177; parte veloce del bis +10), lunghissimo maratona +50/+60
+(pp. 179–180), MLSS da −9 (800 m) a −2 (3 km) (pp. 182–184), VAM da −30
+(200 m) a −10 (600 m) (pp. 184–187), ritmo mezza +5/+10, ritmo maratona
++30/+40, ritmo gara 10 km = VR (p. 192). Conflitti risolti: lento 40–50″
+(sezione dell'amatore vero, come le tabelle) invece di 50–60″ (p. 174); ritmo
+mezza dalla definizione dedicata di p. 192. Salite SB e MLSS 600 m non hanno
+un passo numerico nel libro: la seduta riporta sforzo e frequenza cardiaca.
+La bozza scrive le fasce nelle note e un passo obiettivo solo quando la seduta
+ha una sola fascia.
+
 ## Paradigma operativo
 
 ```mermaid
@@ -509,8 +525,13 @@ Il calendario consente ora di condividere un intervallo di sedute tramite
 codice casuale a scadenza, revocabile dal proprietario, e importarlo come copia
 con consenso esplicito. La condivisione non include attività completate o dati
 di profilo; un account può importare una specifica condivisione una sola volta.
-I soli passi obiettivo eventualmente presenti possono essere scalati in
-proporzione ai passi di riferimento dichiarati da entrambi gli atleti. Questa
+I soli passi obiettivo eventualmente presenti vengono adattati conservando lo
+scarto dal passo di riferimento (nuovo passo = passo − riferimento di chi
+condivide + riferimento di chi importa), coerente con il libro che definisce
+ogni ritmo come VR ± secondi/km. Quando
+una seduta ha distanza, passo e durata, la durata segue il passo adattato,
+così i tre valori restano coerenti; le sedute importate seguono
+quelle già presenti nello stesso giorno. Questa
 formula è una trasformazione aritmetica iniziale, non un modello fisiologico:
 non si devono equiparare test diversi né trattarla come prescrizione. Le sedute
 copiate restano da verificare individualmente. Il calendario non rappresenta

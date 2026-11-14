@@ -106,7 +106,22 @@ export function scaleTrainingPace(sessionPace, sourceReferencePace, targetRefere
     }
     validateOptionalPace(sourceReferencePace);
     validateOptionalPace(targetReferencePace);
-    return Math.max(120, Math.min(1800, Math.round(sessionPace * targetReferencePace / sourceReferencePace)));
+    // Il libro esprime ogni ritmo come VR ± secondi/km: si conserva lo scarto
+    // dalla VR, non il rapporto.
+    return Math.max(120, Math.min(1800, Math.round(sessionPace - sourceReferencePace + targetReferencePace)));
+}
+
+// Con distanza e passo obiettivo la durata segue il passo adattato, così
+// distanza, passo e durata restano coerenti (stessa regola dell'import SQL).
+export function scaleSessionDuration(session, sourceReferencePace, targetReferencePace) {
+    const duration = session?.duration_minutes;
+    if (duration == null) return null;
+    if (session.distance_km == null || session.target_pace_seconds_per_km == null
+        || sourceReferencePace == null || targetReferencePace == null) {
+        return duration;
+    }
+    const pace = session.target_pace_seconds_per_km;
+    return Math.round(duration * scaleTrainingPace(pace, sourceReferencePace, targetReferencePace) / pace);
 }
 
 function validateDateRange(startDate, endDate) {

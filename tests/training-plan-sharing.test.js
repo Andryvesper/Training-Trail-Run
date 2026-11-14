@@ -4,6 +4,7 @@ import {
     TrainingPlanSharingService,
     formatPace,
     parsePace,
+    scaleSessionDuration,
     scaleTrainingPace
 } from '../js/modules/training-plan-sharing.js';
 
@@ -20,10 +21,10 @@ function createRpcMock(result) {
     };
 }
 
-test('converte i passi min:ss/km e adatta proporzionalmente un target', () => {
+test('converte i passi min:ss/km e adatta un target conservando lo scarto dal riferimento', () => {
     assert.equal(parsePace('4:10'), 250);
     assert.equal(formatPace(320), '5:20');
-    assert.equal(scaleTrainingPace(300, 250, 320), 384);
+    assert.equal(scaleTrainingPace(300, 250, 320), 370);
     assert.equal(scaleTrainingPace(null, 250, 320), null);
 });
 
@@ -93,4 +94,12 @@ test('valida codice e parametri localmente senza chiamare RPC', async () => {
         sessionIds: ['session-1']
     }), /titolo deve contenere/);
     assert.deepEqual(mock.calls, []);
+});
+
+test('la durata segue il passo adattato solo quando la seduta ha distanza e passo', () => {
+    const session = { distance_km: 10, duration_minutes: 50, target_pace_seconds_per_km: 300 };
+    assert.equal(scaleSessionDuration(session, 250, 275), 54);
+    assert.equal(scaleSessionDuration({ ...session, target_pace_seconds_per_km: null }, 250, 275), 50);
+    assert.equal(scaleSessionDuration({ ...session, distance_km: null }, 250, 275), 50);
+    assert.equal(scaleSessionDuration({ ...session, duration_minutes: null }, 250, 275), null);
 });

@@ -2,6 +2,7 @@ import {
     TrainingPlanSharingService,
     formatPace,
     parsePace,
+    scaleSessionDuration,
     scaleTrainingPace
 } from './training-plan-sharing.js';
 
@@ -218,6 +219,16 @@ function renderActiveShares(container, shares, revokeForm) {
     container.replaceChildren(createElement('p', 'text-xs font-semibold text-slate-400', 'Condivisioni attive'), list);
 }
 
+function formatDurationChange(session, sourceReferencePace, targetReferencePace) {
+    if (session.duration_minutes == null) return null;
+    const adapted = targetReferencePace == null
+        ? session.duration_minutes
+        : scaleSessionDuration(session, sourceReferencePace, targetReferencePace);
+    return adapted === session.duration_minutes
+        ? `${session.duration_minutes} min`
+        : `${session.duration_minutes} → ${adapted} min`;
+}
+
 function renderCreatedShare(container, result) {
     const wrapper = createElement('div', 'space-y-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3');
     wrapper.append(createElement('p', 'text-sm font-semibold text-emerald-200', `Codice: ${result.share_code}`));
@@ -253,7 +264,7 @@ function renderSharePreview(container, result, hasReferencePace, newStartDate, t
         wrapper.append(createElement(
             'p',
             'text-xs text-slate-400',
-            `Passo di riferimento dichiarato dall’atleta: ${formatPace(result.source_reference_pace_seconds_per_km)} min/km. L’adattamento è proporzionale e va verificato, non è una prescrizione sportiva validata.`
+            `Passo di riferimento dichiarato dall’atleta: ${formatPace(result.source_reference_pace_seconds_per_km)} min/km. Ogni passo conserva il suo scarto dal riferimento (come nel libro, dove i ritmi sono VR ± secondi/km): usa la tua VR e verifica le sedute.`
         ));
     } else {
         wrapper.append(createElement('p', 'text-xs text-amber-200', 'Il programma non include un passo di riferimento: le sedute saranno copiate senza adattamento dei ritmi.'));
@@ -280,7 +291,7 @@ function renderSharePreview(container, result, hasReferencePace, newStartDate, t
         const details = [
             shiftDate(session.scheduled_date, firstSourceDate, newStartDate),
             session.distance_km == null ? null : `${session.distance_km} km`,
-            session.duration_minutes == null ? null : `${session.duration_minutes} min`
+            formatDurationChange(session, sourceReferencePace, targetReferencePace)
         ].filter(Boolean).join(' · ');
         list.append(createElement(
             'li',

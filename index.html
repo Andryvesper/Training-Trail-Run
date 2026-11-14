@@ -33,6 +33,13 @@
                 justify-content: center;
             }
         }
+
+        [data-summary-period][aria-pressed="true"],
+        [data-chart-weeks][aria-pressed="true"] {
+            background-color: #10b981;
+            border-color: #10b981;
+            color: #020617;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500 selection:text-slate-950">
@@ -159,15 +166,48 @@
                             <span class="text-[10px] text-slate-500">Ultimo dato disponibile</span>
                         </div>
                     </div>
-                    <div class="bg-slate-900/70 border border-slate-800 p-4 sm:p-5 rounded-2xl space-y-4">
+                    <section class="bg-slate-900/70 border border-slate-800 p-4 sm:p-5 rounded-2xl space-y-4" aria-labelledby="dashboard-records-title">
                         <div>
-                            <h3 class="text-base font-bold text-white">Attività recenti</h3>
-                            <p class="text-xs text-slate-400 mt-1">Dati delle attività registrate negli ultimi 7 giorni.</p>
+                            <h3 id="dashboard-records-title" class="text-base font-bold text-white">Record personali</h3>
+                            <p class="text-xs text-slate-400 mt-1">Migliori tempi su 5 km, 10 km, mezza e maratona da gare completate (tempo chip o ufficiale) e attività Intervals sull'intera distanza. Nessun tempo è stimato da attività più lunghe.</p>
+                        </div>
+                        <div id="dashboard-records" class="grid grid-cols-2 xl:grid-cols-5 gap-3" aria-live="polite">
+                            <p class="col-span-full text-sm text-slate-400">In attesa dei dati Intervals.icu.</p>
+                        </div>
+                    </section>
+                    <section class="bg-slate-900/70 border border-slate-800 p-4 sm:p-5 rounded-2xl space-y-4" aria-labelledby="dashboard-summary-title">
+                        <div class="flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                                <h3 id="dashboard-summary-title" class="text-base font-bold text-white">Riepilogo attività</h3>
+                                <p id="dashboard-summary-range" class="text-xs text-slate-400 mt-1">Corsa, nuoto e altre attività nel periodo scelto.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-1" role="group" aria-label="Periodo del riepilogo">
+                                <button type="button" data-summary-period="7" class="min-h-11 rounded-xl border border-slate-700 px-3 text-xs font-medium text-slate-300" aria-pressed="true">7 giorni</button>
+                                <button type="button" data-summary-period="30" class="min-h-11 rounded-xl border border-slate-700 px-3 text-xs font-medium text-slate-300" aria-pressed="false">30 giorni</button>
+                                <button type="button" data-summary-period="ytd" class="min-h-11 rounded-xl border border-slate-700 px-3 text-xs font-medium text-slate-300" aria-pressed="false">Anno in corso</button>
+                                <button type="button" data-summary-period="365" class="min-h-11 rounded-xl border border-slate-700 px-3 text-xs font-medium text-slate-300" aria-pressed="false">12 mesi</button>
+                            </div>
                         </div>
                         <div id="intervals-activity-summary" class="grid grid-cols-2 xl:grid-cols-4 gap-3" aria-live="polite">
                             <p class="col-span-full text-sm text-slate-400">In attesa dei dati Intervals.icu.</p>
                         </div>
-                    </div>
+                    </section>
+                    <section class="space-y-4" aria-labelledby="dashboard-charts-title">
+                        <div class="flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                                <h3 id="dashboard-charts-title" class="text-base font-bold text-white">Andamento</h3>
+                                <p class="text-xs text-slate-400 mt-1">Forma, volumi e dati wellness raccolti da Intervals.icu.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-1" role="group" aria-label="Periodo dei grafici">
+                                <button type="button" data-chart-weeks="13" class="min-h-11 rounded-xl border border-slate-700 px-3 text-xs font-medium text-slate-300" aria-pressed="false">3 mesi</button>
+                                <button type="button" data-chart-weeks="26" class="min-h-11 rounded-xl border border-slate-700 px-3 text-xs font-medium text-slate-300" aria-pressed="true">6 mesi</button>
+                                <button type="button" data-chart-weeks="52" class="min-h-11 rounded-xl border border-slate-700 px-3 text-xs font-medium text-slate-300" aria-pressed="false">12 mesi</button>
+                            </div>
+                        </div>
+                        <div id="dashboard-charts" class="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4" aria-live="polite">
+                            <p class="col-span-full text-sm text-slate-400">In attesa dei dati Intervals.icu.</p>
+                        </div>
+                    </section>
                 </div>
 
                 <!-- Modulo Calendario Multi-Settimanale -->

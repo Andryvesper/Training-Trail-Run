@@ -1,4 +1,5 @@
 import { CYCLE_TRANSCRIPTIONS } from './training-cycle-transcriptions.js';
+import { describeBands, paceBandsForCell, singleTargetPace } from './training-pace-zones.js';
 
 const DAY_KEYS = Object.freeze(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
 const QUALITY_MEANS = Object.freeze(['B', 'T', 'P', 'MLSS', 'VAM', 'SB', 'RMA', 'RME', 'LLM', 'RG']);
@@ -249,7 +250,9 @@ export function scheduleCycleDraft({
     blockedDays = [],
     targetSessions = 4,
     fiveSessionOption = null,
-    today = null
+    today = null,
+    vrSecondsPerKm = null,
+    goalDistanceKm = null
 }) {
     if (!pattern || pattern.kind !== 'explicit_weekly_cycle') {
         throw new Error('Serve un ciclo con sedute trascritte e approvate.');
@@ -277,7 +280,10 @@ export function scheduleCycleDraft({
         const scheduled = [
             ...free.map((session, index) => ({ ...session, date: chosenDates[index] ?? null })),
             ...pinned.map(session => ({ ...session, date: raceDate }))
-        ];
+        ].map(session => {
+            const bands = session.type === 'run' ? paceBandsForCell(session.raw, vrSecondsPerKm, goalDistanceKm) : [];
+            return { ...session, paceBands: bands, targetPaceSecondsPerKm: singleTargetPace(bands) };
+        });
         return {
             weekNumber: week.weekNumber,
             startDate: weekStart,
@@ -298,6 +304,7 @@ export function scheduleCycleDraft({
         endDate: weeks[weeks.length - 1].endDate,
         targetSessions,
         fiveSessionOption: targetSessions === 5 ? fiveSessionOption : null,
+        vrSecondsPerKm,
         source: pattern.source,
         weeks,
         issues,
@@ -319,9 +326,11 @@ export function draftToCalendarSessions(draft) {
         sport_type: session.type === 'extra_choice' && session.selected === 'strength' ? 'strength' : 'run',
         distance_km: session.distanceKm,
         duration_minutes: null,
+        target_pace_seconds_per_km: session.targetPaceSecondsPerKm ?? null,
         notes: [
             `Fonte: Tipi che corrono, tabella ${draft.source.table}, settimana ${week.weekNumber}${session.bookDay ? `, giorno ${session.bookDay}` : ''}.`,
             ...(session.adaptations || []),
+            ...(session.paceBands?.length ? [`Passi dalla tua VR ${formatVr(draft.vrSecondsPerKm)}: ${describeBands(session.paceBands)}.`] : []),
             ...(session.uncertain ? ['Cella con lettura incerta nella scansione: verifica prima di seguirla.'] : [])
         ].join(' ')
     })));
@@ -356,6 +365,10 @@ function pickDatesByBookDay(dates, sessions, weekStart) {
 
 function daysBetween(from, to) {
     return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000);
+}
+
+function formatVr(seconds) {
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}/km`;
 }
 
 function pickSpreadDates(dates, count) {

@@ -1,0 +1,7 @@
+vorrei arricchire con grafici la sezione dashboard con tutti i dati raccolti da Intervals. inoltre un riassunto come per la corsa anche del numero di corse, anche delle volte di attività di nuoto.
+
+poi prendi spunto dal mondo delle app di coach, cosa si potrebbe implementare e verifica il modello di duplicazione del programma per un atleta che però ha altri ritmi.
+
+nella dashboard vanno mesi i dati più significativi, come il PB per la mezza maratona, la maratona, 5k 10, la distanza più lunga 
+
+poi fai delle proposte.

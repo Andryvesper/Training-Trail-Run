@@ -666,7 +666,9 @@ export function generateCycleDraft(profile, race, rule, { today = localDateKey()
             blockedDays,
             targetSessions: profile.target_running_sessions_per_week,
             fiveSessionOption: profile.five_session_option,
-            today
+            today,
+            vrSecondsPerKm: profile.reference_vr_seconds_per_km,
+            goalDistanceKm: Number(race.distance_km)
         })
     };
 }

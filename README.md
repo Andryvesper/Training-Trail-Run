@@ -102,7 +102,7 @@ richiedere una nuova autorizzazione dopo sette giorni.
 ## Percorso di sviluppo
 
 1. **Pianificazione:** sedute persistenti su Supabase e calendario navigabile per settimana.
-2. **Dati sportivi:** metriche e attività provengono da Intervals.icu; valori mancanti ed errori sono espliciti.
+2. **Dati sportivi:** metriche e attività provengono da Intervals.icu; valori mancanti ed errori sono espliciti. La dashboard mostra record personali (5 km, 10 km, mezza, maratona da gare o attività sull'intera distanza, corsa più lunga), riepilogo di corse e nuotate per periodo e grafici di forma, volumi settimanali e dati wellness.
 3. **Calendario:** le attività reali di Intervals.icu sono visibili accanto alle sedute pianificate.
 4. **Fondamenta:** test automatici per calendario, persistenza e riepilogo delle API.
 5. **Gare:** obiettivi e risultati sono salvati per atleta, con date flessibili e priorità.
@@ -132,6 +132,7 @@ scheda Gare:
 - [`20261113120000_list_owned_training_plan_shares.sql`](./supabase/migrations/20261113120000_list_owned_training_plan_shares.sql), per elencare e revocare le proprie condivisioni attive anche senza il codice.
 - [`20261113121000_allow_generated_training_plan_drafts.sql`](./supabase/migrations/20261113121000_allow_generated_training_plan_drafts.sql), per salvare bozze generate e segnarle come confermate.
 - [`20261114090000_secure_profiles_role.sql`](./supabase/migrations/20261114090000_secure_profiles_role.sql), per impedire che un utente scelga o modifichi il proprio ruolo.
+- [`20261114100000_consistent_shared_plan_import.sql`](./supabase/migrations/20261114100000_consistent_shared_plan_import.sql), per mantenere coerenti durata e passo dei programmi importati.
 
 ## Test
 
