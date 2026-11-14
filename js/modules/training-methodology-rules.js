@@ -12,7 +12,8 @@ export const CYCLE_RULE_APPROVALS = Object.freeze({
     ten_km_breathing_cycle: ATHLETE_APPROVAL,
     ten_km_distance_time_cycle: ATHLETE_APPROVAL,
     half_marathon_distance_time_cycle: ATHLETE_APPROVAL,
-    marathon_distance_time_cycle: ATHLETE_APPROVAL
+    marathon_distance_time_cycle: ATHLETE_APPROVAL,
+    ultra_100km_evoluto: ATHLETE_APPROVAL
 });
 
 export const TRAINING_METHOD_RULES = Object.freeze([
@@ -111,6 +112,19 @@ export const TRAINING_METHOD_RULES = Object.freeze([
         raceDistanceKm: 42.195,
         raceDistanceKmTolerance: 0.3,
         supportedRunningSessionsPerWeek: [3, 4, 5]
+    }),
+    createCycleRule({
+        id: 'ultra_100km_evoluto',
+        label: 'Ultra 100 km adattabile a ultratrail (tabella 10 evoluti)',
+        table: '10 evoluti',
+        sourcePages: '266-268',
+        scanPages: '60-61',
+        raceDistanceKm: 100,
+        raceDistanceKmTolerance: 25,
+        supportedRunningSessionsPerWeek: [3, 4, 5],
+        requiredTerrains: ['trail'],
+        exclusions: ['Gare sotto i 75 km o sopra i 125 km'],
+        explanation: 'Tabella 10 della sezione evoluti (100 km adattabile a ultratrail): lunghi a ritmo ultra (VR + 1\'30"), weekend su percorsi simili alla gara con dislivello consigliato, riduzione a 3-4 corse con la regola approvata.'
     })
 ]);
 
@@ -487,7 +501,10 @@ function createCycleRule({
     scanPages,
     raceDistanceKm,
     raceDistanceKmTolerance,
-    supportedRunningSessionsPerWeek
+    supportedRunningSessionsPerWeek,
+    requiredTerrains = ['road'],
+    exclusions = ['Trail o percorsi con dislivello significativo'],
+    explanation = null
 }) {
     const approval = CYCLE_RULE_APPROVALS[id];
     const rule = createRule({
@@ -499,7 +516,7 @@ function createCycleRule({
         sourceVerification: 'checked',
         raceDistanceKm,
         raceDistanceKmTolerance,
-        requiredTerrains: ['road'],
+        requiredTerrains,
         ruleStatus: approval ? 'approved_for_drafts' : 'candidate',
         version: '1.0.0',
         sourceConfidence: 'double_blind_transcription',
@@ -511,9 +528,9 @@ function createCycleRule({
             'reference_vr_seconds_per_km'
         ],
         requiredRaceFields: ['distance_km', 'event_date'],
-        exclusions: ['Trail o percorsi con dislivello significativo'],
+        exclusions,
         sessionPattern: buildWeeklyCyclePattern(id),
-        explanation: `Ciclo della tabella ${table} di "Tipi che corrono", trascritto cella per cella; i ritmi derivano dalla VR di un test valido (massimo ${REFERENCE_TEST_VALIDITY_RULE.maxAgeDays / 7} settimane).`
+        explanation: explanation ?? `Ciclo della tabella ${table} di "Tipi che corrono", trascritto cella per cella; i ritmi derivano dalla VR di un test valido (massimo ${REFERENCE_TEST_VALIDITY_RULE.maxAgeDays / 7} settimane).`
     });
     return Object.freeze({
         ...rule,

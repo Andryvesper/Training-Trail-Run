@@ -375,6 +375,31 @@ un passo numerico nel libro: la seduta riporta sforzo e frequenza cardiaca.
 La bozza scrive le fasce nelle note e un passo obiettivo solo quando la seduta
 ha una sola fascia.
 
+## Ultra trail (14 novembre 2026)
+
+La tabella 10 della sezione evoluti (pp. 266-268, "100 km su strada,
+adattabile poi anche a un'ultratrail") è approvata dall'atleta per gare trail
+tra 75 e 125 km. Trascrizione in
+[`training-trail-transcriptions.js`](../js/modules/training-trail-transcriptions.js),
+revisione in [`trail-transcriptions-review.md`](./trail-transcriptions-review.md).
+
+- **Passi:** lunghi LLU al ritmo ultra del libro, VR + 1'30" (p. 266); DAU a
+  CRMF; SL senza passo numerico.
+- **Frequenza:** la tabella ha 5 corse e 1 giorno di esercizi. Per 3 o 4 corse
+  si applica il modello dell'atleta: si omettono le corse facili più brevi
+  (mai qualità né notturne), le altre corse non lunghe ricevono 2 km di
+  riscaldamento e 1 km di defaticamento, il lungo del fine settimana cresce
+  dei km omessi. Aggiunta di prudenza del motore: il lungo cresce al massimo
+  del 25% e mai oltre il lungo massimo della tabella (65 km). In settimana di
+  gara la gara conta tra le corse. Il giorno di esercizi occupa un giorno solo
+  se ne avanza uno; altrimenti gli esercizi si fanno a fine seduta (p. 269).
+- **Dislivello:** i lunghi del fine settimana si fanno su percorsi simili alla
+  gara (p. 210). La nota della seduta indica il D+ da inserire nella traccia:
+  km della seduta × pendenza media della gara (D+/km), limitato a quanto si
+  sale in metà del tempo stimato alla velocità ascensionale del libro per
+  l'ultratrail (amatore 500 m/h, evoluto 800 m/h; p. 266). Le sedute
+  infrasettimanali e di qualità restano su percorsi pianeggianti o ondulati.
+
 ## Paradigma operativo
 
 ```mermaid

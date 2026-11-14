@@ -79,6 +79,12 @@ export function paceBandsForCell(raw, vrSecondsPerKm, goalDistanceKm) {
         bands.push({ key: 'SB', label: 'Salite SB', fastestSecondsPerKm: null, slowestSecondsPerKm: null, page: '185-189', note: 'In salita: ritmo CRI a sforzo 7-8 e 85-90% di PMAX, senza passo.' });
     }
     if (/\bLLM\b/.test(text)) rule('LLM');
+    // Tabella ultra evoluti, p. 266: ritmo ultramaratona (RUM) = VR + 1'30".
+    if (/\bLLU\b/.test(text)) add('LLU', 'lunghissimo ultra (RUM)', 90, 90, '266');
+    if (/\bDAU\b/.test(text)) add('DAU', 'day after ultra (CRMF)', RULES.CRMF.min, RULES.CRMF.max, RULES.CRMF.page);
+    if (/\bSL\b/.test(text)) {
+        bands.push({ key: 'SL', label: 'SL', fastestSecondsPerKm: null, slowestSecondsPerKm: null, page: '267', note: 'Sigla senza passo numerico nel libro: usa sforzo e frequenza cardiaca.' });
+    }
     if (/\bRMA\b/.test(text)) rule('RMA');
     if (/\bRME\b/.test(text)) rule('RME');
     if (/ritmo gara/i.test(text)) rule('RG10');

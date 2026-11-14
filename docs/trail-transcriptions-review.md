@@ -1,6 +1,6 @@
 # Revisione delle tabelle trail e ultra trascritte
 
-**Stato:** in attesa di revisione e approvazione dell'atleta. Nessuna di queste tabelle è ancora usata dal generatore.
+**Stato:** la tabella 10 evoluti è approvata dall'atleta (14 novembre 2026) per ultra trail tra 75 e 125 km; le tabelle 11-13 restano in attesa di revisione e non sono usate dal generatore.
 
 Due trascrizioni indipendenti (parte 2.pdf); le 12 differenze su 273 celle sono state risolte sulla scansione. `/` indica un a capo nella cella; ⚠ una lettura incerta.
 

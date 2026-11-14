@@ -668,7 +668,9 @@ export function generateCycleDraft(profile, race, rule, { today = localDateKey()
             fiveSessionOption: profile.five_session_option,
             today,
             vrSecondsPerKm: profile.reference_vr_seconds_per_km,
-            goalDistanceKm: Number(race.distance_km)
+            goalDistanceKm: Number(race.distance_km),
+            raceElevationM: race.elevation_gain_m == null ? null : Number(race.elevation_gain_m),
+            experience: profile.self_profile === 'structured_experienced' ? 'evoluto' : 'amatore'
         })
     };
 }

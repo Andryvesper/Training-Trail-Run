@@ -1,11 +1,16 @@
 import { CYCLE_TRANSCRIPTIONS } from './training-cycle-transcriptions.js';
+import { TRAIL_CYCLE_TRANSCRIPTIONS } from './training-trail-transcriptions.js';
 import { describeBands, paceBandsForCell, singleTargetPace } from './training-pace-zones.js';
 
 const DAY_KEYS = Object.freeze(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
-const QUALITY_MEANS = Object.freeze(['B', 'T', 'P', 'MLSS', 'VAM', 'SB', 'RMA', 'RME', 'LLM', 'RG']);
+const QUALITY_MEANS = Object.freeze(['B', 'T', 'P', 'MLSS', 'VAM', 'SB', 'SL', 'RMA', 'RME', 'LLM', 'RG']);
 const NON_SESSION_KINDS = Object.freeze(['rest', 'rest_or_exercises']);
 const PINNED_KINDS = Object.freeze(['race']);
-const LONG_RUN_MEANS = Object.freeze(['L', 'M', 'LLM']);
+const LONG_RUN_MEANS = Object.freeze(['L', 'M', 'LLM', 'LLU']);
+
+// Velocità ascensionale in ultratrail, p. 266: evoluto 800-900 m/h,
+// amatore 500-600 m/h. Si usa il valore prudente (più basso) della fascia.
+const CLIMB_RATE_M_PER_HOUR = Object.freeze({ evoluto: 800, amatore: 500 });
 
 // Regole di adattamento della frequenza dettate e approvate dall'atleta il
 // 13 novembre 2026. Valgono solo per i cicli a metodo distanza-tempo, dove le
@@ -20,6 +25,20 @@ export const FREQUENCY_ADAPTATION_RULES = Object.freeze({
         warmupKm: 2,
         cooldownKm: 1,
         explanation: 'Si omette la seduta meno impegnativa (in genere la più breve); le altre due sedute non lunghe ricevono circa 2 km di riscaldamento e 1 km di defaticamento; il lungo del fine settimana aumenta della distanza omessa.'
+    }),
+    // Tabella ultra (evoluti, 5 corse + 1 giorno di esercizi) ridotta a 3 o 4
+    // corse con lo stesso modello dell'atleta. Aggiunta di prudenza: il lungo
+    // cresce al massimo del 25% e mai oltre il lungo più lungo della tabella.
+    ultra_reduced_sessions: Object.freeze({
+        id: 'ultra_reduced_sessions_athlete_variant',
+        version: '1.0.0',
+        ruleStatus: 'approved_for_drafts',
+        approval: Object.freeze({ approvedBy: 'Andrea Baron', approvedAt: '2026-11-14' }),
+        appliesToMethods: Object.freeze(['ultra_distance']),
+        warmupKm: 2,
+        cooldownKm: 1,
+        maxLongIncrease: 0.25,
+        explanation: 'Si omettono le corse facili più brevi (non le notturne né la qualità); le altre corse non lunghe ricevono 2 km di riscaldamento e 1 km di defaticamento; il lungo del fine settimana cresce dei km omessi, al massimo del 25% e senza superare il lungo massimo della tabella.'
     }),
     five_sessions_spread: Object.freeze({
         id: 'five_sessions_spread_plus_10',
@@ -43,7 +62,10 @@ export const FREQUENCY_ADAPTATION_RULES = Object.freeze({
 export const FIVE_SESSION_OPTIONS = Object.freeze(['spread_plus_10', 'extra_quality_or_strength']);
 
 export function getCycleTranscription(ruleId) {
-    return CYCLE_TRANSCRIPTIONS[ruleId] || null;
+    if (CYCLE_TRANSCRIPTIONS[ruleId]) return CYCLE_TRANSCRIPTIONS[ruleId];
+    const trail = TRAIL_CYCLE_TRANSCRIPTIONS[ruleId];
+    if (!trail) return null;
+    return { ...trail, method: trail.intensity === 'vr_based' ? 'ultra_distance' : 'breathing_km' };
 }
 
 export function parseCycleCell(raw) {
@@ -55,12 +77,13 @@ export function parseCycleCell(raw) {
     if (/test di verifica/i.test(text)) {
         return { ...base, kind: 'reference_test', raceAlternative: /\bo gara\b/i.test(text) };
     }
-    if (/^gara$/i.test(text)) return { ...base, kind: 'race' };
+    if (/^gara(\s|$)/i.test(text)) return { ...base, kind: 'race' };
+    if (/^esercizi$/i.test(text)) return { ...base, kind: 'strength' };
     if (/mezza maratona/i.test(text)) return { ...base, kind: 'time_trial' };
 
     const optional = /^riposo o /i.test(text);
     const body = optional ? text.replace(/^riposo o /i, '') : text;
-    const means = [...new Set(body.match(/\b(?:MLSS|VAM|SB|RMA|RME|LLM|L|M|B|T|P)\b/g) || [])];
+    const means = [...new Set(body.match(/\b(?:MLSS|VAM|SB|SL|RMA|RME|LLM|LLU|DAU|L|M|B|T|P)\b/g) || [])];
     if (/ritmo gara/i.test(body)) means.push('RG');
 
     let remaining = body.replace(/gara\s+(?:di\s+)?\d+(?:-\d+)?\s*km/gi, ' ');
@@ -70,8 +93,22 @@ export function parseCycleCell(raw) {
         distance += Number(reps) * (unit.toLowerCase() === 'km' ? value : value / 1000);
         return ' ';
     });
+    // Ripetute stampate senza unità ("10 x 400 VAM"): misura in metri.
+    remaining = remaining.replace(/(\d+)\s*x\s*(\d{3,4})\b(?!\s*['’])/g, (match, reps, size) => {
+        distance += Number(reps) * Number(size) / 1000;
+        return ' ';
+    });
     for (const match of remaining.matchAll(/(\d+(?:[.,]\d+)?)\s*km/gi)) {
         distance += Number(match[1].replace(',', '.'));
+    }
+    // Ripetute brevi senza unità ("2 x 3 rec. 3' MLSS"): misura in km.
+    remaining = remaining.replace(/(\d+)\s*x\s*(\d{1,2})\b(?!\s*(?:km|m\b|['’"]))/g, (match, reps, size) => {
+        distance += Number(reps) * Number(size);
+        return ' ';
+    });
+    // Lunghi stampati senza "km" ("20 LLU").
+    for (const match of remaining.matchAll(/(?:^|\s)(\d+)\s+(?=LLU|DAU)/g)) {
+        distance += Number(match[1]);
     }
     if (!distance && !means.length) return { ...base, kind: 'unparsed', optional };
     return {
@@ -80,7 +117,8 @@ export function parseCycleCell(raw) {
         distanceKm: distance ? round1(distance) : null,
         means,
         quality: means.some(mean => QUALITY_MEANS.includes(mean)),
-        optional
+        optional,
+        night: /sera|notte/i.test(body)
     };
 }
 
@@ -107,6 +145,7 @@ export function buildWeeklyCyclePattern(ruleId) {
                     means: cell.means,
                     quality: cell.quality,
                     optional: cell.optional,
+                    night: Boolean(cell.night),
                     uncertain
                 }))
         }))
@@ -115,6 +154,7 @@ export function buildWeeklyCyclePattern(ruleId) {
 
 export function adaptWeekToFrequency(week, method, targetSessions, { fiveSessionOption = null, isRaceWeek = false } = {}) {
     const sessions = week.sessions.map(session => ({ ...session, adaptations: [] }));
+    if (method === 'ultra_distance') return adaptUltraWeek(week.weekNumber, sessions, targetSessions);
     if (targetSessions === 4) {
         return { weekNumber: week.weekNumber, sessions, notes: [] };
     }
@@ -223,6 +263,107 @@ function adaptToThreeSessions(weekNumber, sessions, runs, longRun) {
     return { weekNumber, sessions: result, skipped, notes };
 }
 
+function adaptUltraWeek(weekNumber, sessions, targetSessions) {
+    const rule = FREQUENCY_ADAPTATION_RULES.ultra_reduced_sessions;
+    if (![3, 4, 5].includes(targetSessions)) {
+        throw new Error(`Nessuna regola approvata adatta questo ciclo a ${targetSessions} corse settimanali.`);
+    }
+    const runs = sessions.filter(session => session.type === 'run');
+    // In settimana di gara la gara conta come una delle corse.
+    const hasRace = sessions.some(session => session.type === 'race');
+    const toRemove = runs.length + (hasRace ? 1 : 0) - targetSessions;
+    if (toRemove <= 0) return { weekNumber, sessions, notes: [] };
+
+    const longRun = findLongRun(sessions);
+    const candidates = runs.filter(session => session !== longRun);
+    const priority = session => (session.optional ? 0 : 1) + (session.quality ? 4 : 0) + (session.night ? 2 : 0);
+    const removed = candidates
+        .slice()
+        .sort((left, right) => priority(left) - priority(right) || (left.distanceKm ?? Infinity) - (right.distanceKm ?? Infinity))
+        .slice(0, toRemove);
+    const removedKm = removed.reduce((total, session) => total + (session.distanceKm || 0), 0);
+    const maxLong = Math.max(...ULTRA_MAX_LONG_CACHE);
+    const notes = [rule.explanation];
+    let addedKm = 0;
+    if (longRun?.distanceKm) {
+        addedKm = Math.min(removedKm, longRun.distanceKm * rule.maxLongIncrease, Math.max(0, maxLong - longRun.distanceKm));
+        addedKm = Math.round(addedKm);
+        if (addedKm < removedKm) {
+            notes.push(`Riassegnati al lungo ${formatKm(addedKm)} km su ${formatKm(round1(removedKm))} omessi, per non superare +25% o il lungo massimo della tabella.`);
+        }
+    } else {
+        notes.push(`Settimana senza lungo facile nel fine settimana: i ${formatKm(round1(removedKm))} km omessi non vengono riassegnati.`);
+    }
+    const result = sessions
+        .filter(session => !removed.includes(session))
+        .map(session => {
+            if (session === longRun) {
+                return {
+                    ...session,
+                    distanceKm: round1(session.distanceKm + addedKm),
+                    adaptations: addedKm ? [`Lungo aumentato di ${formatKm(addedKm)} km (sedute omesse: ${removed.map(item => item.raw.split('/').join(' ').replace(/\s+/g, ' ')).join('; ')}).`] : []
+                };
+            }
+            if (session.type === 'run' && !session.quality) {
+                return {
+                    ...session,
+                    distanceKm: session.distanceKm === null ? null : round1(session.distanceKm + rule.warmupKm + rule.cooldownKm),
+                    warmupKm: rule.warmupKm,
+                    cooldownKm: rule.cooldownKm,
+                    adaptations: [`Aggiunti ${rule.warmupKm} km di riscaldamento e ${rule.cooldownKm} km di defaticamento.`]
+                };
+            }
+            return session;
+        });
+    return { weekNumber, sessions: result, skipped: removed[0] || null, removed, notes };
+}
+
+// Lungo massimo della tabella ultra, usato come tetto nella riduzione.
+const ULTRA_MAX_LONG_CACHE = (() => {
+    const table = TRAIL_CYCLE_TRANSCRIPTIONS.ultra_100km_evoluto;
+    return table.weeks.flatMap(week => week.days.map(day => parseCycleCell(day.raw)))
+        .filter(cell => cell.kind === 'run' && cell.distanceKm)
+        .map(cell => cell.distanceKm);
+})();
+
+// Dislivello consigliato per costruire la traccia della seduta. I lunghi del
+// fine settimana si fanno su percorsi simili alla gara (p. 210): stessa
+// pendenza media della gara, limitata a quanto si sale in metà del tempo
+// stimato alla velocità ascensionale del libro (p. 266). Le altre sedute
+// restano su percorsi pianeggianti o ondulati.
+export function elevationGuidance(session, { raceKm, raceElevationM, climbRate, paceSecondsPerKm }) {
+    if (session.type !== 'run' || !session.distanceKm) return null;
+    const weekendLong = session.bookDay >= 6 && (session.means.includes('LLU') || session.means.includes('L'));
+    if (!weekendLong || session.quality) {
+        return { meters: 0, text: 'Percorso pianeggiante o ondulato (seduta infrasettimanale o di qualità).' };
+    }
+    if (!raceKm || !raceElevationM) {
+        return { meters: null, text: 'Percorso simile alla gara: inserisci il dislivello della gara per calcolare quello della seduta.' };
+    }
+    const density = raceElevationM / raceKm;
+    let meters = session.distanceKm * density;
+    let capped = false;
+    if (paceSecondsPerKm) {
+        const hours = session.distanceKm * paceSecondsPerKm / 3600;
+        const maxMeters = hours * 0.5 * climbRate;
+        if (meters > maxMeters) {
+            meters = maxMeters;
+            capped = true;
+        }
+    }
+    meters = Math.round(meters / 50) * 50;
+    const climbHours = meters / climbRate;
+    return {
+        meters,
+        text: `Dislivello da inserire nella traccia: circa ${meters} m D+ (gara ${Math.round(density)} m/km${capped ? ', ridotto a metà del tempo in salita' : ''}); a ${climbRate} m/h sono circa ${formatHours(climbHours)} di salita.`
+    };
+}
+
+function formatHours(hours) {
+    const total = Math.round(hours * 60);
+    return total >= 60 ? `${Math.floor(total / 60)} h ${String(total % 60).padStart(2, '0')}'` : `${total}'`;
+}
+
 function findLongRun(sessions) {
     // Con test, gara o prova al giorno 7 la settimana non ha un lungo da
     // allungare: i km omessi non vengono spostati a ridosso della prova.
@@ -252,7 +393,9 @@ export function scheduleCycleDraft({
     fiveSessionOption = null,
     today = null,
     vrSecondsPerKm = null,
-    goalDistanceKm = null
+    goalDistanceKm = null,
+    raceElevationM = null,
+    experience = 'amatore'
 }) {
     if (!pattern || pattern.kind !== 'explicit_weekly_cycle') {
         throw new Error('Serve un ciclo con sedute trascritte e approvate.');
@@ -269,7 +412,15 @@ export function scheduleCycleDraft({
         const weekStart = addDays(weekEnd, -6);
         const windowDates = Array.from({ length: 7 }, (_, offset) => addDays(weekStart, offset));
         const pinned = adapted.sessions.filter(session => PINNED_KINDS.includes(session.type) && isRaceWeek);
-        const free = adapted.sessions.filter(session => !pinned.includes(session));
+        // Il giorno di soli esercizi occupa un giorno solo se ne avanzano.
+        const usableCount = windowDates.filter(date => usableDays.has(dayKey(date))).length;
+        const nonStrength = adapted.sessions.filter(session => session.type !== 'strength' && !pinned.includes(session));
+        const strength = adapted.sessions.filter(session => session.type === 'strength');
+        const keepStrength = usableCount > nonStrength.length;
+        if (strength.length && !keepStrength) {
+            adapted.notes = [...adapted.notes, 'Giorni insufficienti per il giorno di esercizi di forza: fai gli esercizi a fine seduta (p. 269).'];
+        }
+        const free = adapted.sessions.filter(session => !pinned.includes(session) && (session.type !== 'strength' || keepStrength));
         const candidateDates = windowDates
             .filter(date => usableDays.has(dayKey(date)))
             .filter(date => !(isRaceWeek && pinned.length && date >= raceDate));
@@ -282,7 +433,16 @@ export function scheduleCycleDraft({
             ...pinned.map(session => ({ ...session, date: raceDate }))
         ].map(session => {
             const bands = session.type === 'run' ? paceBandsForCell(session.raw, vrSecondsPerKm, goalDistanceKm) : [];
-            return { ...session, paceBands: bands, targetPaceSecondsPerKm: singleTargetPace(bands) };
+            const targetPace = singleTargetPace(bands);
+            const elevation = pattern.method === 'ultra_distance'
+                ? elevationGuidance(session, {
+                    raceKm: goalDistanceKm,
+                    raceElevationM,
+                    climbRate: CLIMB_RATE_M_PER_HOUR[experience] || CLIMB_RATE_M_PER_HOUR.amatore,
+                    paceSecondsPerKm: targetPace ?? (vrSecondsPerKm ? vrSecondsPerKm + 90 : null)
+                })
+                : null;
+            return { ...session, paceBands: bands, targetPaceSecondsPerKm: targetPace, elevation };
         });
         return {
             weekNumber: week.weekNumber,
@@ -305,6 +465,7 @@ export function scheduleCycleDraft({
         targetSessions,
         fiveSessionOption: targetSessions === 5 ? fiveSessionOption : null,
         vrSecondsPerKm,
+        method: pattern.method,
         source: pattern.source,
         weeks,
         issues,
@@ -323,13 +484,16 @@ export function draftToCalendarSessions(draft) {
     return draft.weeks.flatMap(week => week.sessions.map(session => ({
         scheduled_date: session.date,
         title: `Tab. ${draft.source.table} · S${week.weekNumber} · ${session.raw.split('/').join(' ').replace(/\s+/g, ' ').trim()}`.slice(0, 120),
-        sport_type: session.type === 'extra_choice' && session.selected === 'strength' ? 'strength' : 'run',
+        sport_type: session.type === 'strength' || (session.type === 'extra_choice' && session.selected === 'strength')
+            ? 'strength'
+            : draft.method === 'ultra_distance' && session.type === 'run' ? 'trail' : 'run',
         distance_km: session.distanceKm,
         duration_minutes: null,
         target_pace_seconds_per_km: session.targetPaceSecondsPerKm ?? null,
         notes: [
             `Fonte: Tipi che corrono, tabella ${draft.source.table}, settimana ${week.weekNumber}${session.bookDay ? `, giorno ${session.bookDay}` : ''}.`,
             ...(session.adaptations || []),
+            ...(session.elevation ? [session.elevation.text] : []),
             ...(session.paceBands?.length ? [`Passi dalla tua VR ${formatVr(draft.vrSecondsPerKm)}: ${describeBands(session.paceBands)}.`] : []),
             ...(session.uncertain ? ['Cella con lettura incerta nella scansione: verifica prima di seguirla.'] : [])
         ].join(' ')

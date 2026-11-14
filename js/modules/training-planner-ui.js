@@ -663,10 +663,7 @@ function explainMissingProgram(snapshot) {
         reasons.push('Il generatore crea programmi solo per una gara obiettivo: per mantenimento o miglioramento non ci sono ancora tabelle approvate.');
     } else if (race && !assessment.approved_pattern_ids?.length) {
         const distance = Number(race.distance_km);
-        reasons.push(`Nessuna tabella approvata per la gara "${race.name}" (${distance} km): oggi sono coperti solo 10 km, mezza maratona e maratona su strada.`);
-        if (distance > 42.5 || /trail/i.test(`${race.name} ${race.goal || ''}`)) {
-            reasons.push('Per trail e ultra servono le tabelle trail del libro (pp. 212-215 e 266-268), non ancora trascritte e approvate.');
-        }
+        reasons.push(`Nessuna tabella approvata per la gara "${race.name}" (${distance} km): sono coperti 10 km, mezza e maratona su strada e gli ultra trail tra 75 e 125 km (con terreno trail selezionato).`);
     }
     (assessment.blockers || [])
         .filter(blocker => !/non sono ancora attive|Nessuna regola applicabile/.test(blocker))
