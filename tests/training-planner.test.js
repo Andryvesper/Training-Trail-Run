@@ -93,7 +93,7 @@ test('normalizza profilo incompleto lasciando i campi non compilati espliciti', 
 test('rifiuta profili con valori fuori dai limiti o protocolli non validi', () => {
     assert.throws(() => normalizePlanningProfile({
         weekly_availability: { mon: { available: true, max_minutes: 5 } }
-    }), /tra 10 e 360 minuti/);
+    }), /tra 10 e 1440 minuti/);
     assert.throws(() => normalizePlanningProfile({
         goal_mode: 'automatic'
     }), /obiettivo del piano/);
@@ -180,7 +180,7 @@ test('valida sedute incomplete e limiti degli altri sport', () => {
             duration_minutes: 5,
             schedule_type: 'fixed'
         }]
-    }), /durata.*tra 10 e 360 minuti/);
+    }), /durata.*tra 10 e 1440 minuti/);
 });
 
 test('registra la VR calcolata solo da un protocollo supportato e dal tempo del test', () => {
@@ -629,4 +629,14 @@ test('blocca gare obiettivo già passate e test VR futuri, avvisa per test scadu
         target_running_sessions_per_week: 5,
         five_session_option: 'spread_plus_10'
     })).five_session_option, 'spread_plus_10');
+});
+
+test('accetta disponibilità e altri sport fino a 24 ore per gli allenamenti lunghi', () => {
+    const profile = normalizePlanningProfile({
+        weekly_availability: { sun: { available: true, max_minutes: 720 } },
+        weekly_other_sports: [{ sport: 'other', custom_sport: 'Escursione', day: 'sat', duration_minutes: 600, schedule_type: 'fixed' }]
+    });
+    assert.equal(profile.weekly_availability.sun.max_minutes, 720);
+    assert.equal(profile.weekly_other_sports[0].duration_minutes, 600);
+    assert.throws(() => normalizePlanningProfile({ weekly_availability: { sun: { available: true, max_minutes: 1500 } } }), /1440/);
 });

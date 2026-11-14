@@ -1,0 +1,9 @@
+nella pagina calendario, toglierei la sessione clona piani e la metterei solo nella pagina piani di allenamento, che va a cambiare anche nome di "motore piani", togliere da calendario anche la sezione motore piani, la lasciamo solo nella scheda dedicata. 
+
+nella pagina calendario metterei in vista anche le 3 settimane successive del piano di allenamento. e nascoste con un menù a tendina le precedenti fatte, raggruppate per mesi e anni. poi per i motore piani (nuovo nome piani di allenamento o training vedi cosa ti suona meglio) 
+
+io ho preparato la bozza, ma non si può richiedere la creazione del programma.
+
+inoltre toglie il limite dei 300 minuti per le singole attività, alcuni trail di allenamento potrebbe richiedere anche 10/12 ore.
+
+La vista delle icone ristretta  si vede vale la freccetta copre l'immagine. aggiungi che si può personalizzare l'area personale con i propri dati anagrafici

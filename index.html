@@ -32,6 +32,14 @@
             #app-sidebar.is-collapsed nav button {
                 justify-content: center;
             }
+
+            /* Menu ridotto: logo e pulsante in colonna, senza sovrapporsi. */
+            #app-sidebar.is-collapsed > div:first-child {
+                flex-direction: column;
+                justify-content: center;
+                gap: 0.5rem;
+                padding: 0.75rem 0;
+            }
         }
 
         [data-summary-period][aria-pressed="true"],
@@ -91,9 +99,9 @@
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 21V5m0 0h12l-2 4 2 4H4m0-8v8m0 8h16"/></svg>
                     <span class="nav-label">Gare</span>
                 </button>
-                <button role="tab" aria-selected="false" data-target="section-planner" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Motore piani">
+                <button role="tab" aria-selected="false" data-target="section-planner" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Piani di allenamento">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-                    <span class="nav-label">Motore piani</span>
+                    <span class="nav-label">Piani di allenamento</span>
                 </button>
                 <button role="tab" aria-selected="false" data-target="section-dashboard" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Dashboard e metriche">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -102,6 +110,10 @@
                 <button role="tab" aria-selected="false" data-target="section-intervals" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Intervals.icu">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                     <span class="nav-label">Intervals.icu</span>
+                </button>
+                <button role="tab" aria-selected="false" data-target="section-profile" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Profilo">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <span class="nav-label">Profilo</span>
                 </button>
                 <button role="tab" aria-selected="false" data-target="section-admin" class="tab-btn hidden min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" data-tab="admin" aria-label="Amministrazione">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
@@ -218,83 +230,11 @@
                             <h2 class="text-2xl font-bold text-white mt-1">Calendario</h2>
                             <p class="text-sm text-slate-400 mt-1">Pianifica e aggiorna le tue sedute.</p>
                         </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <button id="calendar-prev-week" type="button" class="min-h-11 min-w-11 rounded-xl border border-slate-700 bg-slate-950 text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Settimana precedente">←</button>
-                            <p id="calendar-week-label" class="text-sm sm:text-base font-semibold text-white text-center" aria-live="polite"></p>
-                            <button id="calendar-next-week" type="button" class="min-h-11 min-w-11 rounded-xl border border-slate-700 bg-slate-950 text-white hover:bg-slate-800" aria-label="Settimana successiva">→</button>
-                        </div>
+                        <p class="text-xs text-slate-400">In vista la settimana corrente e le 3 successive; le settimane precedenti e quelle più avanti sono nei menù sotto, raggruppate per anno e mese.</p>
                     </div>
                     <div id="calendar-multi-container" class="space-y-4">
                         <!-- Renderizzato via JS -->
                     </div>
-                    <section id="training-plan-sharing-container" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5" aria-labelledby="training-plan-sharing-title">
-                        <div class="space-y-1">
-                            <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Condivisione consensuale</p>
-                            <h2 id="training-plan-sharing-title" class="text-xl font-bold text-white">Clona un programma</h2>
-                            <p class="text-sm text-slate-400">Condividi sedute selezionate con un codice temporaneo oppure importa quelle di un altro atleta. L’importazione crea una copia senza modificare il piano originale.</p>
-                        </div>
-                        <p id="training-plan-sharing-status" class="hidden rounded-xl border p-3 text-sm" role="status" aria-live="polite"></p>
-                        <form id="training-plan-share-form" class="space-y-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-                            <h3 class="text-sm font-semibold text-white">Condividi le tue sedute</h3>
-                            <label class="block space-y-1 text-xs text-slate-400">
-                                <span>Nome del programma</span>
-                                <input name="title" required maxlength="120" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200" placeholder="Es. Preparazione gara autunnale">
-                            </label>
-                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                <label class="block space-y-1 text-xs text-slate-400">
-                                    <span>Dal</span>
-                                    <input name="start_date" type="date" required class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
-                                </label>
-                                <label class="block space-y-1 text-xs text-slate-400">
-                                    <span>Al</span>
-                                    <input name="end_date" type="date" required class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
-                                </label>
-                            </div>
-                            <label class="block space-y-1 text-xs text-slate-400">
-                                <span>Passo di riferimento dell’atleta (facoltativo, min:ss/km)</span>
-                                <input name="source_reference_pace" inputmode="decimal" pattern="\d{1,2}:[0-5]\d" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200" placeholder="es. 4:10; usa un test/criterio comparabile">
-                            </label>
-                            <label class="block space-y-1 text-xs text-slate-400">
-                                <span>Codice valido per</span>
-                                <select name="expires_in_days" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
-                                    <option value="7">7 giorni</option>
-                                    <option value="14" selected>14 giorni</option>
-                                    <option value="30">30 giorni</option>
-                                </select>
-                            </label>
-                            <p class="text-xs text-amber-200">Il codice consente l’importazione a chiunque lo possieda. Non condividerlo pubblicamente; contiene solo le sedute nell’intervallo scelto, non i dati personali o le attività completate.</p>
-                            <button type="submit" class="min-h-11 w-full rounded-xl bg-emerald-500 px-3 text-sm font-bold text-slate-950">Crea codice di condivisione</button>
-                            <div id="training-plan-share-created" aria-live="polite"></div>
-                        </form>
-
-                        <form id="training-plan-import-form" class="space-y-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-                            <h3 class="text-sm font-semibold text-white">Importa un programma condiviso</h3>
-                            <label class="block space-y-1 text-xs text-slate-400">
-                                <span>Codice ricevuto</span>
-                                <input name="share_code" required autocomplete="off" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200" placeholder="UUID condiviso dall’atleta">
-                            </label>
-                            <label class="block space-y-1 text-xs text-slate-400">
-                                <span>Nuova data della prima seduta</span>
-                                <input name="new_start_date" type="date" required class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
-                            </label>
-                            <label class="block space-y-1 text-xs text-slate-400">
-                                <span>Il tuo passo di riferimento (min:ss/km)</span>
-                                <input name="target_reference_pace" inputmode="decimal" pattern="\d{1,2}:[0-5]\d" disabled class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200 disabled:opacity-50" placeholder="Richiesto solo per adattare i ritmi">
-                            </label>
-                            <button type="submit" class="min-h-11 w-full rounded-xl border border-slate-700 px-3 text-sm font-semibold text-slate-200">Mostra anteprima</button>
-                            <div id="training-plan-share-preview" aria-live="polite"></div>
-                        </form>
-
-                        <form id="training-plan-revoke-form" class="space-y-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-                            <h3 class="text-sm font-semibold text-white">Revoca una condivisione</h3>
-                            <label class="block space-y-1 text-xs text-slate-400">
-                                <span>Codice creato da te</span>
-                                <input name="share_code" required autocomplete="off" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
-                            </label>
-                            <button type="submit" class="min-h-11 w-full rounded-xl border border-rose-500/40 px-3 text-sm font-semibold text-rose-300">Revoca codice</button>
-                            <div id="training-plan-active-shares" class="space-y-2" aria-live="polite"></div>
-                        </form>
-                    </section>
                 </div>
 
                 <div id="section-races" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
@@ -398,8 +338,8 @@
                 <section id="section-planner" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
                     <div class="space-y-2">
                         <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Profilo e obiettivi</p>
-                        <h2 class="text-2xl sm:text-3xl font-bold text-white">Motore piani</h2>
-                        <p class="max-w-3xl text-sm text-slate-400">Completa o aggiorna il profilo di pianificazione. Le richieste restano separate dal calendario: il motore non genera ancora piani perché nessuna regola è stata approvata per l’uso personalizzato.</p>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white">Piani di allenamento</h2>
+                        <p class="max-w-3xl text-sm text-slate-400">Completa il questionario e richiedi una bozza: il programma viene generato dalle tabelle approvate (10 km, mezza e maratona su strada) e scritto nel calendario solo dopo la tua conferma. Qui puoi anche condividere o importare un programma.</p>
                     </div>
                     <p id="planner-status" class="hidden rounded-xl border p-3 text-sm" role="status" aria-live="polite"></p>
                     <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
@@ -500,43 +440,43 @@
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
                                         <input type="checkbox" name="available_days" value="mon" class="h-5 w-5 accent-emerald-500">
                                         <span class="w-24 shrink-0">Lunedì</span>
-                                        <input type="number" data-day-minutes="mon" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi lunedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <input type="number" data-day-minutes="mon" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi lunedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
                                         <input type="checkbox" name="available_days" value="tue" class="h-5 w-5 accent-emerald-500">
                                         <span class="w-24 shrink-0">Martedì</span>
-                                        <input type="number" data-day-minutes="tue" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi martedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <input type="number" data-day-minutes="tue" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi martedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
                                         <input type="checkbox" name="available_days" value="wed" class="h-5 w-5 accent-emerald-500">
                                         <span class="w-24 shrink-0">Mercoledì</span>
-                                        <input type="number" data-day-minutes="wed" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi mercoledì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <input type="number" data-day-minutes="wed" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi mercoledì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
                                         <input type="checkbox" name="available_days" value="thu" class="h-5 w-5 accent-emerald-500">
                                         <span class="w-24 shrink-0">Giovedì</span>
-                                        <input type="number" data-day-minutes="thu" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi giovedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <input type="number" data-day-minutes="thu" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi giovedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
                                         <input type="checkbox" name="available_days" value="fri" class="h-5 w-5 accent-emerald-500">
                                         <span class="w-24 shrink-0">Venerdì</span>
-                                        <input type="number" data-day-minutes="fri" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi venerdì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <input type="number" data-day-minutes="fri" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi venerdì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
                                         <input type="checkbox" name="available_days" value="sat" class="h-5 w-5 accent-emerald-500">
                                         <span class="w-24 shrink-0">Sabato</span>
-                                        <input type="number" data-day-minutes="sat" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi sabato" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <input type="number" data-day-minutes="sat" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi sabato" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
                                         <input type="checkbox" name="available_days" value="sun" class="h-5 w-5 accent-emerald-500">
                                         <span class="w-24 shrink-0">Domenica</span>
-                                        <input type="number" data-day-minutes="sun" min="10" max="360" step="5" inputmode="numeric" disabled aria-label="Minuti massimi domenica" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
+                                        <input type="number" data-day-minutes="sun" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi domenica" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                 </div>
@@ -692,9 +632,100 @@
                             </section>
                         </aside>
                     </div>
+                    <section id="training-plan-sharing-container" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5" aria-labelledby="training-plan-sharing-title">
+                        <div class="space-y-1">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Condivisione consensuale</p>
+                            <h2 id="training-plan-sharing-title" class="text-xl font-bold text-white">Clona un programma</h2>
+                            <p class="text-sm text-slate-400">Condividi sedute selezionate con un codice temporaneo oppure importa quelle di un altro atleta. L’importazione crea una copia senza modificare il piano originale.</p>
+                        </div>
+                        <p id="training-plan-sharing-status" class="hidden rounded-xl border p-3 text-sm" role="status" aria-live="polite"></p>
+                        <form id="training-plan-share-form" class="space-y-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                            <h3 class="text-sm font-semibold text-white">Condividi le tue sedute</h3>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Nome del programma</span>
+                                <input name="title" required maxlength="120" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200" placeholder="Es. Preparazione gara autunnale">
+                            </label>
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <label class="block space-y-1 text-xs text-slate-400">
+                                    <span>Dal</span>
+                                    <input name="start_date" type="date" required class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
+                                </label>
+                                <label class="block space-y-1 text-xs text-slate-400">
+                                    <span>Al</span>
+                                    <input name="end_date" type="date" required class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
+                                </label>
+                            </div>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Passo di riferimento dell’atleta (facoltativo, min:ss/km)</span>
+                                <input name="source_reference_pace" inputmode="decimal" pattern="\d{1,2}:[0-5]\d" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200" placeholder="es. 4:10; usa un test/criterio comparabile">
+                            </label>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Codice valido per</span>
+                                <select name="expires_in_days" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
+                                    <option value="7">7 giorni</option>
+                                    <option value="14" selected>14 giorni</option>
+                                    <option value="30">30 giorni</option>
+                                </select>
+                            </label>
+                            <p class="text-xs text-amber-200">Il codice consente l’importazione a chiunque lo possieda. Non condividerlo pubblicamente; contiene solo le sedute nell’intervallo scelto, non i dati personali o le attività completate.</p>
+                            <button type="submit" class="min-h-11 w-full rounded-xl bg-emerald-500 px-3 text-sm font-bold text-slate-950">Crea codice di condivisione</button>
+                            <div id="training-plan-share-created" aria-live="polite"></div>
+                        </form>
+
+                        <form id="training-plan-import-form" class="space-y-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                            <h3 class="text-sm font-semibold text-white">Importa un programma condiviso</h3>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Codice ricevuto</span>
+                                <input name="share_code" required autocomplete="off" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200" placeholder="UUID condiviso dall’atleta">
+                            </label>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Nuova data della prima seduta</span>
+                                <input name="new_start_date" type="date" required class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
+                            </label>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Il tuo passo di riferimento (min:ss/km)</span>
+                                <input name="target_reference_pace" inputmode="decimal" pattern="\d{1,2}:[0-5]\d" disabled class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200 disabled:opacity-50" placeholder="Richiesto solo per adattare i ritmi">
+                            </label>
+                            <button type="submit" class="min-h-11 w-full rounded-xl border border-slate-700 px-3 text-sm font-semibold text-slate-200">Mostra anteprima</button>
+                            <div id="training-plan-share-preview" aria-live="polite"></div>
+                        </form>
+
+                        <form id="training-plan-revoke-form" class="space-y-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                            <h3 class="text-sm font-semibold text-white">Revoca una condivisione</h3>
+                            <label class="block space-y-1 text-xs text-slate-400">
+                                <span>Codice creato da te</span>
+                                <input name="share_code" required autocomplete="off" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200">
+                            </label>
+                            <button type="submit" class="min-h-11 w-full rounded-xl border border-rose-500/40 px-3 text-sm font-semibold text-rose-300">Revoca codice</button>
+                            <div id="training-plan-active-shares" class="space-y-2" aria-live="polite"></div>
+                        </form>
+                    </section>
                 </section>
 
                 <!-- Modulo Intervals.icu -->
+                <section id="section-profile" role="tabpanel" class="hidden space-y-5 sm:space-y-6" aria-labelledby="athlete-profile-title">
+                    <div class="space-y-2">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Area personale</p>
+                        <h2 id="athlete-profile-title" class="text-2xl sm:text-3xl font-bold text-white">Profilo</h2>
+                        <p id="athlete-profile-summary" class="text-sm text-slate-400">I tuoi dati anagrafici.</p>
+                    </div>
+                    <form id="athlete-profile-form" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5">
+                        <p id="athlete-profile-status" class="hidden" role="status" aria-live="polite"></p>
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label class="space-y-1 text-xs font-medium text-slate-400"><span>Nome e cognome</span><input name="full_name" maxlength="120" autocomplete="name" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"></label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400"><span>Email (accesso, non modificabile)</span><input name="email" disabled class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200 opacity-60"></label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400"><span>Data di nascita</span><input name="birth_date" type="date" min="1900-01-01" autocomplete="bday" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"></label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400"><span>Sesso</span><select name="sex" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"><option value="">Non indicato</option><option value="female">Femmina</option><option value="male">Maschio</option><option value="other">Altro</option><option value="prefer_not_to_say">Preferisco non dirlo</option></select></label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400"><span>Città</span><input name="city" maxlength="80" autocomplete="address-level2" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"></label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400"><span>Telefono</span><input name="phone" type="tel" maxlength="30" autocomplete="tel" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"></label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400"><span>Altezza (cm)</span><input name="height_cm" type="number" min="100" max="250" step="1" inputmode="numeric" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"></label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400"><span>Peso (kg)</span><input name="weight_kg" type="number" min="25" max="250" step="0.1" inputmode="decimal" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"></label>
+                        </div>
+                        <p class="text-xs text-slate-500">Tutti i campi sono facoltativi e visibili solo a te. Non servono per generare il piano.</p>
+                        <button type="submit" class="min-h-11 rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-slate-950 hover:bg-emerald-400">Salva profilo</button>
+                    </form>
+                </section>
+
                 <div id="section-intervals" role="tabpanel" class="space-y-5 sm:space-y-6 hidden">
                     <div class="bg-slate-900/70 border border-slate-800 p-4 sm:p-6 rounded-2xl space-y-5 max-w-2xl">
                         <div>

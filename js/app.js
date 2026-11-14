@@ -4,6 +4,7 @@ import { initIntervalsModule } from './modules/intervals-ui.js';
 import { initCalendarModule } from './modules/calendar-ui.js';
 import { initRacesModule } from './modules/races-ui.js';
 import { initTrainingPlannerModule } from './modules/training-planner-ui.js';
+import { initAthleteProfileModule } from './modules/athlete-profile-ui.js';
 
 const supabase = window.supabase.createClient(
     window.SUPABASE_CONFIG.URL, 
@@ -81,8 +82,11 @@ async function startApp(user) {
         console.log("Inizializzazione Modulo Gare...");
         await initRacesModule(supabase, user.id);
 
-        console.log("Inizializzazione Motore piani...");
+        console.log("Inizializzazione Piani di allenamento...");
         await initTrainingPlannerModule(supabase, user.id);
+
+        console.log("Inizializzazione Profilo...");
+        await initAthleteProfileModule(supabase, user.id);
 
         console.log("Mostro la dashboard principale...");
         document.getElementById('auth-screen').style.display = 'none';
@@ -109,7 +113,9 @@ function setupTabNavigation() {
         btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-target');
             
-            document.querySelectorAll('#module-container > div').forEach(div => div.classList.add('hidden'));
+            // Tutte le schede, anche quelle in <section>: prima la scheda piani restava visibile ovunque.
+            document.querySelectorAll('#module-container > [role="tabpanel"], #module-container > #section-admin')
+                .forEach(panel => panel.classList.add('hidden'));
             document.getElementById(targetId)?.classList.remove('hidden');
             
             tabButtons.forEach(b => {

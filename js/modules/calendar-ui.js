@@ -5,6 +5,10 @@ import { formatPace, parsePace } from './training-plan-sharing.js';
 import { initTrainingPlanSharingModule } from './training-plan-sharing-ui.js';
 import { createActivitySnapshot, getMatchingSessions, normalizeActivityId } from './activity-matching.js';
 
+const PAST_WEEKS = 26;
+const VISIBLE_FUTURE_WEEKS = 3;
+const LATER_WEEKS = 26;
+
 const SESSION_TYPES = [
     ['run', 'Corsa'],
     ['trail', 'Trail'],
@@ -19,17 +23,16 @@ export async function initCalendarModule(supabaseClient, userId) {
     if (!container) return;
 
     const planService = new TrainingPlanService(supabaseClient);
-    const weeks = new TrainingCalendarService().generateMultiWeekPlan(new Date(), 1, 4);
-    const weekLabel = document.getElementById('calendar-week-label');
-    const previousButton = document.getElementById('calendar-prev-week');
-    const nextButton = document.getElementById('calendar-next-week');
+    // Sei mesi di storico, settimana corrente, 3 settimane in vista e altre
+    // 26 future raccolte in un menù (i cicli generati arrivano a 15 settimane).
+    const weeks = new TrainingCalendarService().generateMultiWeekPlan(new Date(), PAST_WEEKS, VISIBLE_FUTURE_WEEKS + LATER_WEEKS);
+    const openGroups = new Set();
     const status = createStatusElement(container);
     container.setAttribute('aria-busy', 'true');
     container.append(createElement('p', 'rounded-2xl border border-slate-800 bg-slate-900/70 p-5 text-sm text-slate-400', 'Caricamento del tuo piano…'));
     let sessions = [];
     let editingSession = null;
     let pendingAssociation = null;
-    let selectedWeekIndex = weeks.findIndex(week => week.isCurrent);
 
     try {
         sessions = await planService.listSessions(userId, weeks[0].startDate, weeks[weeks.length - 1].endDate);
@@ -40,17 +43,7 @@ export async function initCalendarModule(supabaseClient, userId) {
 
     const render = () => {
         container.setAttribute('aria-busy', 'false');
-        renderSelectedWeek(
-            container,
-            weeks,
-            selectedWeekIndex,
-            sessions,
-            editingSession,
-            pendingAssociation,
-            weekLabel
-        );
-        previousButton.disabled = selectedWeekIndex === 0;
-        nextButton.disabled = selectedWeekIndex === weeks.length - 1;
+        renderCalendar(container, weeks, sessions, editingSession, pendingAssociation, openGroups);
     };
 
     let activitiesRequestId = 0;
@@ -99,20 +92,6 @@ export async function initCalendarModule(supabaseClient, userId) {
         }
     };
 
-    previousButton.addEventListener('click', () => {
-        if (selectedWeekIndex === 0) return;
-        selectedWeekIndex -= 1;
-        editingSession = null;
-        pendingAssociation = null;
-        render();
-    });
-    nextButton.addEventListener('click', () => {
-        if (selectedWeekIndex >= weeks.length - 1) return;
-        selectedWeekIndex += 1;
-        editingSession = null;
-        pendingAssociation = null;
-        render();
-    });
     document.addEventListener('intervals:sync', refreshActivities);
     document.addEventListener('training-sessions:changed', async () => {
         try {
@@ -130,6 +109,7 @@ export async function initCalendarModule(supabaseClient, userId) {
     render();
     await initTrainingPlanSharingModule(supabaseClient, userId);
 
+    container.addEventListener('calendar:expand', render);
     container.addEventListener('click', async event => {
         const button = event.target.closest('button[data-action]');
         if (!button) return;
@@ -296,19 +276,97 @@ export async function initCalendarModule(supabaseClient, userId) {
     });
 }
 
-function renderSelectedWeek(container, weeks, weekIndex, sessions, editingSession, pendingAssociation, weekLabel) {
+function renderCalendar(container, weeks, sessions, editingSession, pendingAssociation, openGroups) {
     container.replaceChildren();
-    const week = weeks[weekIndex];
-    weekLabel.textContent = `${formatDateIt(week.startDate)} – ${formatDateIt(week.endDate)}${week.isCurrent ? ' · Questa settimana' : ''}`;
+    const currentIndex = weeks.findIndex(week => week.isCurrent);
+    const past = weeks.slice(0, currentIndex);
+    const visible = weeks.slice(currentIndex, currentIndex + 1 + VISIBLE_FUTURE_WEEKS);
+    const later = weeks.slice(currentIndex + 1 + VISIBLE_FUTURE_WEEKS);
+    const context = { sessions, editingSession, pendingAssociation, openGroups };
 
+    visible.forEach((week, offset) => container.append(renderWeek(week, offset, context)));
+    if (later.length) {
+        container.append(renderWeekArchive('future', 'Settimane successive', later, context));
+    }
+    if (past.length) {
+        container.append(renderWeekArchive('past', 'Settimane precedenti', past.slice().reverse(), context));
+    }
+}
+
+function renderWeek(week, offset, context) {
+    const section = createElement('section', 'calendar-week space-y-3');
+    const relative = offset === 0
+        ? 'Questa settimana'
+        : offset === 1 ? 'Prossima settimana' : offset > 1 ? `Tra ${offset} settimane` : '';
+    const heading = createElement('h3', 'text-sm font-semibold text-slate-200',
+        `${formatDateIt(week.startDate)} – ${formatDateIt(week.endDate)}${relative ? ` · ${relative}` : ''}`);
     const daysGrid = createElement('div', 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7');
     week.days.forEach(day => {
-        day.plannedSessions = sessions.filter(session => session.scheduled_date === day.date);
-        daysGrid.append(renderDayCard(day, editingSession, pendingAssociation, sessions));
+        day.plannedSessions = context.sessions.filter(session => session.scheduled_date === day.date);
+        daysGrid.append(renderDayCard(day, context.editingSession, context.pendingAssociation, context.sessions));
     });
-    const weekSection = createElement('section', 'calendar-week', '');
-    weekSection.append(daysGrid);
-    container.append(weekSection);
+    section.append(heading, daysGrid);
+    return section;
+}
+
+// Menù a tendina per anno e mese; lo stato aperto/chiuso sopravvive ai
+// ridisegni, così modificare una seduta non richiude il gruppo.
+function renderWeekArchive(kind, title, weeks, context) {
+    const root = collapsible(`${kind}`, title, summarizeWeeks(weeks, context.sessions), context.openGroups,
+        'rounded-2xl border border-slate-800 bg-slate-900/70');
+    const byYear = groupBy(weeks, week => week.startDate.slice(0, 4));
+    byYear.forEach((yearWeeks, year) => {
+        const yearNode = collapsible(`${kind}-${year}`, year, summarizeWeeks(yearWeeks, context.sessions), context.openGroups,
+            'rounded-xl border border-slate-800 bg-slate-950/40');
+        groupBy(yearWeeks, week => week.startDate.slice(0, 7)).forEach((monthWeeks, month) => {
+            const monthName = new Date(`${month}-01T12:00:00`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+            const label = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+            const monthNode = collapsible(`${kind}-${month}`, label, summarizeWeeks(monthWeeks, context.sessions), context.openGroups,
+                'rounded-xl border border-slate-800');
+            if (monthNode.open) {
+                monthWeeks.forEach(week => monthNode.body.append(renderWeek(week, -1, context)));
+            }
+            yearNode.body.append(monthNode.element);
+        });
+        root.body.append(yearNode.element);
+    });
+    return root.element;
+}
+
+function collapsible(key, title, detail, openGroups, className) {
+    const element = createElement('details', className);
+    element.open = openGroups.has(key);
+    const summary = createElement('summary', 'flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-white');
+    summary.append(createElement('span', '', title), createElement('span', 'text-xs font-normal normal-case text-slate-400', detail));
+    const body = createElement('div', 'space-y-3 px-3 pb-3');
+    element.append(summary, body);
+    element.addEventListener('toggle', () => {
+        const wasOpen = openGroups.has(key);
+        if (element.open) openGroups.add(key);
+        else openGroups.delete(key);
+        // I mesi disegnano le settimane solo da aperti: al primo apertura si ridisegna.
+        if (element.open && !wasOpen && !body.querySelector('.calendar-week') && !body.querySelector('details')) {
+            element.dispatchEvent(new CustomEvent('calendar:expand', { bubbles: true }));
+        }
+    });
+    return { element, body, open: element.open };
+}
+
+function summarizeWeeks(weeks, sessions) {
+    const dates = new Set(weeks.flatMap(week => week.days.map(day => day.date)));
+    const planned = sessions.filter(session => dates.has(session.scheduled_date)).length;
+    const done = weeks.reduce((total, week) => total + week.days.reduce((sum, day) => sum + day.intervalsActivities.length, 0), 0);
+    return `${weeks.length} settimane · ${planned} sedute · ${done} attività`;
+}
+
+function groupBy(items, keyOf) {
+    const groups = new Map();
+    items.forEach(item => {
+        const key = keyOf(item);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+    });
+    return groups;
 }
 
 function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
@@ -512,7 +570,8 @@ function renderAssociationForm(activity, session, currentScore, isEditing) {
 
 function renderSession(session) {
     const section = createElement('div', 'rounded-xl border border-slate-800 bg-slate-950/70 p-3 space-y-2');
-    const heading = createElement('div', 'flex items-start justify-between gap-2');
+    // Titolo sopra, azioni sotto: nelle colonne strette i pulsanti non schiacciano il titolo.
+    const heading = createElement('div', 'flex flex-col gap-1');
     const details = createElement('div', 'min-w-0');
     details.append(createElement('p', 'text-sm font-semibold text-white break-words', session.title));
     details.append(createElement('p', 'text-xs text-slate-400', sessionTypeLabel(session.sport_type)));
@@ -525,9 +584,9 @@ function renderSession(session) {
     section.append(heading);
 
     const metrics = [];
-    if (session.distance_km !== null && session.distance_km !== '') metrics.push(`${session.distance_km} km`);
-    if (session.duration_minutes !== null && session.duration_minutes !== '') metrics.push(`${session.duration_minutes} min`);
-    if (session.target_pace_seconds_per_km !== null && session.target_pace_seconds_per_km !== '') {
+    if (session.distance_km != null && session.distance_km !== '') metrics.push(`${session.distance_km} km`);
+    if (session.duration_minutes != null && session.duration_minutes !== '') metrics.push(`${session.duration_minutes} min`);
+    if (session.target_pace_seconds_per_km != null && session.target_pace_seconds_per_km !== '') {
         metrics.push(`${formatPace(session.target_pace_seconds_per_km)} min/km obiettivo`);
     }
     if (metrics.length) section.append(createElement('p', 'text-xs text-slate-300', metrics.join(' · ')));

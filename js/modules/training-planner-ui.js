@@ -187,7 +187,7 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
                 const draft = await plannerService.createDraftRequest(userId, profile, races);
                 showStatus(status, draft.status === 'draft_generated'
                     ? 'Bozza generata: rivedila qui sotto e confermala per scriverla nel calendario.'
-                    : 'Richiesta di bozza salvata. Il piano non è attivo e non sono state create sedute.', 'success');
+                    : 'Richiesta salvata, ma il programma non è stato generato: leggi sotto il motivo nella richiesta.', draft.status === 'draft_generated' ? 'success' : 'error');
                 const drafts = await plannerService.listDraftRequests(userId);
                 renderDrafts(draftsList, drafts);
                 draftsList.querySelector(`[data-draft-id="${CSS.escape(draft.id)}"]`)?.scrollIntoView({
@@ -296,7 +296,7 @@ function renderOtherSportRows(container, sessions) {
         duration.dataset.otherSportField = 'duration_minutes';
         duration.type = 'number';
         duration.min = '10';
-        duration.max = '360';
+        duration.max = '1440';
         duration.step = '5';
         duration.value = session.duration_minutes ?? '';
         durationLabel.append(duration);
@@ -633,7 +633,11 @@ function renderDrafts(container, drafts) {
         } else if (draft.status === 'draft_generated' && generated) {
             renderGeneratedDraft(card, generated);
         } else {
-            card.append(makeElement('p', 'text-xs text-amber-200', 'Richiesta salvata · in attesa di regole verificate · non attiva'));
+            card.append(makeElement('p', 'text-xs text-amber-200', 'Programma non generato. Motivi:'));
+            const reasons = explainMissingProgram(snapshot);
+            const list = makeElement('ul', 'list-disc space-y-1 pl-5 text-xs text-amber-100');
+            reasons.forEach(reason => list.append(makeElement('li', '', reason)));
+            card.append(list);
         }
         const methodologyAssessment = snapshot.methodology_assessment;
         const candidateCount = methodologyAssessment?.candidate_pattern_ids?.length;
@@ -648,6 +652,30 @@ function renderDrafts(container, drafts) {
         card.append(makeElement('p', 'text-xs text-slate-500', `Salvata il ${formatDateTime(draft.created_at)}`));
         container.append(card);
     });
+}
+
+// Motivi leggibili per cui una richiesta non ha prodotto un programma.
+function explainMissingProgram(snapshot) {
+    const reasons = [];
+    const race = snapshot.primary_race;
+    const assessment = snapshot.methodology_assessment || {};
+    if (snapshot.goal_mode !== 'race') {
+        reasons.push('Il generatore crea programmi solo per una gara obiettivo: per mantenimento o miglioramento non ci sono ancora tabelle approvate.');
+    } else if (race && !assessment.approved_pattern_ids?.length) {
+        const distance = Number(race.distance_km);
+        reasons.push(`Nessuna tabella approvata per la gara "${race.name}" (${distance} km): oggi sono coperti solo 10 km, mezza maratona e maratona su strada.`);
+        if (distance > 42.5 || /trail/i.test(`${race.name} ${race.goal || ''}`)) {
+            reasons.push('Per trail e ultra servono le tabelle trail del libro (pp. 212-215 e 266-268), non ancora trascritte e approvate.');
+        }
+    }
+    (assessment.blockers || [])
+        .filter(blocker => !/non sono ancora attive|Nessuna regola applicabile/.test(blocker))
+        .slice(0, 4)
+        .forEach(blocker => reasons.push(blocker.replace(/^Regola "[^"]+": /, '')));
+    if (!snapshot.reference_vr_seconds_per_km) {
+        reasons.push('Manca un test VR (3 km + 10% o 10 km) delle ultime 6 settimane: serve per calcolare i passi.');
+    }
+    return reasons.length ? reasons : ['La richiesta è salvata ma nessuna regola è pronta per generare il programma.'];
 }
 
 function renderGeneratedDraft(card, generated) {

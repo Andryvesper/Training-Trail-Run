@@ -489,8 +489,8 @@ function normalizeAvailability(value = {}) {
         const day = value?.[dayKey] ?? {};
         const available = day.available === true;
         const maxMinutes = optionalInteger(day.max_minutes, 'Il tempo massimo giornaliero deve essere un numero intero.');
-        if (maxMinutes !== null && (maxMinutes < 10 || maxMinutes > 360)) {
-            throw new Error('Il tempo massimo giornaliero deve essere tra 10 e 360 minuti.');
+        if (maxMinutes !== null && (maxMinutes < 10 || maxMinutes > 1440)) {
+            throw new Error('Il tempo massimo giornaliero deve essere tra 10 e 1440 minuti (24 ore).');
         }
         if (!available && maxMinutes !== null) {
             throw new Error('Rimuovi il tempo disponibile dai giorni non selezionati.');
@@ -547,8 +547,8 @@ function normalizeOtherSports(value = []) {
         if (!sport || !day || !scheduleType || duration === null) {
             throw new Error(`Completa sport, giorno, durata e flessibilità per la seduta ${row} degli altri sport.`);
         }
-        if (duration < 10 || duration > 360) {
-            throw new Error(`La durata della seduta ${row} deve essere tra 10 e 360 minuti.`);
+        if (duration < 10 || duration > 1440) {
+            throw new Error(`La durata della seduta ${row} deve essere tra 10 e 1440 minuti (24 ore).`);
         }
         if (sport === 'other' && !customSport) {
             throw new Error(`Specifica lo sport per la seduta ${row} selezionando “Altro”.`);
