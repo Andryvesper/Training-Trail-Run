@@ -196,4 +196,8 @@ esegue tutti i controlli a ogni push e pull request.
 
 La pagina non carica script di terze parti: `supabase-js` è in `vendor/` e
 Tailwind è compilato. La Content Security Policy in `index.html` e gli
-header di sicurezza in `vercel.json` presuppongono questa scelta.
+header di sicurezza in `vercel.json` presuppongono questa scelta. L'app è
+pubblicata con GitHub Pages in `/Training-Trail-Run/`: per questo manifest e
+service worker usano percorsi relativi. GitHub Pages non applica gli header di
+`vercel.json`, che valgono solo per un eventuale deploy su Vercel; la CSP resta
+attiva perché è nel `<meta>` di `index.html`.

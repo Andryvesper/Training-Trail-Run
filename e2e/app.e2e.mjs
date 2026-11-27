@@ -481,7 +481,9 @@ test('PWA: manifest, icone e service worker attivo', async () => {
         const href = await page.locator('link[rel="manifest"]').getAttribute('href');
         const manifest = await (await page.request.get(`${baseUrl}/${href}`)).json();
         assert.equal(manifest.display, 'standalone');
-        assert.equal(manifest.start_url, '/');
+        // Relativo: l'app è pubblicata in una sottocartella (GitHub Pages).
+        assert.equal(manifest.start_url, './');
+        assert.equal(manifest.scope, './');
         const sizes = manifest.icons.map(icon => `${icon.sizes}:${icon.purpose}`);
         for (const needed of ['192x192:any', '512x512:any', '512x512:maskable']) assert.ok(sizes.includes(needed), needed);
         const icons = [...manifest.icons.map(icon => icon.src), 'icons/apple-touch-icon.png'];
