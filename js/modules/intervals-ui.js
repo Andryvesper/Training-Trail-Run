@@ -1,4 +1,5 @@
 import { IntervalsService, summarizeIntervalsData } from './intervals.js';
+import { createIntervalsService, isConnected, loadIntervalsConnection, saveIntervalsCredentials } from './intervals-connection.js';
 import {
     addDays as addDateKeyDays,
     computeRecords,
@@ -49,7 +50,7 @@ let adherenceHandler = null;
 let syncCounter = 0;
 
 export async function initIntervalsModule(supabaseClient, userId) {
-    const syncDashboard = (athleteId, apiKey) => syncDashboardData(supabaseClient, userId, athleteId, apiKey);
+    const syncDashboard = service => syncDashboardData(supabaseClient, userId, service);
     bindDashboardControls();
     // Le sedute cambiano da pianificatore o condivisione: si aggiorna l'aderenza.
     const refreshAdherence = async () => {
@@ -71,23 +72,23 @@ export async function initIntervalsModule(supabaseClient, userId) {
     const btnTest = document.getElementById('btn-test-intervals');
     const statusMsg = document.getElementById('intervals-status-msg');
 
+    let connection = { athleteId: '', hasKey: false, apiKey: null };
+    const showKeyState = () => {
+        // La chiave salvata non torna mai nel campo: si mostra solo che esiste.
+        apiKeyInput.value = '';
+        apiKeyInput.placeholder = connection.hasKey
+            ? 'Chiave salvata · lascia vuoto per mantenerla'
+            : 'Inserisci API Key';
+    };
+
     try {
-        const { data, error } = await supabaseClient
-            .from('profiles')
-            .select('intervals_id, intervals_key, intervals_athlete_id, intervals_api_key')
-            .eq('id', userId)
-            .maybeSingle();
+        connection = await loadIntervalsConnection(supabaseClient, userId);
+        athleteInput.value = connection.athleteId;
+        showKeyState();
 
-        if (error) throw error;
-
-        const athleteId = data?.intervals_id || data?.intervals_athlete_id || '';
-        const apiKey = data?.intervals_key || data?.intervals_api_key || '';
-        athleteInput.value = athleteId;
-        apiKeyInput.value = apiKey;
-
-        if (athleteId && apiKey) {
+        if (isConnected(connection)) {
             try {
-                await syncDashboard(athleteId, apiKey);
+                await syncDashboard(createIntervalsService(supabaseClient, connection));
             } catch (syncError) {
                 console.error('Errore nella sincronizzazione iniziale Intervals.icu:', syncError);
                 setDashboardStatus(
@@ -110,7 +111,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
         const athleteId = athleteInput.value.trim();
         const apiKey = apiKeyInput.value.trim();
 
-        if (!athleteId || !apiKey) {
+        if (!athleteId || (!apiKey && !connection.hasKey)) {
             showStatus(statusMsg, 'Inserisci Athlete ID e API Key.', 'error');
             return;
         }
@@ -118,20 +119,9 @@ export async function initIntervalsModule(supabaseClient, userId) {
         btnSave.disabled = true;
         showStatus(statusMsg, 'Salvataggio credenziali…', 'loading');
         try {
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .update({
-                    intervals_id: athleteId,
-                    intervals_key: apiKey,
-                    intervals_athlete_id: athleteId,
-                    intervals_api_key: apiKey
-                })
-                .eq('id', userId)
-                .select('id');
-
-            if (error) throw error;
-            // Nessuna riga aggiornata (profilo assente o non accessibile): non è un salvataggio riuscito.
-            if (Array.isArray(data) && data.length === 0) throw new Error('profilo utente non trovato.');
+            await saveIntervalsCredentials(supabaseClient, userId, { athleteId, apiKey });
+            connection = { athleteId, hasKey: true, apiKey: apiKey || connection.apiKey };
+            showKeyState();
         } catch (error) {
             console.error('Errore nel salvataggio delle credenziali Intervals.icu:', error);
             showStatus(statusMsg, `Operazione non completata: ${error.message}`, 'error');
@@ -141,7 +131,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
 
         document.dispatchEvent(new CustomEvent('intervals:sync'));
         try {
-            await syncDashboard(athleteId, apiKey);
+            await syncDashboard(createIntervalsService(supabaseClient, connection));
             showStatus(statusMsg, 'Credenziali salvate e dati sincronizzati.', 'success');
         } catch (error) {
             console.error('Errore nella sincronizzazione dopo il salvataggio delle credenziali:', error);
@@ -156,7 +146,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
         const athleteId = athleteInput.value.trim();
         const apiKey = apiKeyInput.value.trim();
 
-        if (!athleteId || !apiKey) {
+        if (!athleteId || (!apiKey && !connection.hasKey)) {
             showStatus(statusMsg, 'Inserisci Athlete ID e API Key.', 'error');
             return;
         }
@@ -164,7 +154,12 @@ export async function initIntervalsModule(supabaseClient, userId) {
         btnTest.disabled = true;
         showStatus(statusMsg, 'Verifica del collegamento e sincronizzazione…', 'loading');
         try {
-            await syncDashboard(athleteId, apiKey);
+            // Chiave appena digitata: verifica diretta, senza salvarla.
+            // Campo vuoto: verifica la chiave salvata, attraverso il proxy.
+            const service = apiKey
+                ? new IntervalsService(athleteId, apiKey)
+                : createIntervalsService(supabaseClient, connection);
+            await syncDashboard(service);
             showStatus(statusMsg, 'Collegamento verificato: dati aggiornati da Intervals.icu.', 'success');
         } catch (error) {
             console.error('Errore durante il test Intervals.icu:', error);
@@ -176,7 +171,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
     });
 }
 
-async function syncDashboardData(supabaseClient, userId, athleteId, apiKey) {
+async function syncDashboardData(supabaseClient, userId, service) {
     const syncId = ++syncCounter;
     clearDashboardData();
     setDashboardStatus('Caricamento dei dati reali da Intervals.icu…', 'loading');
@@ -184,7 +179,6 @@ async function syncDashboardData(supabaseClient, userId, athleteId, apiKey) {
     const today = new Date();
     const newest = formatDateKey(today);
     const oldestWellness = formatDateKey(addDays(today, -WELLNESS_HISTORY_DAYS));
-    const service = new IntervalsService(athleteId, apiKey);
     const [wellness, activities, races, sessions] = await Promise.all([
         service.getWellness(oldestWellness, newest),
         service.getActivities(ACTIVITY_HISTORY_START, newest),

@@ -69,13 +69,20 @@ const fakeSupabaseJs = db => `(() => {
   }
   window.supabase = { createClient() { return {
     auth: {
-      getSession: async () => ({ data: { session: { user: USER } }, error: null }),
+      getSession: async () => ({ data: { session: { user: USER, access_token: 'e2e-token' } }, error: null }),
       signInWithPassword: async () => ({ data: { user: USER }, error: null }),
       signOut: async () => ({ error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } })
     },
     from: builder,
-    rpc: async () => ({ data: [], error: null })
+    rpc: async name => {
+      // Stato del collegamento Intervals senza esporre la chiave (come la RPC reale).
+      if (name === 'get_intervals_connection') {
+        const p = (DB.profiles || [])[0] || {};
+        return { data: [{ athlete_id: p.intervals_id || null, has_key: Boolean(p.intervals_key) }], error: null };
+      }
+      return { data: [], error: null };
+    }
   }; } };
 })();`;
 const FAKE_SUPABASE_JS = fakeSupabaseJs(FAKE_DB);
@@ -130,6 +137,7 @@ const FAKE_TAILWIND = [
 
 let server, baseUrl, browser;
 const blockedExternal = [];
+const proxiedIntervals = [];
 
 test.before(async () => {
     server = http.createServer(async (req, res) => {
@@ -165,7 +173,13 @@ async function openApp({ intervals = false, serviceWorkers = 'block' } = {}) {
         if (url.startsWith(baseUrl)) return route.continue();
         if (url.includes('cdn.tailwindcss.com')) return route.fulfill({ contentType: 'text/javascript', body: FAKE_TAILWIND });
         if (url.includes('@supabase/supabase-js')) return route.fulfill({ contentType: 'text/javascript', body: intervals ? fakeSupabaseJs(INTERVALS_DB) : FAKE_SUPABASE_JS });
-        if (intervals && url.startsWith('https://intervals.icu/api/v1/')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(fakeIntervals(url)) });
+        // Proxy Supabase "intervals-proxy": la chiave resta lato server.
+        if (intervals && url.includes('/functions/v1/intervals-proxy/')) {
+            const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey', 'access-control-expose-headers': 'x-intervals-proxy' };
+            if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+            proxiedIntervals.push(url);
+            return route.fulfill({ contentType: 'application/json', headers: { ...cors, 'x-intervals-proxy': '1' }, body: JSON.stringify(fakeIntervals(url)) });
+        }
         blockedExternal.push(url);
         return route.abort();
     });
@@ -300,6 +314,10 @@ test('dashboard: analisi prestazione dagli stream Intervals (GAP, deriva, GCT, p
         const charts = await page.locator('#dashboard-performance-charts h4').allTextContents();
         assert.deepEqual(charts, ['Efficiency Factor (GAP / FC)', 'Deriva cardiaca (Pa:Hr su GAP)', 'Variazione del GCT nel finale', 'Mechanical Load Score giornaliero']);
         assert.ok(await page.locator('#dashboard-performance-charts svg').count() >= 1);
+        // Tutte le letture passano dal proxy: nessuna chiamata diretta con la chiave.
+        assert.ok(proxiedIntervals.some(url => url.includes('/activities?')));
+        assert.ok(!blockedExternal.some(url => url.startsWith('https://intervals.icu/')));
+        assert.equal(await page.locator('#intervals-api-key').inputValue(), '');
         assert.deepEqual(consoleErrors, []);
     } finally { await context.close(); }
 });

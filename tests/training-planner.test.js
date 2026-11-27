@@ -585,6 +585,10 @@ test('scrive la bozza nel calendario solo con conferma esplicita e senza sovrasc
             });
             query.then = (resolve, reject) => Promise.resolve(result).then(resolve, reject);
             return query;
+        },
+        async rpc(name, args) {
+            calls.push(['rpc', name, args]);
+            return { data: null, error: null };
         }
     };
     const service = new TrainingPlannerService(client);
@@ -597,6 +601,11 @@ test('scrive la bozza nel calendario solo con conferma esplicita e senza sovrasc
     assert.deepEqual(outcome.overlapping_dates, ['2027-01-19']);
     const rows = calls.find(call => call[0] === 'insert')[1];
     assert.equal(rows.length, 36);
+    // La bozza scritta (con le scelte dell'atleta) viene salvata dopo l'inserimento.
+    const recorded = calls.find(call => call[0] === 'rpc');
+    assert.equal(recorded[1], 'record_confirmed_draft_choices');
+    assert.deepEqual(recorded[2], { p_draft_id: 'draft-1', p_generated_draft: draft.profile_snapshot.generated_draft });
+    assert.ok(calls.indexOf(recorded) > calls.findIndex(call => call[0] === 'insert'));
     assert.ok(rows.every(row => row.user_id === 'user-1'));
     assert.equal(rows.find(row => row.scheduled_date === '2027-01-19').session_order, 2);
     assert.deepEqual(calls.find(call => call[0] === 'update'), ['update', { status: 'confirmed' }]);

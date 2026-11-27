@@ -1,5 +1,5 @@
 import { TrainingCalendarService } from './calendar.js';
-import { IntervalsService } from './intervals.js';
+import { createIntervalsService, isConnected, loadIntervalsConnection } from './intervals-connection.js';
 import { TrainingPlanService } from './training-plan.js';
 import { formatPace, parsePace } from './training-plan-sharing.js';
 import { initTrainingPlanSharingModule } from './training-plan-sharing-ui.js';
@@ -72,18 +72,10 @@ export async function initCalendarModule(supabaseClient, userId) {
     const refreshActivities = async () => {
         const requestId = ++activitiesRequestId;
         try {
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .select('intervals_id, intervals_key, intervals_athlete_id, intervals_api_key')
-                .eq('id', userId)
-                .maybeSingle();
-
-            if (error) throw error;
-            const athleteId = data?.intervals_id || data?.intervals_athlete_id;
-            const apiKey = data?.intervals_key || data?.intervals_api_key;
+            const connection = await loadIntervalsConnection(supabaseClient, userId);
 
             if (requestId !== activitiesRequestId) return;
-            if (!athleteId || !apiKey) {
+            if (!isConnected(connection)) {
                 intervalsService = null;
                 weeks.forEach(week => week.days.forEach(day => {
                     day.intervalsActivities = [];
@@ -93,7 +85,7 @@ export async function initCalendarModule(supabaseClient, userId) {
                 return;
             }
 
-            intervalsService = new IntervalsService(athleteId, apiKey);
+            intervalsService = createIntervalsService(supabaseClient, connection);
             const activities = await intervalsService
                 .getActivities(weeks[0].startDate, weeks[weeks.length - 1].endDate);
             if (requestId !== activitiesRequestId) return;

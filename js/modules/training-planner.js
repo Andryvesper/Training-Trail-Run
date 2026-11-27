@@ -539,11 +539,29 @@ export class TrainingPlannerService {
             .update({ status: 'draft_generated' })
             .eq('id', draft.id)
             .eq('user_id', userId);
+        let result;
         try {
-            return await this.insertCalendarSessions(userId, sessions, generated.startDate, generated.endDate);
+            result = await this.insertCalendarSessions(userId, sessions, generated.startDate, generated.endDate);
         } catch (error) {
             await releaseClaim();
             throw error;
+        }
+        await this.recordConfirmedDraft(draft.id, generated);
+        return result;
+    }
+
+    // Salva la bozza con le scelte dell'atleta (gare intermedie, sedute extra):
+    // "Settimana saltata" deve leggere ciò che è davvero nel calendario.
+    // Le sedute sono già scritte: un errore qui non annulla la conferma.
+    async recordConfirmedDraft(draftId, generated) {
+        try {
+            const { error } = await this.supabaseClient.rpc('record_confirmed_draft_choices', {
+                p_draft_id: draftId,
+                p_generated_draft: generated
+            });
+            if (error) throw error;
+        } catch (error) {
+            console.warn('Scelte della bozza non salvate (applica la migrazione 20261128110000):', error?.message || error);
         }
     }
 

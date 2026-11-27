@@ -1,16 +1,35 @@
 // js/modules/intervals.js - Servizio API Intervals.icu per Metriche e Attività
+//
+// Due modi di raggiungere Intervals.icu:
+// - proxy (consigliato): la Edge Function Supabase "intervals-proxy" aggiunge la
+//   chiave API lato server, quindi la chiave non arriva mai al browser;
+// - diretto: il browser chiama Intervals.icu con la chiave. Resta come ripiego
+//   finché la funzione non è distribuita, e per verificare una chiave appena digitata.
 
+const API_BASE_URL = 'https://intervals.icu/api/v1';
 const REQUEST_TIMEOUT_MS = 30000;
+// Intestazione che la funzione aggiunge a ogni risposta: "1" inoltrata, "error" errore proprio.
+export const PROXY_HEADER = 'x-intervals-proxy';
 
 export class IntervalsService {
-    constructor(athleteId, apiKey) {
+    /**
+     * @param {string} athleteId
+     * @param {string|null} apiKey chiave in chiaro, solo per il modo diretto
+     * @param {{ proxy?: { url: string, apikey?: string, getAccessToken: () => Promise<string|null> } }} [options]
+     */
+    constructor(athleteId, apiKey, { proxy = null } = {}) {
         // L'ID entra nel percorso dell'URL: va codificato.
         this.athleteId = encodeURIComponent(String(athleteId || 'me').trim());
-        this.apiKey = apiKey;
-        this.baseUrl = 'https://intervals.icu/api/v1';
+        this.apiKey = apiKey || null;
+        this.baseUrl = API_BASE_URL;
+        this.proxy = proxy;
+        this.useProxy = Boolean(proxy);
     }
 
     getAuthHeaders() {
+        if (!this.apiKey) {
+            throw new Error('Il collegamento sicuro a Intervals.icu non è attivo: distribuisci la funzione "intervals-proxy" (vedi README).');
+        }
         let token;
         try {
             token = btoa(`API_KEY:${this.apiKey}`);
@@ -25,14 +44,14 @@ export class IntervalsService {
 
     async getWellness(oldest, newest) {
         return this.fetchCollection(
-            `${this.baseUrl}/athlete/${this.athleteId}/wellness?oldest=${oldest}&newest=${newest}`,
+            `athlete/${this.athleteId}/wellness?oldest=${encodeURIComponent(oldest)}&newest=${encodeURIComponent(newest)}`,
             'wellness'
         );
     }
 
     async getActivities(oldest, newest) {
         return this.fetchCollection(
-            `${this.baseUrl}/athlete/${this.athleteId}/activities?oldest=${oldest}&newest=${newest}`,
+            `athlete/${this.athleteId}/activities?oldest=${encodeURIComponent(oldest)}&newest=${encodeURIComponent(newest)}`,
             'attività'
         );
     }
@@ -42,43 +61,62 @@ export class IntervalsService {
     async getActivityStreams(activityId, types = []) {
         const query = types.length ? `?types=${types.map(encodeURIComponent).join(',')}` : '';
         return this.fetchCollection(
-            `${this.baseUrl}/activity/${encodeURIComponent(activityId)}/streams.json${query}`,
+            `activity/${encodeURIComponent(activityId)}/streams.json${query}`,
             "stream dell'attività"
         );
     }
 
     // Giri e intervalli di un'attività: { icu_intervals: [...], icu_groups: [...] }.
     async getActivityIntervals(activityId) {
-        const url = `${this.baseUrl}/activity/${encodeURIComponent(activityId)}/intervals`;
-        const response = await this.request(url, "giri dell'attività");
+        const response = await this.request(`activity/${encodeURIComponent(activityId)}/intervals`, "giri dell'attività");
         const data = await response.json();
         return data && typeof data === 'object' ? data : {};
     }
 
     // Richiesta con tempo massimo e messaggi chiari per credenziali errate.
-    async request(url, resourceName) {
-        const options = { headers: this.getAuthHeaders() };
+    // `path` è relativo all'API (es. "athlete/i1/wellness?...").
+    async request(path, resourceName) {
+        if (this.useProxy) {
+            const response = await this.send(`${this.proxy.url}/${path}`, await this.proxyHeaders(), resourceName);
+            const marker = response.headers?.get?.(PROXY_HEADER);
+            // 404 senza intestazione: la funzione non è distribuita. Si ripiega sul
+            // modo diretto solo se la chiave è disponibile nel browser.
+            if (response.status === 404 && !marker && this.apiKey) {
+                this.useProxy = false;
+            } else if (marker === 'error' || (!marker && !response.ok)) {
+                throw new Error(`Intervals.icu (${resourceName}): ${await proxyErrorMessage(response)}`);
+            } else {
+                return checkResponse(response, resourceName);
+            }
+        }
+        const response = await this.send(`${this.baseUrl}/${path}`, this.getAuthHeaders(), resourceName);
+        return checkResponse(response, resourceName);
+    }
+
+    async proxyHeaders() {
+        const token = await this.proxy.getAccessToken();
+        if (!token) throw new Error('Sessione scaduta: esci e accedi di nuovo.');
+        return {
+            'Authorization': `Bearer ${token}`,
+            ...(this.proxy.apikey ? { apikey: this.proxy.apikey } : {})
+        };
+    }
+
+    async send(url, headers, resourceName) {
+        const options = { headers };
         if (typeof AbortSignal?.timeout === 'function') options.signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-        let response;
         try {
-            response = await fetch(url, options);
+            return await fetch(url, options);
         } catch (error) {
             if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
                 throw new Error(`Intervals.icu (${resourceName}): nessuna risposta entro ${REQUEST_TIMEOUT_MS / 1000} secondi.`);
             }
             throw new Error(`Intervals.icu (${resourceName}): connessione non riuscita.`);
         }
-        if (!response.ok) {
-            const hint = response.status === 401 || response.status === 403
-                ? ' Controlla Athlete ID e API Key.'
-                : response.status === 429 ? ' Troppe richieste: riprova tra poco.' : '';
-            throw new Error(`Intervals.icu (${resourceName}): risposta HTTP ${response.status}.${hint}`);
-        }
-        return response;
     }
 
-    async fetchCollection(url, resourceName) {
-        const response = await this.request(url, resourceName);
+    async fetchCollection(path, resourceName) {
+        const response = await this.request(path, resourceName);
 
         const data = await response.json();
         if (!Array.isArray(data)) {
@@ -86,6 +124,26 @@ export class IntervalsService {
         }
         return data;
     }
+}
+
+function checkResponse(response, resourceName) {
+    if (!response.ok) {
+        const hint = response.status === 401 || response.status === 403
+            ? ' Controlla Athlete ID e API Key.'
+            : response.status === 429 ? ' Troppe richieste: riprova tra poco.' : '';
+        throw new Error(`Intervals.icu (${resourceName}): risposta HTTP ${response.status}.${hint}`);
+    }
+    return response;
+}
+
+async function proxyErrorMessage(response) {
+    try {
+        const body = await response.json();
+        if (body && typeof body.error === 'string') return body.error;
+    } catch {
+        // Corpo non JSON: si usa il codice HTTP.
+    }
+    return `collegamento sicuro non riuscito (HTTP ${response.status}).`;
 }
 
 // Intervals.icu identifica il record wellness con la data in `id`;
