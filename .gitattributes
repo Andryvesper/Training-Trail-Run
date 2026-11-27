@@ -1,0 +1,4 @@
+# Fine riga uniforme nel repository (LF); Windows può usare CRLF in locale.
+* text=auto
+*.png binary
+*.jpg binary

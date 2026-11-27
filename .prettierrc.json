@@ -4,5 +4,13 @@
     "trailingComma": "none",
     "arrowParens": "avoid",
     "printWidth": 140,
-    "endOfLine": "auto"
+    "endOfLine": "auto",
+    "overrides": [
+        {
+            "files": ["*.yml", "*.yaml"],
+            "options": {
+                "tabWidth": 2
+            }
+        }
+    ]
 }
