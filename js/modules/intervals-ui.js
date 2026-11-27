@@ -1,5 +1,6 @@
 import { IntervalsService, summarizeIntervalsData } from './intervals.js';
 import { createIntervalsService, isConnected, loadIntervalsConnection, saveIntervalsCredentials } from './intervals-connection.js';
+import { mergeActivities, readActivityCache, refetchStart, writeActivityCache } from './intervals-cache.js';
 import {
     addDays as addDateKeyDays,
     computeRecords,
@@ -179,15 +180,21 @@ async function syncDashboardData(supabaseClient, userId, service) {
     const today = new Date();
     const newest = formatDateKey(today);
     const oldestWellness = formatDateKey(addDays(today, -WELLNESS_HISTORY_DAYS));
-    const [wellness, activities, races, sessions] = await Promise.all([
+    // Storico in cache: si scaricano solo le ultime settimane.
+    const cacheKey = `${userId}:${service.athleteId}`;
+    const cached = await readActivityCache(cacheKey);
+    const activitiesFrom = refetchStart(cached, ACTIVITY_HISTORY_START);
+    const [wellness, freshActivities, races, sessions] = await Promise.all([
         service.getWellness(oldestWellness, newest),
-        service.getActivities(ACTIVITY_HISTORY_START, newest),
+        service.getActivities(activitiesFrom, newest),
         new TrainingRacesService(supabaseClient).listRaces(userId).catch(error => {
             console.error('Gare non disponibili per i record personali:', error);
             return [];
         }),
         loadAdherenceSessions(supabaseClient, userId, newest)
     ]);
+    const activities = cached ? mergeActivities(cached.activities, freshActivities, activitiesFrom) : freshActivities;
+    writeActivityCache(cacheKey, { activities, syncedAt: newest });
     if (syncId !== syncCounter) return;
 
     const summary = summarizeIntervalsData(wellness, []);

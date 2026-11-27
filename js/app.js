@@ -5,6 +5,7 @@ import { initCalendarModule } from './modules/calendar-ui.js';
 import { initRacesModule } from './modules/races-ui.js';
 import { initTrainingPlannerModule } from './modules/training-planner-ui.js';
 import { initAthleteProfileModule } from './modules/athlete-profile-ui.js';
+import { clearActivityCache } from './modules/intervals-cache.js';
 
 // App installabile: registra il service worker (solo su HTTPS o localhost).
 if ('serviceWorker' in navigator && window.isSecureContext) {
@@ -43,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupLogout();
     supabase.auth.onAuthStateChange(event => {
         // Uscita da un'altra scheda o sessione scaduta: si torna al login pulito.
-        if (event === 'SIGNED_OUT' && appStarted) window.location.reload();
+        if (event === 'SIGNED_OUT' && appStarted) clearActivityCache().finally(() => window.location.reload());
     });
 
     try {
@@ -110,6 +111,7 @@ function loginErrorMessage(error) {
 function setupLogout() {
     document.getElementById('btn-logout')?.addEventListener('click', async () => {
         try {
+            await clearActivityCache();
             await supabase.auth.signOut();
         } catch (err) {
             console.error('Errore durante l’uscita:', err);
