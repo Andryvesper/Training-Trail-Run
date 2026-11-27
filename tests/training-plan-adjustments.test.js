@@ -296,3 +296,17 @@ test('ultima settimana della tabella 13: la gara porta la distanza reale', () =>
     assert.equal(last.raceDistanceKm, 50);
     assert.equal(last.raw, 'Gara 50 km');
 });
+
+test('motivi: il metodo senza VR compare anche con molti blocchi', () => {
+    const message = 'Senza un test VR valido puoi scegliere il metodo Respiratorio: "Tabella 11" è pronta e non usa la VR.';
+    const reasons = explainMissingProgram({
+        goal_mode: 'race',
+        primary_race: { name: 'Ultra', distance_km: 102 },
+        methodology_assessment: {
+            approved_pattern_ids: ['ultra_100km_evoluto'],
+            blockers: ['a', 'b', 'c', 'd', 'e', message],
+            reference_test_alternative: { message }
+        }
+    });
+    assert.equal(reasons.filter(reason => reason === message).length, 1);
+});

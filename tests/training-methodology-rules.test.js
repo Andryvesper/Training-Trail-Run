@@ -439,3 +439,26 @@ test('rigetta le regole promosse se mancano campi obbligatori del contratto o de
     assert.equal(assessment.rule_pipeline_ready, false);
     assert.ok(assessment.blockers.some(b => b.includes('ten_km_distance_time_cycle')));
 });
+
+test('test VR scaduto: propone il metodo respiratorio se la tabella 11 è pronta', () => {
+    const race = { name: 'Ultra trail', distance_km: 102, event_date: '2027-06-04', status: 'planned' };
+    const profile = {
+        goal_mode: 'race', preferred_terrains: ['road', 'trail'], consistency_status: 'returning',
+        target_running_sessions_per_week: 4, preferred_cycle_method: 'distance_time',
+        reference_test_date: '2026-09-25', reference_vr_seconds_per_km: 300
+    };
+    const blocked = assessTrainingMethodology(profile, race, undefined, { asOfDate: '2026-11-27' });
+    assert.equal(blocked.generation_enabled, false);
+    assert.equal(blocked.reference_test_alternative.pattern_id, 'ultra_100km_passatore');
+    assert.equal(blocked.reference_test_alternative.preferred_cycle_method, 'breathing');
+    assert.match(blocked.reference_test_alternative.message, /metodo Respiratorio/);
+    assert.ok(blocked.blockers.includes(blocked.reference_test_alternative.message));
+
+    const valid = assessTrainingMethodology({ ...profile, reference_test_date: '2026-11-20' }, race, undefined, { asOfDate: '2026-11-27' });
+    assert.equal(valid.generation_enabled, true);
+    assert.equal(valid.reference_test_alternative, null);
+
+    const breathing = assessTrainingMethodology({ ...profile, preferred_cycle_method: 'breathing' }, race, undefined, { asOfDate: '2026-11-27' });
+    assert.equal(breathing.generation_enabled, true);
+    assert.equal(breathing.reference_test_alternative, null);
+});

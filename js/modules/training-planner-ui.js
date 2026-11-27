@@ -523,6 +523,20 @@ function renderMethodologyPreview(container, profile, races) {
         container.append(box);
     }
 
+    // Test VR scaduto o mancante: metodo alternativo già pronto, senza VR.
+    const alternative = assessment.reference_test_alternative;
+    const recommendationShown = recommendation && profile.preferred_cycle_method !== recommendation.preferred_cycle_method;
+    if (alternative && !(recommendationShown && recommendation.preferred_cycle_method === alternative.preferred_cycle_method)) {
+        const box = makeElement('div', 'flex flex-wrap items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/5 p-3');
+        box.append(makeElement('p', 'flex-1 text-xs text-sky-100', alternative.message));
+        const button = makeElement('button', 'min-h-10 rounded-lg border border-sky-400/50 px-3 text-xs font-semibold text-sky-100 hover:bg-sky-500/10', 'Usa questo metodo');
+        button.type = 'button';
+        button.dataset.action = 'use-recommendation';
+        button.dataset.method = alternative.preferred_cycle_method;
+        box.append(button);
+        container.append(box);
+    }
+
     if (profile.goal_mode === 'race' && Number(race?.distance_km) === 10) {
         const prototype = getTenKmPrototypeReadiness(profile, races);
         const gate = makeElement('aside', 'space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3');

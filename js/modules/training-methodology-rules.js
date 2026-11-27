@@ -400,6 +400,8 @@ export function assessTrainingMethodology(
         && !generationRules.some(({ rule }) => rule.id === methodRecommendation.pattern_id)) {
         blockers.push(`${methodRecommendation.message} La tabella consigliata non è pronta (controlla i dati richiesti, ad esempio il test VR valido).`);
     }
+    const referenceTestAlternative = findReferenceTestAlternative(approvedRules, readyCycles, generationRules);
+    if (referenceTestAlternative) blockers.push(referenceTestAlternative.message);
     if (!generationRules.length) {
         blockers.push('La generazione delle sedute e la loro conferma non sono ancora attive.');
     }
@@ -424,6 +426,7 @@ export function assessTrainingMethodology(
         rule_pipeline_ready: readyRules.length > 0,
         generation_enabled: generationRules.length > 0,
         method_recommendation: methodRecommendation,
+        reference_test_alternative: referenceTestAlternative,
         blockers
     };
 }
@@ -458,6 +461,27 @@ export function recommendUltraTable(profile, applicableRules) {
     };
 }
 
+const REFERENCE_TEST_FIELDS = Object.freeze(['reference_test_date', 'reference_vr_seconds_per_km']);
+const METHOD_LABELS = Object.freeze({ breathing: 'Respiratorio', distance_time: 'Distanza-tempo' });
+
+// Tabella pronta che non usa la VR, proposta quando le tabelle del metodo
+// scelto sono ferme solo per il test VR mancante o scaduto. È un'indicazione:
+// il metodo cambia solo se l'atleta lo sceglie.
+function findReferenceTestAlternative(approvedRules, readyCycles, generationRules) {
+    if (generationRules.length) return null;
+    const blockedByTest = approvedRules.some(({ rule, issues }) => rule.requiresValidReferenceTest
+        && issues.length > 0 && issues.every(issue => issue.referenceTest));
+    if (!blockedByTest) return null;
+    const alternative = readyCycles.find(({ rule }) => !rule.requiresValidReferenceTest)?.rule;
+    if (!alternative) return null;
+    const method = methodFamily(alternative.sessionPattern.method);
+    return {
+        pattern_id: alternative.id,
+        preferred_cycle_method: method,
+        message: `Senza un test VR valido puoi scegliere il metodo ${METHOD_LABELS[method] ?? method}: "${alternative.label}" è pronta e non usa la VR.`
+    };
+}
+
 function matchesRaceDistance(rule, race) {
     if (rule.raceDistanceKm === undefined) return true;
     const distance = Number(race?.distance_km);
@@ -468,7 +492,8 @@ function matchesRaceDistance(rule, race) {
 function getApprovedRuleIssues(rule, profile, race, asOfDate) {
     const issues = [];
     const contract = message => issues.push({ type: 'contract', message });
-    const input = message => issues.push({ type: 'input', message });
+    // referenceTest: il problema riguarda solo il test VR (mancante o scaduto).
+    const input = (message, referenceTest = false) => issues.push({ type: 'input', message, referenceTest });
     const approval = rule.approval;
     if (typeof rule.version !== 'string' || !rule.version.trim()
         || typeof rule.sourceConfidence !== 'string' || !rule.sourceConfidence.trim()
@@ -512,11 +537,13 @@ function getApprovedRuleIssues(rule, profile, race, asOfDate) {
             ...missingProfile.map(field => `profilo.${field}`),
             ...missingRace.map(field => `gara.${field}`)
         ];
-        input(`mancano input richiesti: ${missing.join(', ')}.`);
+        const onlyReferenceTest = !missingRace.length
+            && missingProfile.every(field => REFERENCE_TEST_FIELDS.includes(field));
+        input(`mancano input richiesti: ${missing.join(', ')}.`, onlyReferenceTest);
     }
     if (rule.requiresValidReferenceTest && hasValue(profile, 'reference_test_date')) {
         const validity = assessReferenceTestValidity(profile.reference_test_date, asOfDate);
-        if (validity.status !== 'valid') input(`test VR non utilizzabile: ${validity.message}`);
+        if (validity.status !== 'valid') input(`test VR non utilizzabile: ${validity.message}`, true);
     }
     const frequency = profile?.target_running_sessions_per_week;
     if (Array.isArray(rule.supportedRunningSessionsPerWeek) && Number.isInteger(frequency)) {

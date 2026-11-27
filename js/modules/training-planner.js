@@ -419,8 +419,9 @@ export function explainMissingProgram(snapshot = {}, rules = TRAINING_METHOD_RUL
         const distance = Number(race.distance_km);
         reasons.push(`Nessuna tabella approvata per la gara "${race.name}" (${distance} km): sono coperti 10 km, mezza e maratona su strada, trail 15-50 km (tabella 13, con terreno trail selezionato) e ultra 75-125 km (tabella 11 su strada o trail; tabella 10 evoluti con terreno trail).`);
     }
+    const alternative = assessment.reference_test_alternative?.message || null;
     (assessment.blockers || [])
-        .filter(blocker => !/non sono ancora attive|Nessuna regola applicabile/.test(blocker))
+        .filter(blocker => !/non sono ancora attive|Nessuna regola applicabile/.test(blocker) && blocker !== alternative)
         .slice(0, 4)
         .forEach(blocker => reasons.push(blocker.replace(/^Regola "[^"]+": /, '')));
     const approved = rules.filter(rule => approvedIds.includes(rule.id));
@@ -430,6 +431,7 @@ export function explainMissingProgram(snapshot = {}, rules = TRAINING_METHOD_RUL
     if (relevant.length && relevant.every(rule => rule.requiresValidReferenceTest) && !snapshot.reference_vr_seconds_per_km) {
         reasons.push('Manca un test VR (3 km + 10% o 10 km) delle ultime 6 settimane: serve per calcolare i passi.');
     }
+    if (alternative) reasons.push(alternative);
     return reasons.length ? reasons : ['La richiesta è salvata ma nessuna regola è pronta per generare il programma.'];
 }
 
