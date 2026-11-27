@@ -1,11 +1,5 @@
 import { createEmptyState } from '../core/ui-feedback.js';
-import {
-    TrainingPlanSharingService,
-    formatPace,
-    parsePace,
-    scaleSessionDuration,
-    scaleTrainingPace
-} from './training-plan-sharing.js';
+import { TrainingPlanSharingService, formatPace, parsePace, scaleSessionDuration, scaleTrainingPace } from './training-plan-sharing.js';
 import { localDateKey } from '../core/date-utils.js';
 
 export async function initTrainingPlanSharingModule(supabaseClient, userId) {
@@ -29,7 +23,9 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
             renderActiveShares(activeShares, await service.listMyShares(), revokeForm);
         } catch (error) {
             console.error('Errore nel caricamento delle condivisioni attive:', error);
-            activeShares.replaceChildren(createElement('p', 'text-xs text-rose-300', `Impossibile elencare le condivisioni attive: ${error.message}`));
+            activeShares.replaceChildren(
+                createElement('p', 'text-xs text-rose-300', `Impossibile elencare le condivisioni attive: ${error.message}`)
+            );
         }
     };
 
@@ -46,17 +42,17 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
         submitButton.disabled = true;
         created.replaceChildren();
         try {
-            const sessions = await service.listSessions(
-                userId,
-                shareForm.elements.start_date.value,
-                shareForm.elements.end_date.value
-            );
+            const sessions = await service.listSessions(userId, shareForm.elements.start_date.value, shareForm.elements.end_date.value);
             if (!sessions.length) throw new Error('Nessuna seduta trovata nell’intervallo selezionato.');
             const sourcePace = parsePace(sourcePaceInput.value);
             if (sessions.some(session => session.target_pace_seconds_per_km != null) && sourcePace === null) {
                 throw new Error('Per condividere sedute con passi obiettivo, dichiara il tuo passo di riferimento.');
             }
-            if (!window.confirm(`Condividere ${sessions.length} sedute comprese tra ${shareForm.elements.start_date.value} e ${shareForm.elements.end_date.value}? Chi riceve il codice potrà importarle fino alla scadenza.`)) {
+            if (
+                !window.confirm(
+                    `Condividere ${sessions.length} sedute comprese tra ${shareForm.elements.start_date.value} e ${shareForm.elements.end_date.value}? Chi riceve il codice potrà importarle fino alla scadenza.`
+                )
+            ) {
                 return;
             }
             const result = await service.createShare({
@@ -119,7 +115,8 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
     revokeForm.addEventListener('submit', async event => {
         event.preventDefault();
         const submitButton = revokeForm.querySelector('button[type="submit"]');
-        if (!window.confirm('Revocare il codice? Non sarà più possibile visualizzare o importare il programma con questa condivisione.')) return;
+        if (!window.confirm('Revocare il codice? Non sarà più possibile visualizzare o importare il programma con questa condivisione.'))
+            return;
         submitButton.disabled = true;
         try {
             await service.revokeShare(revokeForm.elements.share_code.value);
@@ -152,24 +149,27 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
             if (activePreview.data.source_reference_pace_seconds_per_km != null && targetPace === null) {
                 throw new Error('Inserisci il tuo passo di riferimento per adattare i passi obiettivo.');
             }
-            const mappedDates = activePreview.data.sessions.map(session => shiftDate(
-                session.scheduled_date,
-                activePreview.data.first_date || activePreview.data.sessions
-                    .map(item => item.scheduled_date)
-                    .sort()[0],
-                importForm.elements.new_start_date.value
-            ));
+            const mappedDates = activePreview.data.sessions.map(session =>
+                shiftDate(
+                    session.scheduled_date,
+                    activePreview.data.first_date || activePreview.data.sessions.map(item => item.scheduled_date).sort()[0],
+                    importForm.elements.new_start_date.value
+                )
+            );
             const sortedMappedDates = mappedDates.slice().sort();
             const firstMappedDate = sortedMappedDates[0];
             const lastMappedDate = sortedMappedDates[sortedMappedDates.length - 1];
             const existingSessions = await service.listSessions(userId, firstMappedDate, lastMappedDate);
-            const overlappingDates = [...new Set(existingSessions
-                .map(session => session.scheduled_date)
-                .filter(date => mappedDates.includes(date)))];
+            const overlappingDates = [
+                ...new Set(existingSessions.map(session => session.scheduled_date).filter(date => mappedDates.includes(date)))
+            ];
             const confirmOverlaps = overlappingDates.length > 0;
-            if (confirmOverlaps && !window.confirm(
-                `Hai già sedute nel calendario il ${overlappingDates.join(', ')}. Vuoi aggiungere comunque la copia senza spostarle o sovrascriverle?`
-            )) {
+            if (
+                confirmOverlaps &&
+                !window.confirm(
+                    `Hai già sedute nel calendario il ${overlappingDates.join(', ')}. Vuoi aggiungere comunque la copia senza spostarle o sovrascriverle?`
+                )
+            ) {
                 showStatus(status, 'Importazione annullata: le sedute esistenti non sono state modificate.', 'info');
                 button.disabled = false;
                 return;
@@ -185,7 +185,11 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
             importForm.reset();
             targetPaceInput.disabled = true;
             document.dispatchEvent(new CustomEvent('training-sessions:changed'));
-            showStatus(status, `Importate ${result.session_count} sedute nel tuo calendario. Verifica carichi e ritmi prima di seguirle.`, 'success');
+            showStatus(
+                status,
+                `Importate ${result.session_count} sedute nel tuo calendario. Verifica carichi e ritmi prima di seguirle.`,
+                'success'
+            );
         } catch (error) {
             console.error('Errore durante l’importazione del programma condiviso:', error);
             showStatus(status, `Impossibile importare il programma: ${error.message}`, 'error');
@@ -198,18 +202,26 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
 
 function renderActiveShares(container, shares, revokeForm) {
     if (!shares.length) {
-        container.replaceChildren(createEmptyState('Nessuna condivisione attiva.', { hint: 'Seleziona un periodo qui sopra per creare un codice da inviare.' }));
+        container.replaceChildren(
+            createEmptyState('Nessuna condivisione attiva.', { hint: 'Seleziona un periodo qui sopra per creare un codice da inviare.' })
+        );
         return;
     }
     const list = createElement('ul', 'space-y-2');
     shares.forEach(share => {
         const item = createElement('li', 'flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 p-2');
-        item.append(createElement(
-            'span',
-            'text-xs text-slate-300',
-            `${share.title} · ${share.session_count} sedute · scade il ${new Date(share.expires_at).toLocaleString('it-IT')}`
-        ));
-        const select = createElement('button', 'min-h-11 rounded-xl border border-slate-700 px-3 text-xs text-slate-200', 'Seleziona per revoca');
+        item.append(
+            createElement(
+                'span',
+                'text-xs text-slate-300',
+                `${share.title} · ${share.session_count} sedute · scade il ${new Date(share.expires_at).toLocaleString('it-IT')}`
+            )
+        );
+        const select = createElement(
+            'button',
+            'min-h-11 rounded-xl border border-slate-700 px-3 text-xs text-slate-200',
+            'Seleziona per revoca'
+        );
         select.type = 'button';
         select.addEventListener('click', () => {
             revokeForm.elements.share_code.value = share.share_code;
@@ -223,18 +235,21 @@ function renderActiveShares(container, shares, revokeForm) {
 
 function formatDurationChange(session, sourceReferencePace, targetReferencePace) {
     if (session.duration_minutes == null) return null;
-    const adapted = targetReferencePace == null
-        ? session.duration_minutes
-        : scaleSessionDuration(session, sourceReferencePace, targetReferencePace);
-    return adapted === session.duration_minutes
-        ? `${session.duration_minutes} min`
-        : `${session.duration_minutes} → ${adapted} min`;
+    const adapted =
+        targetReferencePace == null ? session.duration_minutes : scaleSessionDuration(session, sourceReferencePace, targetReferencePace);
+    return adapted === session.duration_minutes ? `${session.duration_minutes} min` : `${session.duration_minutes} → ${adapted} min`;
 }
 
 function renderCreatedShare(container, result) {
     const wrapper = createElement('div', 'space-y-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3');
     wrapper.append(createElement('p', 'text-sm font-semibold text-emerald-200', `Codice: ${result.share_code}`));
-    wrapper.append(createElement('p', 'text-xs text-slate-400', `Scade il ${new Date(result.expires_at).toLocaleString('it-IT')}. Comunicalo solo alla persona che deve ricevere il programma.`));
+    wrapper.append(
+        createElement(
+            'p',
+            'text-xs text-slate-400',
+            `Scade il ${new Date(result.expires_at).toLocaleString('it-IT')}. Comunicalo solo alla persona che deve ricevere il programma.`
+        )
+    );
     const actions = createElement('div', 'flex flex-wrap gap-2');
     const copy = createElement('button', 'min-h-11 rounded-xl border border-slate-700 px-3 text-sm text-slate-200', 'Copia codice');
     copy.type = 'button';
@@ -247,7 +262,11 @@ function renderCreatedShare(container, result) {
             copy.textContent = 'Copia non riuscita';
         }
     });
-    const useForRevoke = createElement('button', 'min-h-11 rounded-xl border border-slate-700 px-3 text-sm text-slate-200', 'Prepara revoca');
+    const useForRevoke = createElement(
+        'button',
+        'min-h-11 rounded-xl border border-slate-700 px-3 text-sm text-slate-200',
+        'Prepara revoca'
+    );
     useForRevoke.type = 'button';
     useForRevoke.addEventListener('click', () => {
         const revokeInput = document.querySelector('#training-plan-revoke-form [name="share_code"]');
@@ -263,43 +282,50 @@ function renderSharePreview(container, result, hasReferencePace, newStartDate, t
     const wrapper = createElement('div', 'space-y-3 rounded-xl border border-slate-700 bg-slate-950 p-3');
     wrapper.append(createElement('p', 'text-sm font-semibold text-white', `${result.title} · ${result.session_count} sedute`));
     if (result.source_reference_pace_seconds_per_km != null) {
-        wrapper.append(createElement(
-            'p',
-            'text-xs text-slate-400',
-            `Passo di riferimento dichiarato dall’atleta: ${formatPace(result.source_reference_pace_seconds_per_km)} min/km. Ogni passo conserva il suo scarto dal riferimento (come nel libro, dove i ritmi sono VR ± secondi/km): usa la tua VR e verifica le sedute.`
-        ));
+        wrapper.append(
+            createElement(
+                'p',
+                'text-xs text-slate-400',
+                `Passo di riferimento dichiarato dall’atleta: ${formatPace(result.source_reference_pace_seconds_per_km)} min/km. Ogni passo conserva il suo scarto dal riferimento (come nel libro, dove i ritmi sono VR ± secondi/km): usa la tua VR e verifica le sedute.`
+            )
+        );
     } else {
-        wrapper.append(createElement('p', 'text-xs text-amber-200', 'Il programma non include un passo di riferimento: le sedute saranno copiate senza adattamento dei ritmi.'));
+        wrapper.append(
+            createElement(
+                'p',
+                'text-xs text-amber-200',
+                'Il programma non include un passo di riferimento: le sedute saranno copiate senza adattamento dei ritmi.'
+            )
+        );
     }
 
     const sessions = Array.isArray(result.sessions) ? result.sessions : [];
     const targetReferencePace = tryParsePace(targetReferencePaceInput);
     const sourceReferencePace = result.source_reference_pace_seconds_per_km;
-    const firstSourceDate = result.first_date
-        || sessions.map(session => session.scheduled_date).sort()[0];
+    const firstSourceDate = result.first_date || sessions.map(session => session.scheduled_date).sort()[0];
     const list = createElement('ol', 'max-h-64 space-y-2 overflow-y-auto');
     sessions.forEach(session => {
         const sourcePace = session.target_pace_seconds_per_km;
-        const adaptedPace = sourcePace != null
-            && sourceReferencePace != null
-            && targetReferencePace != null
-            ? scaleTrainingPace(sourcePace, sourceReferencePace, targetReferencePace)
-            : null;
-        const pace = sourcePace == null
-            ? ''
-            : adaptedPace == null
-                ? ` · ${formatPace(sourcePace)} min/km`
-                : ` · ${formatPace(sourcePace)} → ${formatPace(adaptedPace)} min/km`;
+        const adaptedPace =
+            sourcePace != null && sourceReferencePace != null && targetReferencePace != null
+                ? scaleTrainingPace(sourcePace, sourceReferencePace, targetReferencePace)
+                : null;
+        const pace =
+            sourcePace == null
+                ? ''
+                : adaptedPace == null
+                  ? ` · ${formatPace(sourcePace)} min/km`
+                  : ` · ${formatPace(sourcePace)} → ${formatPace(adaptedPace)} min/km`;
         const details = [
             shiftDate(session.scheduled_date, firstSourceDate, newStartDate),
             session.distance_km == null ? null : `${session.distance_km} km`,
             formatDurationChange(session, sourceReferencePace, targetReferencePace)
-        ].filter(Boolean).join(' · ');
-        list.append(createElement(
-            'li',
-            'rounded-lg border border-slate-800 p-2 text-xs text-slate-300',
-            `${details} · ${session.title}${pace}`
-        ));
+        ]
+            .filter(Boolean)
+            .join(' · ');
+        list.append(
+            createElement('li', 'rounded-lg border border-slate-800 p-2 text-xs text-slate-300', `${details} · ${session.title}${pace}`)
+        );
     });
     wrapper.append(list);
 
@@ -309,12 +335,22 @@ function renderSharePreview(container, result, hasReferencePace, newStartDate, t
     checkbox.name = 'confirm-import';
     confirmation.append(checkbox, document.createTextNode('Ho verificato le sedute e desidero aggiungerne una copia al mio calendario.'));
     wrapper.append(confirmation);
-    const button = createElement('button', 'min-h-11 w-full rounded-xl bg-brand-500 px-3 text-sm font-bold text-white', 'Conferma importazione');
+    const button = createElement(
+        'button',
+        'min-h-11 w-full rounded-xl bg-brand-500 px-3 text-sm font-bold text-white',
+        'Conferma importazione'
+    );
     button.type = 'button';
     button.dataset.action = 'import-share';
     wrapper.append(button);
     if (hasReferencePace) {
-        wrapper.append(createElement('p', 'text-xs text-amber-200', 'L’importazione non sostituisce una valutazione individuale: controlla la progressione, il recupero e ogni passo adattato.'));
+        wrapper.append(
+            createElement(
+                'p',
+                'text-xs text-amber-200',
+                'L’importazione non sostituisce una valutazione individuale: controlla la progressione, il recupero e ogni passo adattato.'
+            )
+        );
     }
     container.replaceChildren(wrapper);
 }
@@ -327,9 +363,11 @@ function tryParsePace(value) {
 }
 
 function shiftDate(dateKey, firstDateKey, newFirstDateKey) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey || '')
-        || !/^\d{4}-\d{2}-\d{2}$/.test(firstDateKey || '')
-        || !/^\d{4}-\d{2}-\d{2}$/.test(newFirstDateKey || '')) {
+    if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(dateKey || '') ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(firstDateKey || '') ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(newFirstDateKey || '')
+    ) {
         return dateKey || '';
     }
     const date = new Date(`${dateKey}T00:00:00Z`);
@@ -356,4 +394,3 @@ function createElement(tag, className, text = '') {
     if (text) element.textContent = text;
     return element;
 }
-

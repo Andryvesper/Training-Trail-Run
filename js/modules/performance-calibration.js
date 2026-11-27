@@ -72,48 +72,96 @@ export function proposeThresholdReview({ analyses = [], eccentricEntries = [], w
     const eccentricByDay = new Map(days.map(date => [date, eccentricStatus(eccentricEntries, date, config)]));
     const hrvByDay = new Map(days.map(date => [date, hrvStatus(wellness, date, config)]));
     const hrvDays = days.filter(date => hrvByDay.get(date).status === 'ok');
-    const highEpisodes = days.filter((date, index) => eccentricByDay.get(date).level === 'high'
-        && (index === 0 || eccentricByDay.get(days[index - 1]).level !== 'high'));
+    const highEpisodes = days.filter(
+        (date, index) => eccentricByDay.get(date).level === 'high' && (index === 0 || eccentricByDay.get(days[index - 1]).level !== 'high')
+    );
     const followedByLowHrv = date => [1, 2].some(offset => hrvByDay.get(addDays(date, offset))?.level === 'below');
-    const testable = highEpisodes.filter(date => addDays(date, 2) <= today && [1, 2].some(offset => hrvByDay.get(addDays(date, offset))?.status === 'ok'));
-    const lowHrvEpisodes = days.filter((date, index) => hrvByDay.get(date).level === 'below'
-        && (index === 0 || hrvByDay.get(days[index - 1]).level !== 'below'));
+    const testable = highEpisodes.filter(
+        date => addDays(date, 2) <= today && [1, 2].some(offset => hrvByDay.get(addDays(date, offset))?.status === 'ok')
+    );
+    const lowHrvEpisodes = days.filter(
+        (date, index) => hrvByDay.get(date).level === 'below' && (index === 0 || hrvByDay.get(days[index - 1]).level !== 'below')
+    );
     const missedModerate = lowHrvEpisodes.filter(date => {
         const ratios = [0, 1, 2].map(offset => eccentricByDay.get(addDays(date, -offset)));
         return ratios.some(status => status?.level === 'moderate') && !ratios.some(status => status?.level === 'high');
     });
     if (testable.length >= review.minEccentricEvents) {
         const hitRate = testable.filter(followedByLowHrv).length / testable.length;
-        observations.push(`Carico eccentrico alto: ${testable.length} episodi, HRV sotto range nei 2 giorni seguenti nel ${Math.round(hitRate * 100)}% dei casi.`);
+        observations.push(
+            `Carico eccentrico alto: ${testable.length} episodi, HRV sotto range nei 2 giorni seguenti nel ${Math.round(hitRate * 100)}% dei casi.`
+        );
         if (hitRate < 0.25) {
-            pushChange(changes, config, 'readiness.ratioHigh', +1, `Gli episodi di carico eccentrico "alto" raramente sono seguiti da HRV bassa (${Math.round(hitRate * 100)}%): soglia probabilmente troppo prudente.`);
+            pushChange(
+                changes,
+                config,
+                'readiness.ratioHigh',
+                +1,
+                `Gli episodi di carico eccentrico "alto" raramente sono seguiti da HRV bassa (${Math.round(hitRate * 100)}%): soglia probabilmente troppo prudente.`
+            );
         }
     } else {
-        observations.push(`Carico eccentrico alto: ${testable.length} episodi con HRV disponibile, ne servono ${review.minEccentricEvents} per rivedere la soglia.`);
+        observations.push(
+            `Carico eccentrico alto: ${testable.length} episodi con HRV disponibile, ne servono ${review.minEccentricEvents} per rivedere la soglia.`
+        );
     }
-    if (lowHrvEpisodes.length >= 2 && missedModerate.length / lowHrvEpisodes.length > 0.5 && !changes.some(change => change.key === 'readiness.ratioHigh')) {
-        pushChange(changes, config, 'readiness.ratioHigh', -1, `${missedModerate.length} cali di HRV su ${lowHrvEpisodes.length} sono arrivati dopo carico eccentrico solo "medio": soglia probabilmente troppo alta.`);
+    if (
+        lowHrvEpisodes.length >= 2 &&
+        missedModerate.length / lowHrvEpisodes.length > 0.5 &&
+        !changes.some(change => change.key === 'readiness.ratioHigh')
+    ) {
+        pushChange(
+            changes,
+            config,
+            'readiness.ratioHigh',
+            -1,
+            `${missedModerate.length} cali di HRV su ${lowHrvEpisodes.length} sono arrivati dopo carico eccentrico solo "medio": soglia probabilmente troppo alta.`
+        );
     }
 
     // 2. Rumore personale di GCT e oscillazione verticale nelle corse costanti.
-    const steady = recent.filter(item => Number.isFinite(item.decoupling?.driftPercent)
-        && item.decoupling.steady !== false
-        && item.decoupling.driftPercent <= config.decoupling.goodMaxPercent);
-    [['gct', 'biomechanics.gctAlertPercent', 'GCT'], ['verticalOscillation', 'biomechanics.voAlertPercent', 'oscillazione verticale']].forEach(([metric, key, label]) => {
+    const steady = recent.filter(
+        item =>
+            Number.isFinite(item.decoupling?.driftPercent) &&
+            item.decoupling.steady !== false &&
+            item.decoupling.driftPercent <= config.decoupling.goodMaxPercent
+    );
+    [
+        ['gct', 'biomechanics.gctAlertPercent', 'GCT'],
+        ['verticalOscillation', 'biomechanics.voAlertPercent', 'oscillazione verticale']
+    ].forEach(([metric, key, label]) => {
         const changesPercent = steady.map(item => item.biomechanics?.metrics?.[metric]?.changePercent).filter(Number.isFinite);
         if (changesPercent.length < review.minSteadyRuns) {
-            observations.push(`Variazione ${label} nelle corse costanti: ${changesPercent.length} corse, ne servono ${review.minSteadyRuns}.`);
+            observations.push(
+                `Variazione ${label} nelle corse costanti: ${changesPercent.length} corse, ne servono ${review.minSteadyRuns}.`
+            );
             return;
         }
         const mean = average(changesPercent);
         const sd = Math.sqrt(average(changesPercent.map(value => (value - mean) ** 2)));
         const normalUpper = round(mean + 2 * sd, 1);
         const current = readPath(config, key);
-        observations.push(`Variazione ${label} nelle corse costanti: media ${format(mean)}%, limite normale personale ${format(normalUpper)}% (${changesPercent.length} corse).`);
+        observations.push(
+            `Variazione ${label} nelle corse costanti: media ${format(mean)}%, limite normale personale ${format(normalUpper)}% (${changesPercent.length} corse).`
+        );
         if (normalUpper > current * (1 + review.step)) {
-            pushChange(changes, config, key, +1, `Nelle tue corse costanti la ${label} varia fino a ${format(normalUpper)}%: la soglia attuale darebbe falsi allarmi.`, normalUpper);
+            pushChange(
+                changes,
+                config,
+                key,
+                +1,
+                `Nelle tue corse costanti la ${label} varia fino a ${format(normalUpper)}%: la soglia attuale darebbe falsi allarmi.`,
+                normalUpper
+            );
         } else if (normalUpper < current * 0.5) {
-            pushChange(changes, config, key, -1, `Nelle tue corse costanti la ${label} varia al massimo del ${format(normalUpper)}%: una soglia più bassa coglie prima il cedimento.`, normalUpper);
+            pushChange(
+                changes,
+                config,
+                key,
+                -1,
+                `Nelle tue corse costanti la ${label} varia al massimo del ${format(normalUpper)}%: una soglia più bassa coglie prima il cedimento.`,
+                normalUpper
+            );
         }
     });
 
@@ -122,14 +170,33 @@ export function proposeThresholdReview({ analyses = [], eccentricEntries = [], w
     const shortHrvDays = hrvDays.filter(date => date >= shortFrom);
     if (shortHrvDays.length >= review.minHrvDays) {
         const belowShare = shortHrvDays.filter(date => hrvByDay.get(date).level === 'below').length / shortHrvDays.length;
-        const belowWithoutLoad = shortHrvDays.filter(date => hrvByDay.get(date).level === 'below' && eccentricByDay.get(date).level === 'low').length;
+        const belowWithoutLoad = shortHrvDays.filter(
+            date => hrvByDay.get(date).level === 'below' && eccentricByDay.get(date).level === 'low'
+        ).length;
         observations.push(`HRV sotto range nel ${Math.round(belowShare * 100)}% degli ultimi ${review.intervalDays} giorni.`);
         if (belowShare >= 0.4 && belowWithoutLoad / shortHrvDays.length >= 0.3) {
-            pushChange(changes, config, 'readiness.hrv.swcSd', +1, `HRV sotto range nel ${Math.round(belowShare * 100)}% dei giorni anche senza carico eccentrico: range troppo stretto per la tua variabilità.`);
+            pushChange(
+                changes,
+                config,
+                'readiness.hrv.swcSd',
+                +1,
+                `HRV sotto range nel ${Math.round(belowShare * 100)}% dei giorni anche senza carico eccentrico: range troppo stretto per la tua variabilità.`
+            );
         }
         const longBelow = hrvDays.filter(date => hrvByDay.get(date).level === 'below').length;
-        if (hrvDays.length >= 60 && longBelow === 0 && testable.some(followedByLowHrv) === false && testable.length >= review.minEccentricEvents) {
-            pushChange(changes, config, 'readiness.hrv.swcSd', -1, 'In 60 giorni l\'HRV non è mai uscita dal range, nemmeno dopo carichi alti: range probabilmente troppo largo.');
+        if (
+            hrvDays.length >= 60 &&
+            longBelow === 0 &&
+            testable.some(followedByLowHrv) === false &&
+            testable.length >= review.minEccentricEvents
+        ) {
+            pushChange(
+                changes,
+                config,
+                'readiness.hrv.swcSd',
+                -1,
+                "In 60 giorni l'HRV non è mai uscita dal range, nemmeno dopo carichi alti: range probabilmente troppo largo."
+            );
         }
     } else {
         observations.push(`HRV: ${shortHrvDays.length} giorni utili negli ultimi ${review.intervalDays}, ne servono ${review.minHrvDays}.`);
@@ -139,7 +206,9 @@ export function proposeThresholdReview({ analyses = [], eccentricEntries = [], w
     const drifts = recent.map(item => item.decoupling?.driftPercent).filter(Number.isFinite);
     if (drifts.length) {
         const sorted = drifts.slice().sort((a, b) => a - b);
-        observations.push(`Deriva cardiaca: mediana ${format(sorted[sorted.length >> 1])}% su ${drifts.length} sedute di endurance (soglie 3,5% e 5% di letteratura, non modificate automaticamente).`);
+        observations.push(
+            `Deriva cardiaca: mediana ${format(sorted[sorted.length >> 1])}% su ${drifts.length} sedute di endurance (soglie 3,5% e 5% di letteratura, non modificate automaticamente).`
+        );
     }
 
     return { windowFrom, windowTo: today, changes, observations };
@@ -171,8 +240,11 @@ function sortReviews(reviews) {
     return (Array.isArray(reviews) ? reviews : [])
         .filter(review => review?.reviewed_at)
         .slice()
-        .sort((left, right) => String(left.reviewed_at).localeCompare(String(right.reviewed_at))
-            || String(left.created_at || '').localeCompare(String(right.created_at || '')));
+        .sort(
+            (left, right) =>
+                String(left.reviewed_at).localeCompare(String(right.reviewed_at)) ||
+                String(left.created_at || '').localeCompare(String(right.created_at || ''))
+        );
 }
 
 function average(values) {

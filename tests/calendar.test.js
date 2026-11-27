@@ -3,11 +3,7 @@ import assert from 'node:assert/strict';
 import { TrainingCalendarService } from '../js/modules/calendar.js';
 
 test('genera sei settimane consecutive con regole coerenti al giorno', () => {
-    const weeks = new TrainingCalendarService().generateMultiWeekPlan(
-        new Date(2026, 2, 8, 12),
-        1,
-        4
-    );
+    const weeks = new TrainingCalendarService().generateMultiWeekPlan(new Date(2026, 2, 8, 12), 1, 4);
 
     assert.equal(weeks.length, 6);
     assert.equal(weeks.filter(week => week.isCurrent).length, 1);
@@ -23,20 +19,8 @@ test('genera sei settimane consecutive con regole coerenti al giorno', () => {
 });
 
 test('mantiene le date calendario locali senza spostarle al giorno precedente', () => {
-    const weeks = new TrainingCalendarService().generateMultiWeekPlan(
-        new Date(2026, 0, 7, 23, 30),
-        0,
-        0
-    );
+    const weeks = new TrainingCalendarService().generateMultiWeekPlan(new Date(2026, 0, 7, 23, 30), 0, 0);
     const dates = weeks[0].days.map(day => day.date);
 
-    assert.deepEqual(dates, [
-        '2026-01-05',
-        '2026-01-06',
-        '2026-01-07',
-        '2026-01-08',
-        '2026-01-09',
-        '2026-01-10',
-        '2026-01-11'
-    ]);
+    assert.deepEqual(dates, ['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08', '2026-01-09', '2026-01-10', '2026-01-11']);
 });

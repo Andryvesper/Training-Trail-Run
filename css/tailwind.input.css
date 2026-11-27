@@ -35,9 +35,9 @@
     }
 }
 
-[data-summary-period][aria-pressed="true"],
-[data-chart-weeks][aria-pressed="true"],
-[data-performance-days][aria-pressed="true"] {
+[data-summary-period][aria-pressed='true'],
+[data-chart-weeks][aria-pressed='true'],
+[data-performance-days][aria-pressed='true'] {
     background-color: #a040f0;
     border-color: #a040f0;
     color: #ffffff;
@@ -58,10 +58,16 @@
 }
 
 @keyframes skeleton-shimmer {
-    from { background-position: 200% 0; }
-    to { background-position: -200% 0; }
+    from {
+        background-position: 200% 0;
+    }
+    to {
+        background-position: -200% 0;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .skeleton { animation: none; }
+    .skeleton {
+        animation: none;
+    }
 }

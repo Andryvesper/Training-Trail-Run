@@ -63,10 +63,13 @@ test('describeSession include distanza, passo, D+ e note', () => {
 });
 
 test('buildIcsCalendar produce un VCALENDAR valido con CRLF', () => {
-    const ics = buildIcsCalendar([
-        { id: 'abc-1', scheduled_date: '2026-11-20', title: 'Lungo; collinare, facile', distance_km: 18, notes: 'Riga 1\nRiga 2' },
-        { id: 'abc-2', scheduled_date: '2026-11-22', title: 'Ripetute' }
-    ], { now: new Date('2026-11-14T10:00:00Z') });
+    const ics = buildIcsCalendar(
+        [
+            { id: 'abc-1', scheduled_date: '2026-11-20', title: 'Lungo; collinare, facile', distance_km: 18, notes: 'Riga 1\nRiga 2' },
+            { id: 'abc-2', scheduled_date: '2026-11-22', title: 'Ripetute' }
+        ],
+        { now: new Date('2026-11-14T10:00:00Z') }
+    );
 
     assert.ok(ics.startsWith('BEGIN:VCALENDAR\r\n'));
     assert.ok(ics.endsWith('END:VCALENDAR\r\n'));
@@ -91,9 +94,14 @@ test('buildIcsCalendar produce un VCALENDAR valido con CRLF', () => {
 
 test('UID stabile tra due esportazioni', () => {
     const session = { id: 's-9', scheduled_date: '2026-12-01', title: 'Fartlek' };
-    const uid = ics => unfold(ics).split('\r\n').find(line => line.startsWith('UID:'));
-    assert.equal(uid(buildIcsCalendar([session], { now: new Date('2026-11-14T00:00:00Z') })),
-        uid(buildIcsCalendar([session], { now: new Date('2026-12-01T00:00:00Z') })));
+    const uid = ics =>
+        unfold(ics)
+            .split('\r\n')
+            .find(line => line.startsWith('UID:'));
+    assert.equal(
+        uid(buildIcsCalendar([session], { now: new Date('2026-11-14T00:00:00Z') })),
+        uid(buildIcsCalendar([session], { now: new Date('2026-12-01T00:00:00Z') }))
+    );
 });
 
 test('selectSessionsForExport filtra futuro e range', () => {
@@ -105,8 +113,14 @@ test('selectSessionsForExport filtra futuro e range', () => {
         { id: 5, scheduled_date: null, title: 'Senza data' }
     ];
     const short = selectSessionsForExport(sessions, { today: '2026-11-14', range: 'next3weeks' });
-    assert.deepEqual(short.map(s => s.id), [2, 3]);
+    assert.deepEqual(
+        short.map(s => s.id),
+        [2, 3]
+    );
     const all = selectSessionsForExport(sessions, { today: '2026-11-14', range: 'all' });
-    assert.deepEqual(all.map(s => s.id), [2, 3, 4]);
+    assert.deepEqual(
+        all.map(s => s.id),
+        [2, 3, 4]
+    );
     assert.equal(exportFileName('2026-11-14', 'all'), 'allenamenti-piano-2026-11-14.ics');
 });

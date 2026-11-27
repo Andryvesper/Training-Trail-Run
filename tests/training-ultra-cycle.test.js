@@ -26,8 +26,8 @@ const options = {
 test('legge le celle della tabella ultra: esercizi, gara, ripetute e lunghi senza unità', () => {
     assert.equal(parseCycleCell('Esercizi').kind, 'strength');
     assert.equal(parseCycleCell('Gara / 100 km').kind, 'race');
-    assert.equal(parseCycleCell('2 x 3 / rec. 3\' / MLSS').distanceKm, 6);
-    assert.equal(parseCycleCell('10 x 400 / VAM rec. 1\'').distanceKm, 4);
+    assert.equal(parseCycleCell("2 x 3 / rec. 3' / MLSS").distanceKm, 6);
+    assert.equal(parseCycleCell("10 x 400 / VAM rec. 1'").distanceKm, 4);
     assert.equal(parseCycleCell('20 LLU').distanceKm, 20);
     assert.equal(parseCycleCell('15 km / LLU da / fare la / sera').night, true);
 });
@@ -57,7 +57,10 @@ test('il dislivello consigliato segue la pendenza della gara con il tetto della 
     const guidance = elevationGuidance(long, { raceKm: 100, raceElevationM: 2000, climbRate: 500, paceSecondsPerKm: 375 });
     assert.equal(guidance.meters, 400);
     assert.equal(elevationGuidance(long, { raceKm: 100, raceElevationM: 5000, climbRate: 500, paceSecondsPerKm: 375 }).meters, 500);
-    const capped = elevationGuidance({ ...long, distanceKm: 65 }, { raceKm: 100, raceElevationM: 5000, climbRate: 500, paceSecondsPerKm: 375 });
+    const capped = elevationGuidance(
+        { ...long, distanceKm: 65 },
+        { raceKm: 100, raceElevationM: 5000, climbRate: 500, paceSecondsPerKm: 375 }
+    );
     assert.equal(capped.meters, 1700);
     assert.match(capped.text, /ridotto a metà del tempo in salita/);
     const quality = elevationGuidance({ ...long, quality: true }, { raceKm: 100, raceElevationM: 5000, climbRate: 500 });
@@ -89,14 +92,28 @@ test('la regola ultra è approvata e si applica solo a gare trail tra 75 e 125 k
         reference_vr_seconds_per_km: 285
     };
     // Con anche la tabella 11 applicabile serve la scelta del metodo.
-    const undecided = assessTrainingMethodology(profile, { distance_km: 102, event_date: '2027-06-04' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    const undecided = assessTrainingMethodology(profile, { distance_km: 102, event_date: '2027-06-04' }, TRAINING_METHOD_RULES, {
+        asOfDate: '2026-11-14'
+    });
     assert.equal(undecided.generation_enabled, false);
-    const ultra = assessTrainingMethodology({ ...profile, preferred_cycle_method: 'distance_time' }, { distance_km: 102, event_date: '2027-06-04' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    const ultra = assessTrainingMethodology(
+        { ...profile, preferred_cycle_method: 'distance_time' },
+        { distance_km: 102, event_date: '2027-06-04' },
+        TRAINING_METHOD_RULES,
+        { asOfDate: '2026-11-14' }
+    );
     assert.deepEqual(ultra.generation_pattern_ids, ['ultra_100km_evoluto']);
     // Su sola strada vale solo la tabella 11.
-    const roadOnly = assessTrainingMethodology({ ...profile, preferred_terrains: ['road'] }, { distance_km: 102, event_date: '2027-06-04' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    const roadOnly = assessTrainingMethodology(
+        { ...profile, preferred_terrains: ['road'] },
+        { distance_km: 102, event_date: '2027-06-04' },
+        TRAINING_METHOD_RULES,
+        { asOfDate: '2026-11-14' }
+    );
     assert.ok(!roadOnly.approved_pattern_ids.includes('ultra_100km_evoluto'));
     assert.deepEqual(roadOnly.generation_pattern_ids, ['ultra_100km_passatore']);
-    const tooShort = assessTrainingMethodology(profile, { distance_km: 73, event_date: '2027-03-20' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    const tooShort = assessTrainingMethodology(profile, { distance_km: 73, event_date: '2027-03-20' }, TRAINING_METHOD_RULES, {
+        asOfDate: '2026-11-14'
+    });
     assert.ok(!tooShort.approved_pattern_ids.includes('ultra_100km_evoluto'));
 });

@@ -9,7 +9,7 @@ function response(status, body, marker) {
     return {
         ok: status >= 200 && status < 300,
         status,
-        headers: { get: name => (name === PROXY_HEADER ? marker ?? null : null) },
+        headers: { get: name => (name === PROXY_HEADER ? (marker ?? null) : null) },
         json: async () => body
     };
 }
@@ -17,59 +17,95 @@ function response(status, body, marker) {
 async function withFetch(handler, run) {
     const original = globalThis.fetch;
     const calls = [];
-    globalThis.fetch = async (url, options) => { calls.push({ url, options }); return handler(url, calls.length); };
-    try { await run(calls); } finally { globalThis.fetch = original; }
+    globalThis.fetch = async (url, options) => {
+        calls.push({ url, options });
+        return handler(url, calls.length);
+    };
+    try {
+        await run(calls);
+    } finally {
+        globalThis.fetch = original;
+    }
 }
 
 test('con il proxy la chiave non viaggia: solo il token di sessione', async () => {
-    await withFetch(() => response(200, [], '1'), async calls => {
-        await new IntervalsService('i1', null, { proxy: PROXY }).getActivities('2026-11-01', '2026-11-04');
-        assert.equal(calls.length, 1);
-        assert.equal(calls[0].url, `${PROXY.url}/athlete/i1/activities?oldest=2026-11-01&newest=2026-11-04`);
-        assert.equal(calls[0].options.headers.Authorization, 'Bearer jwt');
-        assert.equal(calls[0].options.headers.apikey, 'pub');
-    });
+    await withFetch(
+        () => response(200, [], '1'),
+        async calls => {
+            await new IntervalsService('i1', null, { proxy: PROXY }).getActivities('2026-11-01', '2026-11-04');
+            assert.equal(calls.length, 1);
+            assert.equal(calls[0].url, `${PROXY.url}/athlete/i1/activities?oldest=2026-11-01&newest=2026-11-04`);
+            assert.equal(calls[0].options.headers.Authorization, 'Bearer jwt');
+            assert.equal(calls[0].options.headers.apikey, 'pub');
+        }
+    );
 });
 
 test('funzione non distribuita: ripiego diretto solo se la chiave è nota', async () => {
-    await withFetch((url, call) => (call === 1 ? response(404, {}) : response(200, [])), async calls => {
-        const service = new IntervalsService('i1', 'k', { proxy: PROXY });
-        await service.getWellness('2026-11-01', '2026-11-04');
-        assert.equal(calls.length, 2);
-        assert.match(calls[1].url, /^https:\/\/intervals\.icu\/api\/v1\/athlete\/i1\/wellness/);
-        assert.match(calls[1].options.headers.Authorization, /^Basic /);
-        // Le richieste successive vanno subito dirette.
-        await service.getWellness('2026-11-01', '2026-11-04');
-        assert.equal(calls.length, 3);
-    });
-    await withFetch(() => response(404, {}), async () => {
-        await assert.rejects(
-            new IntervalsService('i1', null, { proxy: PROXY }).getWellness('2026-11-01', '2026-11-04'),
-            /collegamento sicuro non riuscito \(HTTP 404\)/
-        );
-    });
+    await withFetch(
+        (url, call) => (call === 1 ? response(404, {}) : response(200, [])),
+        async calls => {
+            const service = new IntervalsService('i1', 'k', { proxy: PROXY });
+            await service.getWellness('2026-11-01', '2026-11-04');
+            assert.equal(calls.length, 2);
+            assert.match(calls[1].url, /^https:\/\/intervals\.icu\/api\/v1\/athlete\/i1\/wellness/);
+            assert.match(calls[1].options.headers.Authorization, /^Basic /);
+            // Le richieste successive vanno subito dirette.
+            await service.getWellness('2026-11-01', '2026-11-04');
+            assert.equal(calls.length, 3);
+        }
+    );
+    await withFetch(
+        () => response(404, {}),
+        async () => {
+            await assert.rejects(
+                new IntervalsService('i1', null, { proxy: PROXY }).getWellness('2026-11-01', '2026-11-04'),
+                /collegamento sicuro non riuscito \(HTTP 404\)/
+            );
+        }
+    );
 });
 
 test('errori del proxy e di Intervals.icu restano distinti', async () => {
-    await withFetch(() => response(412, { error: 'Intervals.icu non è collegato.' }, 'error'), async () => {
-        await assert.rejects(new IntervalsService('i1', null, { proxy: PROXY }).getActivities('a', 'b'), /non è collegato/);
-    });
-    await withFetch(() => response(401, {}, '1'), async () => {
-        await assert.rejects(new IntervalsService('i1', null, { proxy: PROXY }).getActivities('a', 'b'), /HTTP 401\. Controlla Athlete ID e API Key/);
-    });
+    await withFetch(
+        () => response(412, { error: 'Intervals.icu non è collegato.' }, 'error'),
+        async () => {
+            await assert.rejects(new IntervalsService('i1', null, { proxy: PROXY }).getActivities('a', 'b'), /non è collegato/);
+        }
+    );
+    await withFetch(
+        () => response(401, {}, '1'),
+        async () => {
+            await assert.rejects(
+                new IntervalsService('i1', null, { proxy: PROXY }).getActivities('a', 'b'),
+                /HTTP 401\. Controlla Athlete ID e API Key/
+            );
+        }
+    );
 });
 
 function mockSupabase({ rpcResult, rows = [] }) {
     const calls = [];
     const query = {};
-    ['select', 'eq', 'update'].forEach(method => { query[method] = (...args) => { calls.push([method, ...args]); return query; }; });
+    ['select', 'eq', 'update'].forEach(method => {
+        query[method] = (...args) => {
+            calls.push([method, ...args]);
+            return query;
+        };
+    });
     query.maybeSingle = () => Promise.resolve({ data: rows[0] ?? null, error: null });
     query.then = (resolve, reject) => Promise.resolve({ data: rows, error: null }).then(resolve, reject);
     return {
         calls,
         client: {
-            rpc: async name => { calls.push(['rpc', name]); return rpcResult; },
-            from: table => { calls.push(['from', table]); return query; }
+            rpc: async name => {
+                calls.push(['rpc', name]);
+                return rpcResult;
+            },
+            from: table => {
+                calls.push(['from', table]);
+                return query;
+            }
         }
     };
 }

@@ -50,9 +50,7 @@ export async function initAthleteProfileModule(supabaseClient, userId) {
 function renderSummary(container, profile) {
     if (!container) return;
     const age = ageOn(profile?.birth_date);
-    const bmi = profile?.height_cm && profile?.weight_kg
-        ? profile.weight_kg / (profile.height_cm / 100) ** 2
-        : null;
+    const bmi = profile?.height_cm && profile?.weight_kg ? profile.weight_kg / (profile.height_cm / 100) ** 2 : null;
     const parts = [
         profile?.full_name || 'Nome non indicato',
         age === null ? null : `${age} anni`,
@@ -65,7 +63,7 @@ function renderSummary(container, profile) {
 function showStatus(element, message, kind) {
     if (!element) return;
     element.textContent = message;
-    element.className = `rounded-xl border p-3 text-sm ${kind === 'error'
-        ? 'border-rose-500/30 bg-rose-500/10 text-rose-200'
-        : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'}`;
+    element.className = `rounded-xl border p-3 text-sm ${
+        kind === 'error' ? 'border-rose-500/30 bg-rose-500/10 text-rose-200' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+    }`;
 }

@@ -113,14 +113,22 @@ test('prontezza: giallo muscolare con HRV normale ma discesa non assorbita', () 
 });
 
 test('prontezza: giallo sistemico con HRV bassa senza discese', () => {
-    const readiness = computeReadiness({ eccentricEntries: [{ date: TODAY, eccentricPoints: 0 }], wellness: wellness({ lastDays: 5, lastValue: 40 }), today: TODAY });
+    const readiness = computeReadiness({
+        eccentricEntries: [{ date: TODAY, eccentricPoints: 0 }],
+        wellness: wellness({ lastDays: 5, lastValue: 40 }),
+        today: TODAY
+    });
     assert.equal(readiness.level, 'amber');
     assert.equal(readiness.kind, 'systemic');
 });
 
 test('prontezza: verde senza carico e con HRV nel range; FC a riposo alta segnalata', () => {
     const records = wellness().map((record, index, all) => ({ ...record, restingHR: index >= all.length - 7 ? 58 : 48 }));
-    const readiness = computeReadiness({ eccentricEntries: [{ date: addDays(TODAY, -3), eccentricPoints: 2 }], wellness: records, today: TODAY });
+    const readiness = computeReadiness({
+        eccentricEntries: [{ date: addDays(TODAY, -3), eccentricPoints: 2 }],
+        wellness: records,
+        today: TODAY
+    });
     assert.equal(readiness.level, 'green');
     assert.ok(readiness.advice.some(item => item.startsWith('FC a riposo')));
 });

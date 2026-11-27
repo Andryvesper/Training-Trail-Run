@@ -42,12 +42,28 @@ function profileInput(overrides = {}) {
 }
 
 const trail30 = {
-    id: 'goal', name: 'Trail del lago', event_date: '2027-02-28', target_period: null,
-    distance_km: 30, elevation_gain_m: 1500, elevation_loss_m: 1200, priority: 1, goal: 'trail', status: 'planned'
+    id: 'goal',
+    name: 'Trail del lago',
+    event_date: '2027-02-28',
+    target_period: null,
+    distance_km: 30,
+    elevation_gain_m: 1500,
+    elevation_loss_m: 1200,
+    priority: 1,
+    goal: 'trail',
+    status: 'planned'
 };
 const passatore = {
-    id: 'goal', name: 'Passatore', event_date: '2027-05-29', target_period: null,
-    distance_km: 100, elevation_gain_m: 1000, elevation_loss_m: null, priority: 1, goal: null, status: 'planned'
+    id: 'goal',
+    name: 'Passatore',
+    event_date: '2027-05-29',
+    target_period: null,
+    distance_km: 100,
+    elevation_gain_m: 1000,
+    elevation_loss_m: null,
+    priority: 1,
+    goal: null,
+    status: 'planned'
 };
 const rule = id => TRAINING_METHOD_RULES.find(item => item.id === id);
 
@@ -61,7 +77,10 @@ function mockClient(results) {
                 const result = results.shift();
                 const query = {};
                 ['select', 'eq', 'gte', 'lte', 'is', 'insert', 'update', 'order', 'limit'].forEach(method => {
-                    query[method] = (...args) => { calls.push([method, ...args]); return query; };
+                    query[method] = (...args) => {
+                        calls.push([method, ...args]);
+                        return query;
+                    };
                 });
                 query.single = () => Promise.resolve(result);
                 query.then = (resolve, reject) => Promise.resolve(result).then(resolve, reject);
@@ -87,7 +106,12 @@ test('tabelle 13 e 11 generano la bozza senza test VR e passano il D- della gara
     assert.ok(!explainMissingProgram(insert.profile_snapshot).some(reason => reason.includes('test VR')));
 
     const ultra = mockClient([{ data: { id: 'd2' }, error: null }]);
-    await new TrainingPlannerService(ultra.client).createDraftRequest('user-1', profileInput({ preferred_terrains: ['road'] }), [passatore], { today: TODAY });
+    await new TrainingPlannerService(ultra.client).createDraftRequest(
+        'user-1',
+        profileInput({ preferred_terrains: ['road'] }),
+        [passatore],
+        { today: TODAY }
+    );
     const ultraInsert = ultra.calls.find(call => call[0] === 'insert')[1];
     assert.equal(ultraInsert.profile_snapshot.generated_draft.rule_id, 'ultra_100km_passatore');
     assert.equal(ultraInsert.profile_snapshot.generated_draft.weeks.length, 15);
@@ -96,30 +120,49 @@ test('tabelle 13 e 11 generano la bozza senza test VR e passano il D- della gara
 test('ultra su trail: senza metodo scelto mostra il suggerimento e non chiede il test VR', () => {
     const profile = normalizePlanningProfile(profileInput());
     const mock = { goal_mode: 'race', primary_race: passatore, ...profile };
-    const assessment = { approved_pattern_ids: ['ultra_100km_evoluto', 'ultra_100km_passatore'], blockers: [
-        'Più cicli sono applicabili: scegli il metodo (respiratorio o distanza-tempo) nel questionario.',
-        'Suggerimento (regola derivata, da confermare dall\'atleta): da amatore usa la tabella 11 (metodo respiratorio, km e sensazioni).'
-    ] };
+    const assessment = {
+        approved_pattern_ids: ['ultra_100km_evoluto', 'ultra_100km_passatore'],
+        blockers: [
+            'Più cicli sono applicabili: scegli il metodo (respiratorio o distanza-tempo) nel questionario.',
+            "Suggerimento (regola derivata, da confermare dall'atleta): da amatore usa la tabella 11 (metodo respiratorio, km e sensazioni)."
+        ]
+    };
     const reasons = explainMissingProgram({ ...mock, methodology_assessment: assessment });
     assert.ok(reasons.some(reason => reason.includes('tabella 11')));
     assert.ok(!reasons.some(reason => reason.includes('test VR')));
     // Con metodo distanza-tempo (tabella 10 evoluti) il test VR serve.
     const withVr = explainMissingProgram({ ...mock, preferred_cycle_method: 'distance_time', methodology_assessment: assessment });
     assert.ok(withVr.some(reason => reason.includes('test VR')));
-    const none = explainMissingProgram({ goal_mode: 'race', primary_race: { name: 'Corsa', distance_km: 60 }, methodology_assessment: { approved_pattern_ids: [] } });
+    const none = explainMissingProgram({
+        goal_mode: 'race',
+        primary_race: { name: 'Corsa', distance_km: 60 },
+        methodology_assessment: { approved_pattern_ids: [] }
+    });
     assert.ok(none[0].includes('trail 15-50 km'));
 });
 
 test('la variante a 5 corse non viene chiesta per la tabella 13 (base 5 corse)', () => {
-    const five = getPlanningReadiness(profileInput({
-        target_running_sessions_per_week: 5,
-        weekly_availability: { ...availability, mon: { available: true, max_minutes: 60 } }
-    }), [trail30], { today: TODAY });
+    const five = getPlanningReadiness(
+        profileInput({
+            target_running_sessions_per_week: 5,
+            weekly_availability: { ...availability, mon: { available: true, max_minutes: 60 } }
+        }),
+        [trail30],
+        { today: TODAY }
+    );
     assert.ok(!five.warnings.some(item => item.includes('scegli la variante')));
 });
 
 test('propone il test VR solo se il metodo scelto lo richiede, nel primo giorno libero', () => {
-    const road10 = { id: 'goal', name: 'Dieci', event_date: '2027-03-21', distance_km: 10, elevation_gain_m: 0, priority: 1, status: 'planned' };
+    const road10 = {
+        id: 'goal',
+        name: 'Dieci',
+        event_date: '2027-03-21',
+        distance_km: 10,
+        elevation_gain_m: 0,
+        priority: 1,
+        status: 'planned'
+    };
     const input = profileInput({
         preferred_terrains: ['road'],
         preferred_cycle_method: 'distance_time',
@@ -133,18 +176,25 @@ test('propone il test VR solo se il metodo scelto lo richiede, nel primo giorno 
     assert.equal(proposal.calendarSession.distance_km, 6);
     assert.match(proposal.calendarSession.notes, /Riscaldamento/);
 
-    const tenKm = proposeReferenceTest(normalizePlanningProfile({ ...input, weekly_availability: { ...availability, sun: { available: false, max_minutes: null } } }), { today: TODAY, protocol: 'ten_km' });
+    const tenKm = proposeReferenceTest(
+        normalizePlanningProfile({ ...input, weekly_availability: { ...availability, sun: { available: false, max_minutes: null } } }),
+        { today: TODAY, protocol: 'ten_km' }
+    );
     // Martedì bloccato dal nuoto fisso: mercoledì 18.
     assert.equal(tenKm.proposedDate, '2026-11-18');
     assert.equal(tenKm.totalKm, 13);
 
-    const valid = getReferenceTestProposal({
-        ...input,
-        reference_test_protocol: 'ten_km',
-        reference_test_date: '2026-11-01',
-        reference_test_time: '45:00',
-        reference_test_conditions: 'pista'
-    }, [road10], { today: TODAY });
+    const valid = getReferenceTestProposal(
+        {
+            ...input,
+            reference_test_protocol: 'ten_km',
+            reference_test_date: '2026-11-01',
+            reference_test_time: '45:00',
+            reference_test_conditions: 'pista'
+        },
+        [road10],
+        { today: TODAY }
+    );
     assert.equal(valid, null);
     assert.equal(getReferenceTestProposal(profileInput(), [trail30], { today: TODAY }), null);
 });
@@ -211,7 +261,10 @@ test('tabella 11: la gara reale nella settimana della maratona prende il suo pos
     assert.match(proposal.target.raw, /maratona/i);
     const sessions = applyIntermediateRaces(draft, [proposal]).weeks.flatMap(week => week.sessions);
     assert.ok(!sessions.some(session => /^Gara\s*\/?\s*maratona/i.test(session.raw)));
-    assert.equal(sessions.filter(session => session.derivedRule === INTERMEDIATE_RACE_RULE.id && session.type === 'race_training').length, 1);
+    assert.equal(
+        sessions.filter(session => session.derivedRule === INTERMEDIATE_RACE_RULE.id && session.type === 'race_training').length,
+        1
+    );
 });
 
 function planDraft() {
@@ -231,10 +284,41 @@ function addDays(dateKey, days) {
 }
 
 const planSessions = [
-    { id: 'a', scheduled_date: '2026-11-08', title: 'Tab. 6 · S1 · 12 km L', sport_type: 'run', distance_km: 12, intervals_activity_id: 'i1', completed_activity: { distance: 12300 } },
-    { id: 'b', scheduled_date: '2026-11-15', title: 'Tab. 6 · S2 · 14 km L', sport_type: 'run', distance_km: 14, intervals_activity_id: null },
-    { id: 'c', scheduled_date: '2026-11-18', title: 'Tab. 6 · S3 · 6 x 1 km B', sport_type: 'run', distance_km: 8, intervals_activity_id: null, notes: 'Qualità' },
-    { id: 'd', scheduled_date: '2026-11-22', title: 'Tab. 6 · S3 · 18 km L', sport_type: 'run', distance_km: 18, intervals_activity_id: null, notes: 'Lungo' }
+    {
+        id: 'a',
+        scheduled_date: '2026-11-08',
+        title: 'Tab. 6 · S1 · 12 km L',
+        sport_type: 'run',
+        distance_km: 12,
+        intervals_activity_id: 'i1',
+        completed_activity: { distance: 12300 }
+    },
+    {
+        id: 'b',
+        scheduled_date: '2026-11-15',
+        title: 'Tab. 6 · S2 · 14 km L',
+        sport_type: 'run',
+        distance_km: 14,
+        intervals_activity_id: null
+    },
+    {
+        id: 'c',
+        scheduled_date: '2026-11-18',
+        title: 'Tab. 6 · S3 · 6 x 1 km B',
+        sport_type: 'run',
+        distance_km: 8,
+        intervals_activity_id: null,
+        notes: 'Qualità'
+    },
+    {
+        id: 'd',
+        scheduled_date: '2026-11-22',
+        title: 'Tab. 6 · S3 · 18 km L',
+        sport_type: 'run',
+        distance_km: 18,
+        intervals_activity_id: null,
+        notes: 'Lungo'
+    }
 ];
 
 test('settimana saltata: anteprima con lungo limitato a +25% e qualità invariata', () => {
@@ -283,7 +367,9 @@ test('due gare intermedie nella stessa settimana: la seconda non cancella la pri
     ];
     const draft = generateCycleDraft(profile, trail30, rule('trail_15_50km'), { today: TODAY, secondaryRaces: secondary });
     const applied = applyIntermediateRaces(draft, draft.intermediateRaceProposals);
-    const races = applied.weeks.flatMap(week => week.sessions).filter(session => session.derivedRule === INTERMEDIATE_RACE_RULE.id && session.type === 'race_training');
+    const races = applied.weeks
+        .flatMap(week => week.sessions)
+        .filter(session => session.derivedRule === INTERMEDIATE_RACE_RULE.id && session.type === 'race_training');
     assert.equal(races.length, 2);
     assert.throws(() => applyIntermediateRaces(draft, [{ event_date: '2030-01-01' }]), /periodo della bozza/);
 });

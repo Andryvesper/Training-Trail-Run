@@ -16,7 +16,14 @@ const METRICS = Object.freeze([
 
 export function computeBiomechanics(samples, config = PERFORMANCE_CONFIG) {
     const settings = config.biomechanics;
-    const empty = (reason, status = 'unavailable') => ({ status, reason, normalized: null, metrics: {}, gctSlopePerHour: null, gctSlopePercentPerHour: null });
+    const empty = (reason, status = 'unavailable') => ({
+        status,
+        reason,
+        normalized: null,
+        metrics: {},
+        gctSlopePerHour: null,
+        gctSlopePercentPerHour: null
+    });
     if (!samples) return empty('Nessuno stream di tempo e distanza.');
     const available = METRICS.filter(metric => samples.has[metric.key]);
     if (!available.length) return empty('Nessuna dinamica di corsa (GCT, oscillazione verticale) negli stream.');
@@ -27,8 +34,13 @@ export function computeBiomechanics(samples, config = PERFORMANCE_CONFIG) {
     const earlyRange = [warmup, Math.max(warmup + settings.minWindowSeconds, total * settings.earlyEndFraction)];
     const lateRange = [total * settings.lateStartFraction, total];
 
-    const referenceSpeed = median(collect(samples, index =>
-        samples.movingTime[index] >= warmup && isFlat(samples, index, settings.flatGrade), index => samples.speed[index]));
+    const referenceSpeed = median(
+        collect(
+            samples,
+            index => samples.movingTime[index] >= warmup && isFlat(samples, index, settings.flatGrade),
+            index => samples.speed[index]
+        )
+    );
     const comparable = index => {
         if (!referenceSpeed) return false;
         if (samples.has.altitude && !isFlat(samples, index, settings.flatGrade)) return false;
@@ -67,11 +79,11 @@ export function computeBiomechanics(samples, config = PERFORMANCE_CONFIG) {
             label: metric.label,
             early: round(earlyMedian, 2),
             late: round(lateMedian, 2),
-            changePercent: earlyMedian > 0 ? round((lateMedian - earlyMedian) / earlyMedian * 100, 1) : null,
+            changePercent: earlyMedian > 0 ? round(((lateMedian - earlyMedian) / earlyMedian) * 100, 1) : null,
             normalized
         };
     });
-    if (!Object.keys(metrics).length) return empty('Dinamiche di corsa troppo scarse all\'inizio o nel finale.');
+    if (!Object.keys(metrics).length) return empty("Dinamiche di corsa troppo scarse all'inizio o nel finale.");
 
     let gctSlopePerHour = null;
     let gctSlopePercentPerHour = null;
@@ -85,7 +97,7 @@ export function computeBiomechanics(samples, config = PERFORMANCE_CONFIG) {
         const slope = linearSlope(points);
         if (slope !== null) {
             gctSlopePerHour = round(slope, 2);
-            gctSlopePercentPerHour = metrics.gct.early > 0 ? round(slope / metrics.gct.early * 100, 2) : null;
+            gctSlopePercentPerHour = metrics.gct.early > 0 ? round((slope / metrics.gct.early) * 100, 2) : null;
         }
     }
 
@@ -109,10 +121,12 @@ export function biomechanicsAlerts(result, config = PERFORMANCE_CONFIG) {
     const alerts = [];
     const gct = result.metrics.gct;
     if (gct?.changePercent > settings.gctAlertPercent) {
-        alerts.push(`GCT più lungo del ${format(gct.changePercent)}% nel finale (soglia ${format(settings.gctAlertPercent)}%): possibile cedimento neuromuscolare.`);
+        alerts.push(
+            `GCT più lungo del ${format(gct.changePercent)}% nel finale (soglia ${format(settings.gctAlertPercent)}%): possibile cedimento neuromuscolare.`
+        );
     }
     if (gct && result.gctSlopePercentPerHour !== null && gct.early > 0) {
-        const slopeMsPerHour = result.gctSlopePercentPerHour / 100 * guessMilliseconds(gct.early);
+        const slopeMsPerHour = (result.gctSlopePercentPerHour / 100) * guessMilliseconds(gct.early);
         if (slopeMsPerHour > settings.gctSlopeAlertMsPerHour) {
             alerts.push(`GCT in crescita di circa ${format(slopeMsPerHour)} ms/ora (soglia ${format(settings.gctSlopeAlertMsPerHour)}).`);
         }
@@ -123,7 +137,9 @@ export function biomechanicsAlerts(result, config = PERFORMANCE_CONFIG) {
     }
     const ratio = result.metrics.verticalRatio;
     if (ratio?.changePercent > settings.verticalRatioAlertPercent) {
-        alerts.push(`Vertical ratio aumentato del ${format(ratio.changePercent)}% (soglia ${format(settings.verticalRatioAlertPercent)}%).`);
+        alerts.push(
+            `Vertical ratio aumentato del ${format(ratio.changePercent)}% (soglia ${format(settings.verticalRatioAlertPercent)}%).`
+        );
     }
     return alerts;
 }

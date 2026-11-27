@@ -41,11 +41,7 @@ export function isConnected(connection) {
 export async function saveIntervalsCredentials(supabaseClient, userId, { athleteId, apiKey }) {
     const changes = { intervals_id: athleteId, intervals_athlete_id: athleteId };
     if (apiKey) Object.assign(changes, { intervals_key: apiKey, intervals_api_key: apiKey });
-    const { data, error } = await supabaseClient
-        .from('profiles')
-        .update(changes)
-        .eq('id', userId)
-        .select('id');
+    const { data, error } = await supabaseClient.from('profiles').update(changes).eq('id', userId).select('id');
     if (error) throw error;
     // Nessuna riga aggiornata (profilo assente o non accessibile): non è un salvataggio riuscito.
     if (Array.isArray(data) && data.length === 0) throw new Error('profilo utente non trovato.');

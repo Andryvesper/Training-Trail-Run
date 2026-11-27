@@ -30,9 +30,7 @@ export function gapFactor(grade, config = PERFORMANCE_CONFIG) {
 // Velocità GAP di ogni campione (m/s).
 export function gapSpeedSeries(samples, config = PERFORMANCE_CONFIG) {
     if (!samples) return [];
-    return samples.speed.map((speed, index) => (samples.has.altitude
-        ? speed * gapFactor(samples.grade[index], config)
-        : speed));
+    return samples.speed.map((speed, index) => (samples.has.altitude ? speed * gapFactor(samples.grade[index], config) : speed));
 }
 
 /**
@@ -40,7 +38,16 @@ export function gapSpeedSeries(samples, config = PERFORMANCE_CONFIG) {
  * @returns {MetricResult & { gapSpeedMps: number|null, gapPaceSecondsPerKm: number|null, speedMps: number|null, paceSecondsPerKm: number|null, movingSeconds: number }}
  */
 export function computeGap(samples, gapSpeeds, range = null) {
-    if (!samples) return { status: 'unavailable', reason: 'Nessuno stream di tempo e distanza.', gapSpeedMps: null, gapPaceSecondsPerKm: null, speedMps: null, paceSecondsPerKm: null, movingSeconds: 0 };
+    if (!samples)
+        return {
+            status: 'unavailable',
+            reason: 'Nessuno stream di tempo e distanza.',
+            gapSpeedMps: null,
+            gapPaceSecondsPerKm: null,
+            speedMps: null,
+            paceSecondsPerKm: null,
+            movingSeconds: 0
+        };
     const [from, to] = range || [1, samples.n - 1];
     let seconds = 0;
     let gapSum = 0;
@@ -52,7 +59,16 @@ export function computeGap(samples, gapSpeeds, range = null) {
         gapSum += gapSpeeds[i] * dt;
         speedSum += samples.speed[i] * dt;
     }
-    if (seconds <= 0) return { status: 'unavailable', reason: 'Nessun tratto in movimento.', gapSpeedMps: null, gapPaceSecondsPerKm: null, speedMps: null, paceSecondsPerKm: null, movingSeconds: 0 };
+    if (seconds <= 0)
+        return {
+            status: 'unavailable',
+            reason: 'Nessun tratto in movimento.',
+            gapSpeedMps: null,
+            gapPaceSecondsPerKm: null,
+            speedMps: null,
+            paceSecondsPerKm: null,
+            movingSeconds: 0
+        };
     const gapSpeedMps = gapSum / seconds;
     const speedMps = speedSum / seconds;
     return {
@@ -71,7 +87,16 @@ export function computeGap(samples, gapSpeeds, range = null) {
  * `mask(i)` limita i campioni (es. solo salita).
  */
 export function computeEfficiency(samples, gapSpeeds, config = PERFORMANCE_CONFIG, { range = null, mask = null, minSeconds = 1 } = {}) {
-    const empty = reason => ({ status: 'unavailable', reason, ef: null, efPower: null, averageHr: null, gapSpeedMps: null, normalizedPower: null, seconds: 0 });
+    const empty = reason => ({
+        status: 'unavailable',
+        reason,
+        ef: null,
+        efPower: null,
+        averageHr: null,
+        gapSpeedMps: null,
+        normalizedPower: null,
+        seconds: 0
+    });
     if (!samples) return empty('Nessuno stream di tempo e distanza.');
     if (!samples.has.heartrate) return empty('Senza fascia cardio o FC al polso: EF non calcolabile.');
     const [from, to] = range || [1, samples.n - 1];
@@ -95,7 +120,7 @@ export function computeEfficiency(samples, gapSpeeds, config = PERFORMANCE_CONFI
     return {
         status: samples.has.altitude ? 'ok' : 'partial',
         reason: samples.has.altitude ? null : 'Altitudine assente: EF sul passo reale.',
-        ef: round(gapSpeedMps * 60 / averageHr, 3),
+        ef: round((gapSpeedMps * 60) / averageHr, 3),
         efPower: normalizedPower ? round(normalizedPower / averageHr, 3) : null,
         averageHr: round(averageHr, 1),
         gapSpeedMps: round(gapSpeedMps, 3),
@@ -130,7 +155,16 @@ export function computeNormalizedPower(samples, range = null) {
 
 export function computeUphillEfficiency(samples, gapSpeeds, config = PERFORMANCE_CONFIG) {
     if (!samples?.has.altitude) {
-        return { status: 'unavailable', reason: 'Altitudine assente.', ef: null, averageHr: null, gapSpeedMps: null, seconds: 0, efPower: null, normalizedPower: null };
+        return {
+            status: 'unavailable',
+            reason: 'Altitudine assente.',
+            ef: null,
+            averageHr: null,
+            gapSpeedMps: null,
+            seconds: 0,
+            efPower: null,
+            normalizedPower: null
+        };
     }
     const { uphillGrade, minUphillSeconds } = config.efficiency;
     const result = computeEfficiency(samples, gapSpeeds, config, {
@@ -149,7 +183,8 @@ export function computeUphillEfficiency(samples, gapSpeeds, config = PERFORMANCE
  * fino a climbMaxDipM non interrompe la salita.
  */
 export function detectClimbs(samples, config = PERFORMANCE_CONFIG) {
-    if (!samples?.has.altitude) return { status: 'unavailable', reason: 'Altitudine assente.', climbs: [], bestVam: null, averageVam: null, climbGainM: 0 };
+    if (!samples?.has.altitude)
+        return { status: 'unavailable', reason: 'Altitudine assente.', climbs: [], bestVam: null, averageVam: null, climbGainM: 0 };
     const { climbMinGainM, climbMinDurationSeconds, climbMaxDipM } = config.efficiency;
     const altitude = samples.altitude;
     const climbs = [];
@@ -173,8 +208,8 @@ export function detectClimbs(samples, config = PERFORMANCE_CONFIG) {
             gainM: Math.round(gainM),
             durationS: Math.round(durationS),
             distanceM: Math.round(distanceM),
-            averageGradePercent: distanceM > 0 ? round(gainM / distanceM * 100, 1) : null,
-            vam: Math.round(gainM / durationS * 3600),
+            averageGradePercent: distanceM > 0 ? round((gainM / distanceM) * 100, 1) : null,
+            vam: Math.round((gainM / durationS) * 3600),
             averageHr: hrSeconds > 0 ? round(hrSum / hrSeconds, 1) : null
         });
     };
@@ -198,10 +233,12 @@ export function detectClimbs(samples, config = PERFORMANCE_CONFIG) {
     const totalSeconds = climbs.reduce((sum, climb) => sum + climb.durationS, 0);
     return {
         status: climbs.length ? 'ok' : 'unavailable',
-        reason: climbs.length ? null : `Nessuna salita continua di almeno ${climbMinGainM} m e ${Math.round(climbMinDurationSeconds / 60)} minuti.`,
+        reason: climbs.length
+            ? null
+            : `Nessuna salita continua di almeno ${climbMinGainM} m e ${Math.round(climbMinDurationSeconds / 60)} minuti.`,
         climbs: climbs.map(({ startIndex, endIndex, ...climb }) => climb),
         bestVam: climbs.length ? Math.max(...climbs.map(climb => climb.vam)) : null,
-        averageVam: totalSeconds > 0 ? Math.round(totalGain / totalSeconds * 3600) : null,
+        averageVam: totalSeconds > 0 ? Math.round((totalGain / totalSeconds) * 3600) : null,
         climbGainM: totalGain
     };
 }

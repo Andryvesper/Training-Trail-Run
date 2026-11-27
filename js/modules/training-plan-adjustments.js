@@ -4,7 +4,7 @@ import { addDays, daysBetween, isIsoDate } from '../core/date-utils.js';
 
 const DAY_KEYS = Object.freeze(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
 const RUNNING_SPORTS = Object.freeze(['run', 'trail']);
-const DERIVED_LABEL = 'Regola derivata, da confermare dall\'atleta';
+const DERIVED_LABEL = "Regola derivata, da confermare dall'atleta";
 
 // Regola derivata (non stampata nel libro): proposta per ogni gara secondaria
 // nel periodo della bozza; l'atleta la applica gara per gara.
@@ -14,7 +14,8 @@ export const INTERMEDIATE_RACE_RULE = Object.freeze({
     ruleStatus: 'derived_pending_athlete_confirmation',
     label: DERIVED_LABEL,
     easyRunMaxKm: 5,
-    explanation: 'Regola derivata, da confermare dall\'atleta: la gara intermedia prende il posto della gara della tabella in quella settimana (tabella 11 "Gara maratona", tabella 13 "Gara"), altrimenti della seduta di quel giorno o del lungo della settimana; il giorno prima diventa riposo o corsa facile breve, il giorno dopo corsa facile/DAU o riposo.'
+    explanation:
+        'Regola derivata, da confermare dall\'atleta: la gara intermedia prende il posto della gara della tabella in quella settimana (tabella 11 "Gara maratona", tabella 13 "Gara"), altrimenti della seduta di quel giorno o del lungo della settimana; il giorno prima diventa riposo o corsa facile breve, il giorno dopo corsa facile/DAU o riposo.'
 });
 
 // Regola derivata (non stampata nel libro) per una settimana non svolta.
@@ -25,7 +26,8 @@ export const MISSED_WEEK_RULE = Object.freeze({
     label: DERIVED_LABEL,
     maxLongIncrease: 0.25,
     taperDays: 21,
-    explanation: 'Regola derivata, da confermare dall\'atleta: i km della settimana saltata non si recuperano; il lungo della settimana successiva cresce al massimo del 25% sull\'ultimo lungo completato; le sedute di qualità restano; a meno di 3 settimane dalla gara lo scarico resta invariato.'
+    explanation:
+        "Regola derivata, da confermare dall'atleta: i km della settimana saltata non si recuperano; il lungo della settimana successiva cresce al massimo del 25% sull'ultimo lungo completato; le sedute di qualità restano; a meno di 3 settimane dalla gara lo scarico resta invariato."
 });
 
 // Protocolli VR supportati (training-reference-pace.js).
@@ -33,7 +35,8 @@ export const REFERENCE_TEST_PROTOCOLS = Object.freeze({
     three_km_plus_10: Object.freeze({
         label: 'Test 3 km + 10%',
         distanceKm: 3,
-        description: '3 km al massimo sostenibile e regolare, su percorso piano e misurato (pista o strada piana). VR = tempo dei 3 km aumentato del 10% e diviso per 3.'
+        description:
+            '3 km al massimo sostenibile e regolare, su percorso piano e misurato (pista o strada piana). VR = tempo dei 3 km aumentato del 10% e diviso per 3.'
     }),
     ten_km: Object.freeze({
         label: 'Test 10 km',
@@ -65,7 +68,9 @@ export function proposeIntermediateRaces(draft, secondaryRaces = []) {
                 event_date: race.event_date,
                 distance_km: distanceKm,
                 week_number: week?.weekNumber ?? null,
-                target: target ? { kind: target.kind, date: target.session.date, raw: target.session.raw } : { kind: 'none', date: null, raw: null },
+                target: target
+                    ? { kind: target.kind, date: target.session.date, raw: target.session.raw }
+                    : { kind: 'none', date: null, raw: null },
                 description: describeProposal(race, target),
                 applied: false
             };
@@ -75,14 +80,18 @@ export function proposeIntermediateRaces(draft, secondaryRaces = []) {
 function findReplacementTarget(week, date) {
     if (!week) return null;
     const sessions = (week.sessions || []).filter(session => session.derivedRule !== INTERMEDIATE_RACE_RULE.id);
-    const inTable = sessions.find(session => session.type === 'race_training' || session.type === 'time_trial'
-        || (session.derivedRule === 'trail_block_repetition' && session.raceDistanceKm));
+    const inTable = sessions.find(
+        session =>
+            session.type === 'race_training' ||
+            session.type === 'time_trial' ||
+            (session.derivedRule === 'trail_block_repetition' && session.raceDistanceKm)
+    );
     if (inTable) return { kind: 'in_table_race', session: inTable };
     const sameDay = sessions.find(session => session.date === date);
     if (sameDay) return { kind: 'same_day', session: sameDay };
     const longRun = sessions
         .filter(session => session.type === 'run' && !session.quality && session.distanceKm)
-        .reduce((best, session) => !best || session.distanceKm >= best.distanceKm ? session : best, null);
+        .reduce((best, session) => (!best || session.distanceKm >= best.distanceKm ? session : best), null);
     return longRun ? { kind: 'long_run', session: longRun } : null;
 }
 
@@ -91,17 +100,19 @@ function describeProposal(race, target) {
     const what = !target
         ? 'si aggiunge alla settimana'
         : target.kind === 'in_table_race'
-            ? `prende il posto della gara della tabella ("${clean(target.session.raw)}")`
-            : target.kind === 'same_day'
-                ? `prende il posto della seduta di quel giorno ("${clean(target.session.raw)}")`
-                : `prende il posto del lungo della settimana ("${clean(target.session.raw)}")`;
+          ? `prende il posto della gara della tabella ("${clean(target.session.raw)}")`
+          : target.kind === 'same_day'
+            ? `prende il posto della seduta di quel giorno ("${clean(target.session.raw)}")`
+            : `prende il posto del lungo della settimana ("${clean(target.session.raw)}")`;
     return `${name} del ${race.event_date} ${what}; il giorno prima riposo o corsa facile breve, il giorno dopo corsa facile/DAU o riposo. ${DERIVED_LABEL}.`;
 }
 
 // Applica le proposte scelte dall'atleta. Restituisce una nuova bozza.
 export function applyIntermediateRaces(draft, proposals = []) {
     let result = draft;
-    proposals.forEach(proposal => { result = applyOneRace(result, proposal); });
+    proposals.forEach(proposal => {
+        result = applyOneRace(result, proposal);
+    });
     return result;
 }
 
@@ -176,7 +187,9 @@ function applyOneRace(draft, proposal) {
                 elevation: null,
                 derivedRule: INTERMEDIATE_RACE_RULE.id,
                 adaptations: [...(session.adaptations || []), `Era: ${clean(session.raw)}.`],
-                practicalNotes: [`${isBefore ? 'Giorno prima' : 'Giorno dopo'} della gara ${name}: ${isBefore ? 'riposo o corsa facile breve' : 'corsa facile/DAU o riposo'} (max ${maxKm} km). ${DERIVED_LABEL}.`]
+                practicalNotes: [
+                    `${isBefore ? 'Giorno prima' : 'Giorno dopo'} della gara ${name}: ${isBefore ? 'riposo o corsa facile breve' : 'corsa facile/DAU o riposo'} (max ${maxKm} km). ${DERIVED_LABEL}.`
+                ]
             };
         });
         sessions.sort((left, right) => String(left.date ?? '9999').localeCompare(String(right.date ?? '9999')));
@@ -185,10 +198,7 @@ function applyOneRace(draft, proposal) {
     return {
         ...draft,
         weeks,
-        derivedRules: [
-            ...(draft.derivedRules || []).filter(rule => rule.id !== INTERMEDIATE_RACE_RULE.id),
-            { ...INTERMEDIATE_RACE_RULE }
-        ],
+        derivedRules: [...(draft.derivedRules || []).filter(rule => rule.id !== INTERMEDIATE_RACE_RULE.id), { ...INTERMEDIATE_RACE_RULE }],
         notes: [...new Set([...(draft.notes || []), INTERMEDIATE_RACE_RULE.explanation])],
         appliedIntermediateRaces: [...(draft.appliedIntermediateRaces || []), proposal.race_id ?? date]
     };
@@ -219,10 +229,7 @@ export function previewMissedWeek({ draft, weekNumber, planSessions = [], today 
         week_number: weekNumber,
         next_week_number: weekNumber + 1,
         changes: [],
-        notes: [
-            'I km della settimana saltata non si recuperano.',
-            'Le sedute di qualità restano invariate.'
-        ]
+        notes: ['I km della settimana saltata non si recuperano.', 'Le sedute di qualità restano invariate.']
     };
     const raceDate = draft.endDate;
     if (daysBetween(today, raceDate) < MISSED_WEEK_RULE.taperDays) {
@@ -242,17 +249,24 @@ export function previewMissedWeek({ draft, weekNumber, planSessions = [], today 
         const draftWeek = draft.weeks.find(item => item.weekNumber === session.week);
         return Boolean(draftWeek?.sessions?.find(item => item.date === session.scheduled_date && item.type === 'run')?.quality);
     };
-    const done = sessions.filter(session => session.week !== null && session.week < weekNumber
-        && session.intervals_activity_id && isRun(session) && !isQuality(session));
+    const done = sessions.filter(
+        session =>
+            session.week !== null && session.week < weekNumber && session.intervals_activity_id && isRun(session) && !isQuality(session)
+    );
     const lastWeekDone = done.reduce((max, session) => Math.max(max, session.week), 0);
-    const referenceKm = lastWeekDone
-        ? Math.max(...done.filter(session => session.week === lastWeekDone).map(doneKm))
-        : null;
+    const referenceKm = lastWeekDone ? Math.max(...done.filter(session => session.week === lastWeekDone).map(doneKm)) : null;
     const nextLong = sessions
-        .filter(session => session.week === weekNumber + 1 && isRun(session) && session.scheduled_date >= today
-            && !session.intervals_activity_id && !session.completed_activity && !isQuality(session)
-            && Number(session.distance_km) > 0)
-        .reduce((best, session) => !best || Number(session.distance_km) > Number(best.distance_km) ? session : best, null);
+        .filter(
+            session =>
+                session.week === weekNumber + 1 &&
+                isRun(session) &&
+                session.scheduled_date >= today &&
+                !session.intervals_activity_id &&
+                !session.completed_activity &&
+                !isQuality(session) &&
+                Number(session.distance_km) > 0
+        )
+        .reduce((best, session) => (!best || Number(session.distance_km) > Number(best.distance_km) ? session : best), null);
 
     if (!nextLong) {
         return { ...base, status: 'no_changes', notes: [...base.notes, `Nessun lungo da modificare nella settimana ${weekNumber + 1}.`] };
@@ -261,7 +275,10 @@ export function previewMissedWeek({ draft, weekNumber, planSessions = [], today 
         return {
             ...base,
             status: 'no_changes',
-            notes: [...base.notes, 'Nessun lungo completato prima della settimana saltata: il lungo successivo resta invariato, valuta tu se ridurlo.']
+            notes: [
+                ...base.notes,
+                'Nessun lungo completato prima della settimana saltata: il lungo successivo resta invariato, valuta tu se ridurlo.'
+            ]
         };
     }
     const capKm = Math.floor(referenceKm * (1 + MISSED_WEEK_RULE.maxLongIncrease));
@@ -270,7 +287,10 @@ export function previewMissedWeek({ draft, weekNumber, planSessions = [], today 
         return {
             ...base,
             status: 'no_changes',
-            notes: [...base.notes, `Il lungo della settimana ${weekNumber + 1} (${formatKm(fromKm)} km) resta entro +25% dell'ultimo lungo completato (${formatKm(referenceKm)} km).`]
+            notes: [
+                ...base.notes,
+                `Il lungo della settimana ${weekNumber + 1} (${formatKm(fromKm)} km) resta entro +25% dell'ultimo lungo completato (${formatKm(referenceKm)} km).`
+            ]
         };
     }
     const note = `Settimana ${weekNumber} saltata: lungo ridotto da ${formatKm(fromKm)} a ${formatKm(capKm)} km (max +25% sull'ultimo lungo completato, ${formatKm(referenceKm)} km). D+ e tempi scritti sopra si riferiscono al lungo originale. ${DERIVED_LABEL}.`;
@@ -279,16 +299,18 @@ export function previewMissedWeek({ draft, weekNumber, planSessions = [], today 
         ...base,
         status: 'changes_proposed',
         reference_long_km: referenceKm,
-        changes: [{
-            session_id: nextLong.id,
-            scheduled_date: nextLong.scheduled_date,
-            title: nextLong.title,
-            new_title: newTitle,
-            from_km: fromKm,
-            to_km: capKm,
-            note,
-            notes: [nextLong.notes, note].filter(Boolean).join(' ')
-        }],
+        changes: [
+            {
+                session_id: nextLong.id,
+                scheduled_date: nextLong.scheduled_date,
+                title: nextLong.title,
+                new_title: newTitle,
+                from_km: fromKm,
+                to_km: capKm,
+                note,
+                notes: [nextLong.notes, note].filter(Boolean).join(' ')
+            }
+        ],
         notes: [...base.notes, note]
     };
 }
@@ -316,9 +338,11 @@ export function referenceTestNeeded(rules, validityStatus, vrSecondsPerKm) {
 
 export function proposeReferenceTest(profile, { today, protocol = null } = {}) {
     if (!isIsoDate(today)) throw new Error('La data di oggi non è valida.');
-    const chosen = REFERENCE_TEST_PROTOCOLS[protocol] ? protocol
-        : REFERENCE_TEST_PROTOCOLS[profile?.reference_test_protocol] ? profile.reference_test_protocol
-            : 'three_km_plus_10';
+    const chosen = REFERENCE_TEST_PROTOCOLS[protocol]
+        ? protocol
+        : REFERENCE_TEST_PROTOCOLS[profile?.reference_test_protocol]
+          ? profile.reference_test_protocol
+          : 'three_km_plus_10';
     const definition = REFERENCE_TEST_PROTOCOLS[chosen];
     const proposedDate = nextRunningDay(profile, today);
     const totalKm = TEST_WARMUP_KM + definition.distanceKm + TEST_COOLDOWN_KM;
@@ -334,24 +358,32 @@ export function proposeReferenceTest(profile, { today, protocol = null } = {}) {
         totalKm,
         proposedDate,
         afterTest,
-        calendarSession: proposedDate ? {
-            scheduled_date: proposedDate,
-            title: `${definition.label} (VR)`,
-            sport_type: 'run',
-            distance_km: totalKm,
-            duration_minutes: null,
-            target_pace_seconds_per_km: null,
-            notes: [definition.description, warmup, cooldown, 'Riscaldamento e defaticamento: indicazione generale, non dalla tabella.', afterTest].join(' ')
-        } : null
+        calendarSession: proposedDate
+            ? {
+                  scheduled_date: proposedDate,
+                  title: `${definition.label} (VR)`,
+                  sport_type: 'run',
+                  distance_km: totalKm,
+                  duration_minutes: null,
+                  target_pace_seconds_per_km: null,
+                  notes: [
+                      definition.description,
+                      warmup,
+                      cooldown,
+                      'Riscaldamento e defaticamento: indicazione generale, non dalla tabella.',
+                      afterTest
+                  ].join(' ')
+              }
+            : null
     };
 }
 
 // Primo giorno da domani disponibile per la corsa e libero da sport fissi.
 function nextRunningDay(profile, today) {
     const availability = profile?.weekly_availability || {};
-    const blocked = new Set((profile?.weekly_other_sports || [])
-        .filter(session => session.schedule_type === 'fixed')
-        .map(session => session.day));
+    const blocked = new Set(
+        (profile?.weekly_other_sports || []).filter(session => session.schedule_type === 'fixed').map(session => session.day)
+    );
     for (let offset = 1; offset <= 14; offset += 1) {
         const date = addDays(today, offset);
         const day = dayKey(date);
@@ -361,7 +393,11 @@ function nextRunningDay(profile, today) {
 }
 
 function clean(raw) {
-    return String(raw ?? '').split('/').join(' ').replace(/\s+/g, ' ').trim();
+    return String(raw ?? '')
+        .split('/')
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 function formatKm(value) {
@@ -371,4 +407,3 @@ function formatKm(value) {
 function dayKey(dateKey) {
     return DAY_KEYS[(new Date(`${dateKey}T00:00:00Z`).getUTCDay() + 6) % 7];
 }
-

@@ -42,7 +42,9 @@ export function analyzeActivity(activity, rawStreams, config = PERFORMANCE_CONFI
         gap: computeGap(samples, gapSpeeds),
         efficiency: samples ? computeEfficiency(samples, gapSpeeds, config) : unavailable(noSamples),
         uphill: samples ? computeUphillEfficiency(samples, gapSpeeds, config) : unavailable(noSamples),
-        climbs: samples ? detectClimbs(samples, config) : { ...unavailable(noSamples), climbs: [], bestVam: null, averageVam: null, climbGainM: 0 },
+        climbs: samples
+            ? detectClimbs(samples, config)
+            : { ...unavailable(noSamples), climbs: [], bestVam: null, averageVam: null, climbGainM: 0 },
         decoupling: computeDecoupling(activity, samples, gapSpeeds, config),
         biomechanics: computeBiomechanics(samples, config),
         mechanicalLoad: computeMechanicalLoad(activity, samples, movingSeconds, config),
@@ -91,7 +93,12 @@ export function eccentricEntries(activities, analysesById, today, config = PERFO
             const date = activityDate(activity);
             if (!date || date < from || date > today) return null;
             const analysis = analysesById?.get(String(activity.id)) || analyzeActivitySummary(activity, config);
-            return { date, activityId: String(activity.id ?? ''), eccentricPoints: analysis.mechanicalLoad?.eccentricPoints || 0, score: analysis.mechanicalLoad?.score || 0 };
+            return {
+                date,
+                activityId: String(activity.id ?? ''),
+                eccentricPoints: analysis.mechanicalLoad?.eccentricPoints || 0,
+                score: analysis.mechanicalLoad?.score || 0
+            };
         })
         .filter(Boolean);
 }
@@ -103,9 +110,13 @@ export function eccentricEntries(activities, analysesById, today, config = PERFO
 export function efficiencyTrend(analyses, today, days, config = PERFORMANCE_CONFIG) {
     const from = addDays(today, -(days - 1));
     const points = (analyses || [])
-        .filter(item => item?.date >= from && item.date <= today
-            && Number.isFinite(item.efficiency?.ef)
-            && (item.efficiency?.seconds || 0) >= config.efficiency.trendMinMovingSeconds)
+        .filter(
+            item =>
+                item?.date >= from &&
+                item.date <= today &&
+                Number.isFinite(item.efficiency?.ef) &&
+                (item.efficiency?.seconds || 0) >= config.efficiency.trendMinMovingSeconds
+        )
         .map(item => ({
             date: item.date,
             activityId: item.activityId,
@@ -127,13 +138,13 @@ export function efficiencyTrend(analyses, today, days, config = PERFORMANCE_CONF
     const fitted = x => (slope === null ? meanY : meanY + slope * (x - meanX));
     const startEf = fitted(xy[0][0]);
     const endEf = fitted(xy[xy.length - 1][0]);
-    const paceAt = ef => (ef > 0 ? Math.round(1000 / (ef * referenceHr / 60)) : null);
+    const paceAt = ef => (ef > 0 ? Math.round(1000 / ((ef * referenceHr) / 60)) : null);
     return {
         days,
         points: points.map(point => ({ ...point, gapPaceAtReferenceHr: paceAt(point.ef) })),
         referenceHr,
         slopePer30Days: slope === null ? null : round(slope * 30, 4),
-        changePercent: slope === null || startEf <= 0 ? null : round((endEf - startEf) / startEf * 100, 1),
+        changePercent: slope === null || startEf <= 0 ? null : round(((endEf - startEf) / startEf) * 100, 1),
         start: { ef: round(startEf, 3), gapPaceAtReferenceHr: paceAt(startEf) },
         end: { ef: round(endEf, 3), gapPaceAtReferenceHr: paceAt(endEf) }
     };
@@ -164,7 +175,8 @@ function intervalsReference(activity) {
     return {
         decouplingPercent: numberOrNull(activity?.decoupling),
         efficiencyFactor: numberOrNull(activity?.icu_efficiency_factor),
-        gapSecondsPerKm: Number.isFinite(Number(activity?.gap)) && Number(activity.gap) > 0 ? Math.round(1000 / Number(activity.gap)) : null,
+        gapSecondsPerKm:
+            Number.isFinite(Number(activity?.gap)) && Number(activity.gap) > 0 ? Math.round(1000 / Number(activity.gap)) : null,
         averageStanceTime: numberOrNull(activity?.average_stance_time),
         averageVerticalOscillation: numberOrNull(activity?.average_vertical_oscillation)
     };

@@ -11,7 +11,9 @@ export function usesPace(activity) {
 }
 
 export function isSwim(activity) {
-    return String(activity?.type || '').toLowerCase().includes('swim');
+    return String(activity?.type || '')
+        .toLowerCase()
+        .includes('swim');
 }
 
 export function intervalsActivityUrl(activityId) {
@@ -26,7 +28,9 @@ export function intervalsActivityUrl(activityId) {
 export function activitySummaryItems(activity) {
     if (!activity) return [];
     const items = [];
-    const add = (label, value) => { if (value) items.push({ label, value }); };
+    const add = (label, value) => {
+        if (value) items.push({ label, value });
+    };
     const distance = positive(activity.distance);
     const moving = positive(activity.moving_time);
     const elapsed = positive(activity.elapsed_time);
@@ -51,7 +55,10 @@ export function activitySummaryItems(activity) {
     add('Calorie', positive(activity.calories) ? `${Math.round(activity.calories)} kcal` : null);
     const rpe = positive(activity.icu_rpe) ?? positive(activity.perceived_exertion);
     add('Fatica percepita (RPE)', rpe ? `${formatNumber(rpe, 1)}/10` : null);
-    add('Temperatura media', Number.isFinite(Number(activity.average_temp)) && activity.average_temp !== null ? `${Math.round(activity.average_temp)} °C` : null);
+    add(
+        'Temperatura media',
+        Number.isFinite(Number(activity.average_temp)) && activity.average_temp !== null ? `${Math.round(activity.average_temp)} °C` : null
+    );
     return items;
 }
 
@@ -71,8 +78,14 @@ export function activityProfile(rawStreams, points = 150) {
         const distance = samples.distance[index];
         if (!Number.isFinite(distance)) continue;
         const bucket = sums[Math.max(0, Math.min(buckets - 1, Math.floor(distance / step)))];
-        if (Number.isFinite(samples.altitude[index])) { bucket.alt[0] += samples.altitude[index]; bucket.alt[1] += 1; }
-        if (Number.isFinite(samples.heartrate[index])) { bucket.hr[0] += samples.heartrate[index]; bucket.hr[1] += 1; }
+        if (Number.isFinite(samples.altitude[index])) {
+            bucket.alt[0] += samples.altitude[index];
+            bucket.alt[1] += 1;
+        }
+        if (Number.isFinite(samples.heartrate[index])) {
+            bucket.hr[0] += samples.heartrate[index];
+            bucket.hr[1] += 1;
+        }
         // Velocità del tratto: distanza percorsa sul tempo in movimento.
         if (index > 0 && samples.dt[index] > 0 && Number.isFinite(samples.distance[index - 1])) {
             bucket.dist += Math.max(0, distance - samples.distance[index - 1]);
@@ -82,7 +95,7 @@ export function activityProfile(rawStreams, points = 150) {
     const mean = ([sum, count]) => (count ? sum / count : null);
     const speed = sums.map(bucket => (bucket.time > 0 && bucket.dist > 0 ? bucket.dist / bucket.time : null));
     const profile = {
-        labels: sums.map((_, index) => `${formatNumber((index + 0.5) * step / 1000, 1)} km`),
+        labels: sums.map((_, index) => `${formatNumber(((index + 0.5) * step) / 1000, 1)} km`),
         altitude: sums.map(bucket => round(mean(bucket.alt), 0)),
         heartrate: sums.map(bucket => round(mean(bucket.hr), 0)),
         // Sotto 1 m/s (soste, tratti a piedi lenti) il passo non è significativo.

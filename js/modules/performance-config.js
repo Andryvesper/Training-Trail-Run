@@ -88,10 +88,10 @@ export const PERFORMANCE_CONFIG = deepFreeze({
     biomechanics: {
         minMovingSeconds: 1200,
         warmupSeconds: 600,
-        earlyEndFraction: 0.30,
-        lateStartFraction: 0.80,
+        earlyEndFraction: 0.3,
+        lateStartFraction: 0.8,
         flatGrade: 0.03,
-        speedBand: 0.10,
+        speedBand: 0.1,
         minWindowSeconds: 60,
         gctAlertPercent: 4,
         gctSlopeAlertMsPerHour: 8,

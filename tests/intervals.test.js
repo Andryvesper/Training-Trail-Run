@@ -1,28 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-    getLastSevenDaysRange,
-    IntervalsService,
-    summarizeIntervalsData
-} from '../js/modules/intervals.js';
+import { getLastSevenDaysRange, IntervalsService, summarizeIntervalsData } from '../js/modules/intervals.js';
 
 test('limita l’intervallo alle ultime sette date, includendo oggi', () => {
-    assert.deepEqual(
-        getLastSevenDaysRange(new Date(2026, 10, 4, 12)),
-        { oldest: '2026-10-29', newest: '2026-11-04' }
-    );
+    assert.deepEqual(getLastSevenDaysRange(new Date(2026, 10, 4, 12)), { oldest: '2026-10-29', newest: '2026-11-04' });
 });
 
 test('usa le metriche più recenti disponibili e separa gli sport nel riepilogo', () => {
-    const summary = summarizeIntervalsData([
-        { date: '2026-11-02', ctl: 40, atl: 35, load: 60 },
-        { date: '2026-11-03', ctl: 42, atl: 38, load: 70 }
-    ], [
-        { type: 'Run', distance: 10000, moving_time: 3000 },
-        { type: 'TrailRun', distance: 5000, moving_time: 1800 },
-        { type: 'Swim', distance: 1200, moving_time: 1800 },
-        { type: 'Ride', distance: 20000, moving_time: 3600 }
-    ]);
+    const summary = summarizeIntervalsData(
+        [
+            { date: '2026-11-02', ctl: 40, atl: 35, load: 60 },
+            { date: '2026-11-03', ctl: 42, atl: 38, load: 70 }
+        ],
+        [
+            { type: 'Run', distance: 10000, moving_time: 3000 },
+            { type: 'TrailRun', distance: 5000, moving_time: 1800 },
+            { type: 'Swim', distance: 1200, moving_time: 1800 },
+            { type: 'Ride', distance: 20000, moving_time: 3600 }
+        ]
+    );
 
     assert.deepEqual(summary.metrics, { ctl: 42, atl: 38, tsb: 4, load: 70 });
     assert.equal(summary.activities.count, 4);
@@ -79,10 +75,13 @@ test('segnala risposte API con formato inatteso', async () => {
 });
 
 test('legge data e carico dai campi reali del wellness Intervals.icu', () => {
-    const summary = summarizeIntervalsData([
-        { id: '2026-11-13', ctl: 42, atl: 38, ctlLoad: 70 },
-        { id: '2026-11-12', ctl: 40, atl: 35, ctlLoad: 60 }
-    ], []);
+    const summary = summarizeIntervalsData(
+        [
+            { id: '2026-11-13', ctl: 42, atl: 38, ctlLoad: 70 },
+            { id: '2026-11-12', ctl: 40, atl: 35, ctlLoad: 60 }
+        ],
+        []
+    );
     assert.deepEqual(summary.metrics, { ctl: 42, atl: 38, tsb: 4, load: 70 });
 });
 
@@ -100,7 +99,10 @@ test('credenziali rifiutate: suggerisce di controllare ID e chiave', async () =>
 test("l'Athlete ID viene codificato nel percorso dell'URL", async () => {
     const originalFetch = globalThis.fetch;
     let requested = '';
-    globalThis.fetch = async url => { requested = url; return { ok: true, json: async () => [] }; };
+    globalThis.fetch = async url => {
+        requested = url;
+        return { ok: true, json: async () => [] };
+    };
     try {
         await new IntervalsService(' i1/../x?y ', 'api-key').getActivities('2026-11-01', '2026-11-04');
         assert.match(requested, /\/athlete\/i1%2F\.\.%2Fx%3Fy\/activities\?/);
@@ -111,7 +113,9 @@ test("l'Athlete ID viene codificato nel percorso dell'URL", async () => {
 
 test('una rete assente produce un messaggio leggibile', async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    globalThis.fetch = async () => {
+        throw new TypeError('Failed to fetch');
+    };
     try {
         await assert.rejects(new IntervalsService('i1', 'k').getActivities('2026-11-01', '2026-11-04'), /connessione non riuscita/);
     } finally {

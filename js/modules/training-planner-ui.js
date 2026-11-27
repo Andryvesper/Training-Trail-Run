@@ -1,7 +1,4 @@
-import {
-    assessTrainingMethodology,
-    TRAINING_METHOD_SOURCE_EXAMPLES
-} from './training-methodology-rules.js';
+import { assessTrainingMethodology, TRAINING_METHOD_SOURCE_EXAMPLES } from './training-methodology-rules.js';
 import {
     TrainingPlannerService,
     applyIntermediateRaces,
@@ -39,9 +36,19 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
     const otherSportsList = document.getElementById('planner-other-sports-list');
     const addOtherSportButton = document.getElementById('planner-add-other-sport');
     const referenceTestPanel = document.getElementById('planner-reference-test');
-    if (!form || !status || !readinessMessage || !methodologyPreview || !createDraftButton
-        || !raceSelect || !secondaryRaceContainer || !draftsList
-        || !otherSportsList || !addOtherSportButton) return;
+    if (
+        !form ||
+        !status ||
+        !readinessMessage ||
+        !methodologyPreview ||
+        !createDraftButton ||
+        !raceSelect ||
+        !secondaryRaceContainer ||
+        !draftsList ||
+        !otherSportsList ||
+        !addOtherSportButton
+    )
+        return;
 
     const plannerService = new TrainingPlannerService(supabaseClient);
     const racesService = new TrainingRacesService(supabaseClient);
@@ -81,11 +88,7 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
         renderDrafts(draftsList, await plannerService.listDraftRequests(userId));
     } catch (error) {
         console.error('Errore nel caricamento delle richieste di bozza:', error);
-        draftsList.replaceChildren(makeElement(
-            'p',
-            'text-sm text-rose-300',
-            `Impossibile caricare le richieste: ${error.message}`
-        ));
+        draftsList.replaceChildren(makeElement('p', 'text-sm text-rose-300', `Impossibile caricare le richieste: ${error.message}`));
     }
 
     form.querySelectorAll('input[name="available_days"]').forEach(checkbox => {
@@ -162,7 +165,7 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
                 if (preview && preview.week_number !== selectedWeek) {
                     MISSED_WEEK_PREVIEWS.delete(draft.id);
                     output.replaceChildren();
-                    showStatus(status, 'La settimana selezionata è cambiata: genera di nuovo l\'anteprima.', 'error');
+                    showStatus(status, "La settimana selezionata è cambiata: genera di nuovo l'anteprima.", 'error');
                     return;
                 }
                 const confirmation = card.querySelector('input[name="confirm_missed_week"]');
@@ -213,7 +216,11 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
             if (!proposal) throw new Error('Il test VR non è più necessario per il metodo scelto.');
             await plannerService.addReferenceTestToCalendar(userId, proposal);
             document.dispatchEvent(new CustomEvent('training-sessions:changed'));
-            showStatus(status, `Test VR aggiunto al calendario il ${proposal.proposedDate}. Dopo il test inserisci qui il tempo.`, 'success');
+            showStatus(
+                status,
+                `Test VR aggiunto al calendario il ${proposal.proposedDate}. Dopo il test inserisci qui il tempo.`,
+                'success'
+            );
         } catch (error) {
             console.error('Errore nell’aggiunta del test VR:', error);
             showStatus(status, `Impossibile aggiungere il test: ${error.message}`, 'error');
@@ -248,9 +255,7 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
     document.addEventListener('training-races:changed', async event => {
         try {
             const selectedRaceId = raceSelect.value;
-            races = Array.isArray(event.detail?.races)
-                ? event.detail.races
-                : await racesService.listRaces(userId);
+            races = Array.isArray(event.detail?.races) ? event.detail.races : await racesService.listRaces(userId);
             renderRaceOptions(raceSelect, races, selectedRaceId);
             preserveUnavailableRaceOption(raceSelect, selectedRaceId);
             renderSecondaryRaceOptions(
@@ -272,16 +277,22 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
         event.preventDefault();
         const action = event.submitter?.value || 'save';
         const submitButtons = [...form.querySelectorAll('button[type="submit"]')];
-        submitButtons.forEach(button => { button.disabled = true; });
+        submitButtons.forEach(button => {
+            button.disabled = true;
+        });
 
         try {
             const profile = collectForm(form);
             await plannerService.saveProfile(userId, profile);
             if (action === 'draft') {
                 const draft = await plannerService.createDraftRequest(userId, profile, races);
-                showStatus(status, draft.status === 'draft_generated'
-                    ? 'Bozza generata: rivedila qui sotto e confermala per scriverla nel calendario.'
-                    : 'Richiesta salvata, ma il programma non è stato generato: leggi sotto il motivo nella richiesta.', draft.status === 'draft_generated' ? 'success' : 'error');
+                showStatus(
+                    status,
+                    draft.status === 'draft_generated'
+                        ? 'Bozza generata: rivedila qui sotto e confermala per scriverla nel calendario.'
+                        : 'Richiesta salvata, ma il programma non è stato generato: leggi sotto il motivo nella richiesta.',
+                    draft.status === 'draft_generated' ? 'success' : 'error'
+                );
                 const drafts = await plannerService.listDraftRequests(userId);
                 renderDrafts(draftsList, drafts);
                 draftsList.querySelector(`[data-draft-id="${CSS.escape(draft.id)}"]`)?.scrollIntoView({
@@ -295,7 +306,9 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
             console.error('Errore nel salvataggio del questionario o della richiesta:', error);
             showStatus(status, error.message, 'error');
         } finally {
-            submitButtons.forEach(button => { button.disabled = false; });
+            submitButtons.forEach(button => {
+                button.disabled = false;
+            });
             updateReadiness();
         }
     });
@@ -310,9 +323,11 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
             createDraftButton.disabled = !readiness.ready;
             if (readiness.ready) {
                 readinessMessage.className = 'rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200';
-                readinessMessage.textContent = `Dati minimi presenti. Settimana tipo: ${readiness.profile.target_running_sessions_per_week} corse${readiness.profile.peak_week_proposal_mode === 'suggest_with_reason'
-                    ? `; settimane candidate fino a ${readiness.profile.peak_week_max_running_sessions} corse`
-                    : ''}; altri sport: ${readiness.profile.weekly_other_sports.length} sedute. Puoi salvare una richiesta di bozza; il piano non verrà generato né attivato in questa fase.`;
+                readinessMessage.textContent = `Dati minimi presenti. Settimana tipo: ${readiness.profile.target_running_sessions_per_week} corse${
+                    readiness.profile.peak_week_proposal_mode === 'suggest_with_reason'
+                        ? `; settimane candidate fino a ${readiness.profile.peak_week_max_running_sessions} corse`
+                        : ''
+                }; altri sport: ${readiness.profile.weekly_other_sports.length} sedute. Puoi salvare una richiesta di bozza; il piano non verrà generato né attivato in questa fase.`;
             } else {
                 readinessMessage.className = 'rounded-xl border border-slate-700 bg-slate-950/70 p-3 text-sm text-slate-300';
                 readinessMessage.replaceChildren(makeElement('p', 'font-semibold', 'Per preparare la richiesta manca:'));
@@ -360,14 +375,22 @@ function renderOtherSportRows(container, sessions) {
     sessions.forEach(session => {
         const row = makeElement('div', 'grid grid-cols-1 gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-3 sm:grid-cols-2');
         row.dataset.otherSportRow = 'true';
-        const sport = createSelectField('Sport', 'other-sport', [
-            ['', 'Seleziona'],
-            ['swimming', 'Nuoto'],
-            ['cycling', 'Ciclismo'],
-            ['strength', 'Forza / palestra'],
-            ['other', 'Altro']
-        ], session.sport || '');
-        const customSport = makeElement('input', 'min-h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-200');
+        const sport = createSelectField(
+            'Sport',
+            'other-sport',
+            [
+                ['', 'Seleziona'],
+                ['swimming', 'Nuoto'],
+                ['cycling', 'Ciclismo'],
+                ['strength', 'Forza / palestra'],
+                ['other', 'Altro']
+            ],
+            session.sport || ''
+        );
+        const customSport = makeElement(
+            'input',
+            'min-h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-200'
+        );
         customSport.dataset.otherSportField = 'custom_sport';
         customSport.type = 'text';
         customSport.maxLength = 60;
@@ -382,13 +405,18 @@ function renderOtherSportRows(container, sessions) {
             if (sport.value !== 'other') customSport.value = '';
         });
 
-        const day = createSelectField('Giorno', 'day', [
-            ['', 'Seleziona'],
-            ...DAYS.map(dayKey => [dayKey, DAY_LABELS[dayKey]])
-        ], session.day || '');
+        const day = createSelectField(
+            'Giorno',
+            'day',
+            [['', 'Seleziona'], ...DAYS.map(dayKey => [dayKey, DAY_LABELS[dayKey]])],
+            session.day || ''
+        );
         const durationLabel = makeElement('label', 'space-y-1 text-xs text-slate-400');
         durationLabel.append(makeElement('span', 'block', 'Durata (minuti)'));
-        const duration = makeElement('input', 'min-h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-200');
+        const duration = makeElement(
+            'input',
+            'min-h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-200'
+        );
         duration.dataset.otherSportField = 'duration_minutes';
         duration.type = 'number';
         duration.min = '10';
@@ -397,12 +425,21 @@ function renderOtherSportRows(container, sessions) {
         duration.value = session.duration_minutes ?? '';
         durationLabel.append(duration);
 
-        const schedule = createSelectField('Flessibilità', 'schedule_type', [
-            ['', 'Seleziona'],
-            ['fixed', 'Giorno fisso'],
-            ['movable', 'Spostabile']
-        ], session.schedule_type || '');
-        const remove = makeElement('button', 'min-h-10 self-end rounded-lg border border-slate-700 px-3 text-sm text-slate-300 hover:bg-slate-800', 'Rimuovi');
+        const schedule = createSelectField(
+            'Flessibilità',
+            'schedule_type',
+            [
+                ['', 'Seleziona'],
+                ['fixed', 'Giorno fisso'],
+                ['movable', 'Spostabile']
+            ],
+            session.schedule_type || ''
+        );
+        const remove = makeElement(
+            'button',
+            'min-h-10 self-end rounded-lg border border-slate-700 px-3 text-sm text-slate-300 hover:bg-slate-800',
+            'Rimuovi'
+        );
         remove.type = 'button';
         remove.addEventListener('click', () => {
             row.remove();
@@ -458,16 +495,16 @@ function renderMethodologyPreview(container, profile, races) {
     const candidateCount = assessment.candidate_pattern_ids.length;
     const exampleCount = assessment.source_example_ids.length;
     const exampleLabel = exampleCount === 1 ? 'esempio fonte pertinente' : 'esempi fonte pertinenti';
-    container.append(makeElement(
-        'p',
-        'text-slate-300',
-        `${candidateCount} pattern candidati e ${exampleCount} ${exampleLabel} al contesto selezionato.`
-    ));
-    container.append(makeElement(
-        'p',
-        'text-xs text-slate-400',
-        `Stato pipeline: ${getRulePipelineLabel(assessment.status)}. Regole pronte: ${assessment.ready_pattern_ids.length}.`
-    ));
+    container.append(
+        makeElement('p', 'text-slate-300', `${candidateCount} pattern candidati e ${exampleCount} ${exampleLabel} al contesto selezionato.`)
+    );
+    container.append(
+        makeElement(
+            'p',
+            'text-xs text-slate-400',
+            `Stato pipeline: ${getRulePipelineLabel(assessment.status)}. Regole pronte: ${assessment.ready_pattern_ids.length}.`
+        )
+    );
 
     if (assessment.candidate_pattern_ids.length) {
         const list = makeElement('ul', 'list-disc space-y-1 pl-5 text-xs text-slate-400');
@@ -477,23 +514,21 @@ function renderMethodologyPreview(container, profile, races) {
         container.append(list);
     }
 
-    const sourceExamples = TRAINING_METHOD_SOURCE_EXAMPLES.filter(example =>
-        assessment.source_example_ids.includes(example.id)
-    );
+    const sourceExamples = TRAINING_METHOD_SOURCE_EXAMPLES.filter(example => assessment.source_example_ids.includes(example.id));
     sourceExamples.forEach(example => {
         const card = makeElement('article', 'space-y-1 rounded-lg border border-slate-800 bg-slate-900/70 p-3');
         card.append(makeElement('p', 'text-xs font-semibold text-slate-200', example.label));
-        card.append(makeElement(
-            'p',
-            'text-xs text-slate-400',
-            `Tipi che corrono, pp. ${example.source.printedPages} · scansione ${example.source.scanPages}`
-        ));
+        card.append(
+            makeElement(
+                'p',
+                'text-xs text-slate-400',
+                `Tipi che corrono, pp. ${example.source.printedPages} · scansione ${example.source.scanPages}`
+            )
+        );
         card.append(makeElement('p', 'text-xs text-slate-300', describeSourceExample(example)));
-        card.append(makeElement(
-            'p',
-            'text-xs font-medium text-amber-200',
-            'Esempio non personalizzato; non utilizzabile per creare sedute.'
-        ));
+        card.append(
+            makeElement('p', 'text-xs font-medium text-amber-200', 'Esempio non personalizzato; non utilizzabile per creare sedute.')
+        );
         if (example.limitations?.length) {
             const limitations = makeElement('ul', 'list-disc space-y-1 pl-5 text-xs text-amber-200');
             example.limitations.forEach(limitation => {
@@ -515,7 +550,11 @@ function renderMethodologyPreview(container, profile, races) {
     if (recommendation && profile.preferred_cycle_method !== recommendation.preferred_cycle_method) {
         const box = makeElement('div', 'flex flex-wrap items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/5 p-3');
         box.append(makeElement('p', 'flex-1 text-xs text-sky-100', recommendation.message));
-        const button = makeElement('button', 'min-h-10 rounded-lg border border-sky-400/50 px-3 text-xs font-semibold text-sky-100 hover:bg-sky-500/10', 'Usa il suggerimento');
+        const button = makeElement(
+            'button',
+            'min-h-10 rounded-lg border border-sky-400/50 px-3 text-xs font-semibold text-sky-100 hover:bg-sky-500/10',
+            'Usa il suggerimento'
+        );
         button.type = 'button';
         button.dataset.action = 'use-recommendation';
         button.dataset.method = recommendation.preferred_cycle_method;
@@ -529,7 +568,11 @@ function renderMethodologyPreview(container, profile, races) {
     if (alternative && !(recommendationShown && recommendation.preferred_cycle_method === alternative.preferred_cycle_method)) {
         const box = makeElement('div', 'flex flex-wrap items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/5 p-3');
         box.append(makeElement('p', 'flex-1 text-xs text-sky-100', alternative.message));
-        const button = makeElement('button', 'min-h-10 rounded-lg border border-sky-400/50 px-3 text-xs font-semibold text-sky-100 hover:bg-sky-500/10', 'Usa questo metodo');
+        const button = makeElement(
+            'button',
+            'min-h-10 rounded-lg border border-sky-400/50 px-3 text-xs font-semibold text-sky-100 hover:bg-sky-500/10',
+            'Usa questo metodo'
+        );
         button.type = 'button';
         button.dataset.action = 'use-recommendation';
         button.dataset.method = alternative.preferred_cycle_method;
@@ -566,12 +609,8 @@ function renderReferenceVrPreview(container, profile) {
             : 'La VR verrà calcolata solo da un protocollo supportato e dal suo tempo dichiarato.';
         return;
     }
-    const protocol = profile.reference_test_protocol === 'three_km_plus_10'
-        ? '3 km + 10%'
-        : '10 km';
-    const testDate = profile.reference_test_date
-        ? ` del ${profile.reference_test_date}`
-        : ' senza data registrata';
+    const protocol = profile.reference_test_protocol === 'three_km_plus_10' ? '3 km + 10%' : '10 km';
+    const testDate = profile.reference_test_date ? ` del ${profile.reference_test_date}` : ' senza data registrata';
     container.textContent = `VR ricavata dal test ${protocol}${testDate}: ${formatPace(profile.reference_vr_seconds_per_km)} min/km. È un riferimento derivato dal risultato dichiarato, non una raccomandazione di passo né una verifica automatica del test.`;
 }
 
@@ -597,7 +636,10 @@ function renderReferenceTestPanel(container, profile, races) {
     label.append(makeElement('span', 'block', 'Protocollo'));
     const select = makeElement('select', 'min-h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-200');
     select.name = 'reference_test_proposal_protocol';
-    [['three_km_plus_10', 'Test 3 km + 10%'], ['ten_km', 'Test 10 km']].forEach(([value, text]) => {
+    [
+        ['three_km_plus_10', 'Test 3 km + 10%'],
+        ['ten_km', 'Test 10 km']
+    ].forEach(([value, text]) => {
         const option = makeElement('option', '', text);
         option.value = value;
         select.append(option);
@@ -606,19 +648,37 @@ function renderReferenceTestPanel(container, profile, races) {
     label.append(select);
     container.append(label);
     const list = makeElement('ul', 'list-disc space-y-1 pl-5 text-xs text-slate-300');
-    [proposal.warmup, proposal.description, proposal.cooldown, `Totale circa ${proposal.totalKm} km. Riscaldamento e defaticamento: indicazione generale, non dalla tabella.`]
-        .forEach(item => list.append(makeElement('li', '', item)));
+    [
+        proposal.warmup,
+        proposal.description,
+        proposal.cooldown,
+        `Totale circa ${proposal.totalKm} km. Riscaldamento e defaticamento: indicazione generale, non dalla tabella.`
+    ].forEach(item => list.append(makeElement('li', '', item)));
     container.append(list);
-    container.append(makeElement('p', 'text-xs text-slate-300', proposal.proposedDate
-        ? `Data proposta: ${formatDay(proposal.proposedDate)} (primo giorno disponibile per la corsa, senza sport fissi).`
-        : 'Nessun giorno disponibile nelle prossime due settimane: rivedi la disponibilità.'));
+    container.append(
+        makeElement(
+            'p',
+            'text-xs text-slate-300',
+            proposal.proposedDate
+                ? `Data proposta: ${formatDay(proposal.proposedDate)} (primo giorno disponibile per la corsa, senza sport fissi).`
+                : 'Nessun giorno disponibile nelle prossime due settimane: rivedi la disponibilità.'
+        )
+    );
     container.append(makeElement('p', 'text-xs text-slate-400', proposal.afterTest));
     const actions = makeElement('div', 'flex flex-wrap gap-2');
-    const add = makeElement('button', 'min-h-10 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white disabled:opacity-40', 'Aggiungi il test al calendario');
+    const add = makeElement(
+        'button',
+        'min-h-10 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white disabled:opacity-40',
+        'Aggiungi il test al calendario'
+    );
     add.type = 'button';
     add.dataset.action = 'add-reference-test';
     add.disabled = !proposal.proposedDate;
-    const done = makeElement('button', 'min-h-10 rounded-lg border border-slate-700 px-3 text-xs font-semibold text-slate-200 hover:bg-slate-800', 'Ho fatto il test oggi: inserisco il tempo');
+    const done = makeElement(
+        'button',
+        'min-h-10 rounded-lg border border-slate-700 px-3 text-xs font-semibold text-slate-200 hover:bg-slate-800',
+        'Ho fatto il test oggi: inserisco il tempo'
+    );
     done.type = 'button';
     done.dataset.action = 'test-done-today';
     actions.append(add, done);
@@ -631,9 +691,7 @@ function formatDay(dateKey) {
 
 function describeSourceExample(example) {
     if (example.id === 'bis_time_p175') {
-        const blocks = example.structure.blocks
-            .map(block => `${block.duration}′ ${block.effort}`)
-            .join(' → ');
+        const blocks = example.structure.blocks.map(block => `${block.duration}′ ${block.effort}`).join(' → ');
         return `${blocks} (${example.structure.totalDuration} minuti; riscaldamento separato).`;
     }
     if (example.id === 'ten_km_breathing_cycle_outline') {
@@ -679,18 +737,25 @@ function collectForm(form) {
     const values = Object.fromEntries(formData.entries());
     values.preferred_terrains = formData.getAll('preferred_terrains');
     values.secondary_race_ids = formData.getAll('secondary_race_ids');
-    values.secondary_race_intents = Object.fromEntries(values.secondary_race_ids.map(raceId => {
-        const select = form.querySelector(`[name="secondary_race_intent_${CSS.escape(raceId)}"]`);
-        return [raceId, select?.value || 'undecided'];
-    }));
-    values.weekly_availability = Object.fromEntries(DAYS.map(day => {
-        const checkbox = form.querySelector(`input[name="available_days"][value="${day}"]`);
-        const minutes = form.querySelector(`[data-day-minutes="${day}"]`);
-        return [day, {
-            available: checkbox.checked,
-            max_minutes: checkbox.checked ? minutes.value : null
-        }];
-    }));
+    values.secondary_race_intents = Object.fromEntries(
+        values.secondary_race_ids.map(raceId => {
+            const select = form.querySelector(`[name="secondary_race_intent_${CSS.escape(raceId)}"]`);
+            return [raceId, select?.value || 'undecided'];
+        })
+    );
+    values.weekly_availability = Object.fromEntries(
+        DAYS.map(day => {
+            const checkbox = form.querySelector(`input[name="available_days"][value="${day}"]`);
+            const minutes = form.querySelector(`[data-day-minutes="${day}"]`);
+            return [
+                day,
+                {
+                    available: checkbox.checked,
+                    max_minutes: checkbox.checked ? minutes.value : null
+                }
+            ];
+        })
+    );
     values.weekly_other_sports = collectOtherSportRows(document.getElementById('planner-other-sports-list'));
     return values;
 }
@@ -698,7 +763,7 @@ function collectForm(form) {
 function fillForm(form, profile) {
     for (const [name, value] of Object.entries(profile)) {
         const control = form.elements.namedItem(name);
-        if (!control || Array.isArray(value) || typeof value === 'object' && value !== null) continue;
+        if (!control || Array.isArray(value) || (typeof value === 'object' && value !== null)) continue;
         control.value = value ?? '';
     }
 
@@ -722,11 +787,13 @@ function renderRaceOptions(select, races, selectedRaceId = select.value) {
     placeholder.value = '';
     select.replaceChildren(placeholder);
 
-    races.filter(race => race.status === 'planned').forEach(race => {
-        const option = makeElement('option', '', `${race.name} · ${formatRaceDate(race)} · ${race.distance_km} km`);
-        option.value = race.id;
-        select.append(option);
-    });
+    races
+        .filter(race => race.status === 'planned')
+        .forEach(race => {
+            const option = makeElement('option', '', `${race.name} · ${formatRaceDate(race)} · ${race.distance_km} km`);
+            option.value = race.id;
+            select.append(option);
+        });
     if (selectedRaceId && [...select.options].some(option => option.value === selectedRaceId)) {
         select.value = selectedRaceId;
     }
@@ -744,18 +811,29 @@ function renderSecondaryRaceOptions(container, races, selectedRaceIds = [], sele
 
     const selected = new Set(selectedRaceIds);
     options.forEach(race => {
-        const label = makeElement('label', 'flex min-h-11 items-center gap-2 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-300');
+        const label = makeElement(
+            'label',
+            'flex min-h-11 items-center gap-2 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-300'
+        );
         const checkbox = makeElement('input', 'h-4 w-4 accent-brand-500');
         checkbox.type = 'checkbox';
         checkbox.name = 'secondary_race_ids';
         checkbox.value = race.id;
         checkbox.checked = selected.has(race.id);
         label.append(checkbox);
-        label.append(makeElement('span', '', `${race.name} · ${formatRaceDate(race)} · ${race.distance_km} km · priorità ${race.priority}`));
+        label.append(
+            makeElement('span', '', `${race.name} · ${formatRaceDate(race)} · ${race.distance_km} km · priorità ${race.priority}`)
+        );
         container.append(label);
-        const intentLabel = makeElement('label', 'block space-y-1 rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400');
+        const intentLabel = makeElement(
+            'label',
+            'block space-y-1 rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400'
+        );
         intentLabel.append(makeElement('span', 'block', 'Obiettivo per questa gara'));
-        const intentSelect = makeElement('select', 'min-h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-200');
+        const intentSelect = makeElement(
+            'select',
+            'min-h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm text-slate-200'
+        );
         intentSelect.name = `secondary_race_intent_${race.id}`;
         [
             ['undecided', 'Da definire'],
@@ -772,7 +850,10 @@ function renderSecondaryRaceOptions(container, races, selectedRaceIds = [], sele
         container.append(intentLabel);
     });
     unavailableIds.forEach(id => {
-        const label = makeElement('label', 'flex min-h-11 items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200');
+        const label = makeElement(
+            'label',
+            'flex min-h-11 items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200'
+        );
         const checkbox = makeElement('input', 'h-4 w-4 accent-amber-500');
         checkbox.type = 'checkbox';
         checkbox.name = 'secondary_race_ids';
@@ -825,11 +906,13 @@ function renderDrafts(container, drafts) {
         const candidateCount = methodologyAssessment?.candidate_pattern_ids?.length;
         const sourceExampleCount = methodologyAssessment?.source_example_ids?.length;
         if (Number.isInteger(candidateCount) && Number.isInteger(sourceExampleCount)) {
-            card.append(makeElement(
-                'p',
-                'text-xs text-slate-400',
-                `${candidateCount} pattern pertinenti e ${sourceExampleCount} esempi fonte solo consultivi; nessuno genera sedute.`
-            ));
+            card.append(
+                makeElement(
+                    'p',
+                    'text-xs text-slate-400',
+                    `${candidateCount} pattern pertinenti e ${sourceExampleCount} esempi fonte solo consultivi; nessuno genera sedute.`
+                )
+            );
         }
         card.append(makeElement('p', 'text-xs text-slate-500', `Salvata il ${formatDateTime(draft.created_at)}`));
         container.append(card);
@@ -845,7 +928,13 @@ function renderMissedWeekControls(card, generated) {
     if (!weeks.length) return;
     const box = makeElement('div', 'space-y-2 rounded-lg border border-slate-800 bg-slate-900/60 p-3');
     box.append(makeElement('p', 'text-xs font-semibold text-slate-200', 'Settimana saltata'));
-    box.append(makeElement('p', 'text-xs text-slate-400', 'Calcola un’anteprima: i km saltati non si recuperano, il lungo successivo cresce al massimo del 25% sull’ultimo lungo completato, la qualità resta; a meno di 3 settimane dalla gara lo scarico non cambia. Regola derivata, da confermare dall’atleta.'));
+    box.append(
+        makeElement(
+            'p',
+            'text-xs text-slate-400',
+            'Calcola un’anteprima: i km saltati non si recuperano, il lungo successivo cresce al massimo del 25% sull’ultimo lungo completato, la qualità resta; a meno di 3 settimane dalla gara lo scarico non cambia. Regola derivata, da confermare dall’atleta.'
+        )
+    );
     const row = makeElement('div', 'flex flex-wrap gap-2');
     const select = makeElement('select', 'min-h-10 rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200');
     select.name = 'missed_week';
@@ -855,7 +944,11 @@ function renderMissedWeekControls(card, generated) {
         select.append(option);
     });
     select.value = String(weeks[weeks.length - 1].weekNumber);
-    const button = makeElement('button', 'min-h-10 rounded-lg border border-slate-700 px-3 text-xs font-semibold text-slate-200 hover:bg-slate-800', 'Settimana saltata: anteprima');
+    const button = makeElement(
+        'button',
+        'min-h-10 rounded-lg border border-slate-700 px-3 text-xs font-semibold text-slate-200 hover:bg-slate-800',
+        'Settimana saltata: anteprima'
+    );
     button.type = 'button';
     button.dataset.action = 'missed-week-preview';
     row.append(select, button);
@@ -876,18 +969,29 @@ function renderMissedWeekPreview(output, preview) {
         return;
     }
     const changes = makeElement('ul', 'list-disc space-y-1 pl-5 text-xs text-amber-100');
-    preview.changes.forEach(change => changes.append(makeElement(
-        'li',
-        '',
-        `${change.scheduled_date} · ${change.title}: ${String(change.from_km).replace('.', ',')} → ${String(change.to_km).replace('.', ',')} km`
-    )));
+    preview.changes.forEach(change =>
+        changes.append(
+            makeElement(
+                'li',
+                '',
+                `${change.scheduled_date} · ${change.title}: ${String(change.from_km).replace('.', ',')} → ${String(change.to_km).replace('.', ',')} km`
+            )
+        )
+    );
     output.append(changes);
     const confirmLabel = makeElement('label', 'flex items-start gap-2 text-xs text-slate-300');
     const checkbox = makeElement('input', 'mt-0.5');
     checkbox.type = 'checkbox';
     checkbox.name = 'confirm_missed_week';
-    confirmLabel.append(checkbox, makeElement('span', '', 'Applica queste modifiche alle sedute future del calendario (regola derivata, da confermare).'));
-    const apply = makeElement('button', 'min-h-10 rounded-lg bg-amber-600 px-3 text-xs font-semibold text-white', 'Conferma e aggiorna il calendario');
+    confirmLabel.append(
+        checkbox,
+        makeElement('span', '', 'Applica queste modifiche alle sedute future del calendario (regola derivata, da confermare).')
+    );
+    const apply = makeElement(
+        'button',
+        'min-h-10 rounded-lg bg-amber-600 px-3 text-xs font-semibold text-white',
+        'Conferma e aggiorna il calendario'
+    );
     apply.type = 'button';
     apply.dataset.action = 'missed-week-apply';
     output.append(confirmLabel, apply);
@@ -895,18 +999,38 @@ function renderMissedWeekPreview(output, preview) {
 
 function renderGeneratedDraft(card, generated) {
     const sessionCount = generated.weeks.reduce((total, week) => total + week.sessions.length, 0);
-    card.append(makeElement(
-        'p',
-        'text-xs text-sky-200',
-        `Bozza generata dalla tabella ${generated.source.table}: ${generated.weeks.length} settimane, ${sessionCount} sedute dal ${generated.startDate} al ${generated.endDate}. Non è ancora nel calendario.`
-    ));
+    card.append(
+        makeElement(
+            'p',
+            'text-xs text-sky-200',
+            `Bozza generata dalla tabella ${generated.source.table}: ${generated.weeks.length} settimane, ${sessionCount} sedute dal ${generated.startDate} al ${generated.endDate}. Non è ancora nel calendario.`
+        )
+    );
     if (generated.intensity === 'breathing') {
-        card.append(makeElement('p', 'text-xs text-slate-300', 'Tabella a ritmo respiratorio: km e sensazioni, senza passo al km; non serve il test VR.'));
+        card.append(
+            makeElement(
+                'p',
+                'text-xs text-slate-300',
+                'Tabella a ritmo respiratorio: km e sensazioni, senza passo al km; non serve il test VR.'
+            )
+        );
     } else if (generated.intensity === 'breathing_vr') {
-        card.append(makeElement('p', 'text-xs text-slate-300', 'Tabella a ritmo respiratorio con i passi dalla tua VR (test valido): il respiro resta il controllo.'));
+        card.append(
+            makeElement(
+                'p',
+                'text-xs text-slate-300',
+                'Tabella a ritmo respiratorio con i passi dalla tua VR (test valido): il respiro resta il controllo.'
+            )
+        );
     }
     (generated.derivedRules || []).forEach(rule => {
-        card.append(makeElement('p', 'rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-xs text-amber-100', `${rule.label}: ${rule.explanation}`));
+        card.append(
+            makeElement(
+                'p',
+                'rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-xs text-amber-100',
+                `${rule.label}: ${rule.explanation}`
+            )
+        );
     });
     const draftNotes = (generated.notes || []).filter(note => !(generated.derivedRules || []).some(rule => rule.explanation === note));
     if (draftNotes.length) {
@@ -934,12 +1058,18 @@ function renderGeneratedDraft(card, generated) {
             row.dataset.extraWeek = String(week.weekNumber);
             row.append(makeElement('span', 'self-center', `Settimana ${week.weekNumber}: seduta extra`));
             const select = makeElement('select', 'min-h-11 rounded-xl border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200');
-            [['quality', 'Qualità'], ['strength', 'Palestra']].forEach(([value, label]) => {
+            [
+                ['quality', 'Qualità'],
+                ['strength', 'Palestra']
+            ].forEach(([value, label]) => {
                 const option = makeElement('option', '', label);
                 option.value = value;
                 select.append(option);
             });
-            const input = makeElement('input', 'min-h-11 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200');
+            const input = makeElement(
+                'input',
+                'min-h-11 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-2 text-xs text-slate-200'
+            );
             input.maxLength = 100;
             input.placeholder = 'Descrivi la seduta scelta';
             row.append(select, input);
@@ -949,8 +1079,19 @@ function renderGeneratedDraft(card, generated) {
     const checkbox = makeElement('input', 'mt-0.5');
     checkbox.type = 'checkbox';
     checkbox.name = 'confirm_draft';
-    confirmLabel.append(checkbox, makeElement('span', '', 'Ho rivisto la bozza e voglio scrivere queste sedute nel mio calendario. Le sedute già presenti non vengono modificate.'));
-    const button = makeElement('button', 'min-h-11 rounded-xl bg-brand-600 px-3 text-sm font-semibold text-white', 'Conferma e scrivi nel calendario');
+    confirmLabel.append(
+        checkbox,
+        makeElement(
+            'span',
+            '',
+            'Ho rivisto la bozza e voglio scrivere queste sedute nel mio calendario. Le sedute già presenti non vengono modificate.'
+        )
+    );
+    const button = makeElement(
+        'button',
+        'min-h-11 rounded-xl bg-brand-600 px-3 text-sm font-semibold text-white',
+        'Conferma e scrivi nel calendario'
+    );
     button.type = 'button';
     button.dataset.action = 'apply-draft';
     card.append(confirmLabel, button);
@@ -962,14 +1103,19 @@ function renderIntermediateRaceProposals(card, generated) {
     const proposals = generated.intermediateRaceProposals || [];
     if (!proposals.length) return;
     const box = makeElement('div', 'space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3');
-    box.append(makeElement('p', 'text-xs font-semibold text-amber-100', 'Gare intermedie nel periodo della bozza (regola derivata, da confermare)'));
+    box.append(
+        makeElement('p', 'text-xs font-semibold text-amber-100', 'Gare intermedie nel periodo della bozza (regola derivata, da confermare)')
+    );
     proposals.forEach((proposal, index) => {
         const label = makeElement('label', 'flex items-start gap-2 text-xs text-slate-200');
         const checkbox = makeElement('input', 'mt-0.5');
         checkbox.type = 'checkbox';
         checkbox.name = 'apply_intermediate_race';
         checkbox.value = String(index);
-        label.append(checkbox, makeElement('span', '', `Applica: ${proposal.description}${proposal.week_number ? ` (settimana ${proposal.week_number})` : ''}`));
+        label.append(
+            checkbox,
+            makeElement('span', '', `Applica: ${proposal.description}${proposal.week_number ? ` (settimana ${proposal.week_number})` : ''}`)
+        );
         box.append(label);
     });
     box.append(makeElement('p', 'text-xs text-slate-400', 'Senza spunta la gara resta solo un promemoria e la bozza segue la tabella.'));
@@ -1000,9 +1146,9 @@ function formatDateTime(value) {
 
 function showStatus(element, message, kind) {
     element.textContent = message;
-    element.className = `rounded-xl border p-3 text-sm ${kind === 'error'
-        ? 'border-rose-500/30 bg-rose-500/10 text-rose-300'
-        : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'}`;
+    element.className = `rounded-xl border p-3 text-sm ${
+        kind === 'error' ? 'border-rose-500/30 bg-rose-500/10 text-rose-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+    }`;
     element.classList.remove('hidden');
 }
 

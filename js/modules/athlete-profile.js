@@ -18,8 +18,7 @@ export function normalizePersonalData(input = {}, today = localDateKey()) {
     const birthDate = text(input.birth_date, 10);
     if (birthDate) {
         const date = new Date(`${birthDate}T00:00:00Z`);
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) || Number.isNaN(date.getTime())
-            || date.toISOString().slice(0, 10) !== birthDate) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== birthDate) {
             throw new Error('La data di nascita non è valida.');
         }
         if (birthDate < '1900-01-01' || birthDate > today) {
@@ -56,11 +55,7 @@ export class AthleteProfileService {
     }
 
     async load(userId) {
-        const { data, error } = await this.supabaseClient
-            .from('profiles')
-            .select(PROFILE_FIELDS)
-            .eq('id', userId)
-            .maybeSingle();
+        const { data, error } = await this.supabaseClient.from('profiles').select(PROFILE_FIELDS).eq('id', userId).maybeSingle();
         if (error) throw error;
         return data;
     }
@@ -86,7 +81,9 @@ function text(value, maxLength, message) {
 }
 
 function number(value, message, integer = false) {
-    const raw = String(value ?? '').trim().replace(',', '.');
+    const raw = String(value ?? '')
+        .trim()
+        .replace(',', '.');
     if (!raw) return null;
     const parsed = Number(raw);
     if (!Number.isFinite(parsed) || (integer && !Number.isInteger(parsed))) throw new Error(message);

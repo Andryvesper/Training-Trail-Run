@@ -42,7 +42,11 @@ export const BREATHING_RHYTHMS = Object.freeze({
     CRF: Object.freeze({ label: 'respirazione facile', effort: 'sforzo 2-3, circa 71-77% di PMAX', page: '176-177' }),
     CRLI: Object.freeze({ label: 'respirazione leggermente impegnata', effort: 'sforzo 4-6, circa 78-84% di PMAX', page: '177' }),
     CRI: Object.freeze({ label: 'respirazione impegnata', effort: 'sforzo 7-8, circa 85-90% di PMAX', page: '177' }),
-    CRMI: Object.freeze({ label: 'respirazione molto impegnata', effort: 'più impegnata della CRI, solo nei tratti brevi indicati', page: '177' })
+    CRMI: Object.freeze({
+        label: 'respirazione molto impegnata',
+        effort: 'più impegnata della CRI, solo nei tratti brevi indicati',
+        page: '177'
+    })
 });
 
 export function describeBreathing(codes = []) {
@@ -61,17 +65,25 @@ export function paceBandsForBreathing(session, vrSecondsPerKm) {
     if (!Number.isInteger(vrSecondsPerKm) || vrSecondsPerKm <= 0) return [];
     const codes = [...new Set(session?.breathing || [])];
     const bands = [];
-    const push = (key, rule) => bands.push({
-        key,
-        label: BREATHING_RHYTHMS[key] ? `${key} (${BREATHING_RHYTHMS[key].label})` : rule.label,
-        fastestSecondsPerKm: vrSecondsPerKm + rule.min,
-        slowestSecondsPerKm: vrSecondsPerKm + rule.max,
-        page: rule.page
-    });
+    const push = (key, rule) =>
+        bands.push({
+            key,
+            label: BREATHING_RHYTHMS[key] ? `${key} (${BREATHING_RHYTHMS[key].label})` : rule.label,
+            fastestSecondsPerKm: vrSecondsPerKm + rule.min,
+            slowestSecondsPerKm: vrSecondsPerKm + rule.max,
+            page: rule.page
+        });
     codes.forEach(code => {
         if (BREATHING_PACE[code]) push(code, RULES[BREATHING_PACE[code]]);
         else if (code === 'CRMI') {
-            bands.push({ key: 'CRMI', label: 'CRMI', fastestSecondsPerKm: null, slowestSecondsPerKm: null, page: '177', note: 'Nessun passo nel libro: tratti brevi a sensazione.' });
+            bands.push({
+                key: 'CRMI',
+                label: 'CRMI',
+                fastestSecondsPerKm: null,
+                slowestSecondsPerKm: null,
+                page: '177',
+                note: 'Nessun passo nel libro: tratti brevi a sensazione.'
+            });
         }
     });
     if (!codes.length && session?.type === 'race_training') {
@@ -84,7 +96,10 @@ export function paceBandsForBreathing(session, vrSecondsPerKm) {
 
 export function paceBandsForCell(raw, vrSecondsPerKm, goalDistanceKm) {
     if (!Number.isInteger(vrSecondsPerKm) || vrSecondsPerKm <= 0) return [];
-    const text = String(raw ?? '').split('/').join(' ').replace(/\s+/g, ' ');
+    const text = String(raw ?? '')
+        .split('/')
+        .join(' ')
+        .replace(/\s+/g, ' ');
     const bands = [];
     const add = (key, label, min, max, page) => {
         if (bands.some(band => band.key === key)) return;
@@ -106,7 +121,14 @@ export function paceBandsForCell(raw, vrSecondsPerKm, goalDistanceKm) {
         reps.map(repMeters).forEach(meters => {
             const offset = MLSS_BY_METERS[meters];
             if (offset === undefined) {
-                bands.push({ key: `MLSS${meters}`, label: `MLSS ${meters} m`, fastestSecondsPerKm: null, slowestSecondsPerKm: null, page: '182-184', note: 'Distanza non prevista dal libro: nessun passo calcolato.' });
+                bands.push({
+                    key: `MLSS${meters}`,
+                    label: `MLSS ${meters} m`,
+                    fastestSecondsPerKm: null,
+                    slowestSecondsPerKm: null,
+                    page: '182-184',
+                    note: 'Distanza non prevista dal libro: nessun passo calcolato.'
+                });
             } else {
                 add(`MLSS${meters}`, `MLSS ${meters} m`, offset, offset, '182-184');
             }
@@ -116,21 +138,42 @@ export function paceBandsForCell(raw, vrSecondsPerKm, goalDistanceKm) {
         reps.map(repMeters).forEach(meters => {
             const offset = VAM_BY_METERS[meters];
             if (offset === undefined) {
-                bands.push({ key: `VAM${meters}`, label: `VAM ${meters} m`, fastestSecondsPerKm: null, slowestSecondsPerKm: null, page: '184-187', note: 'Distanza non prevista dal libro: nessun passo calcolato.' });
+                bands.push({
+                    key: `VAM${meters}`,
+                    label: `VAM ${meters} m`,
+                    fastestSecondsPerKm: null,
+                    slowestSecondsPerKm: null,
+                    page: '184-187',
+                    note: 'Distanza non prevista dal libro: nessun passo calcolato.'
+                });
             } else {
                 add(`VAM${meters}`, `VAM ${meters} m`, offset, offset, '184-187');
             }
         });
     }
     if (/\bSB\b/.test(text)) {
-        bands.push({ key: 'SB', label: 'Salite SB', fastestSecondsPerKm: null, slowestSecondsPerKm: null, page: '185-189', note: 'In salita: ritmo CRI a sforzo 7-8 e 85-90% di PMAX, senza passo.' });
+        bands.push({
+            key: 'SB',
+            label: 'Salite SB',
+            fastestSecondsPerKm: null,
+            slowestSecondsPerKm: null,
+            page: '185-189',
+            note: 'In salita: ritmo CRI a sforzo 7-8 e 85-90% di PMAX, senza passo.'
+        });
     }
     if (/\bLLM\b/.test(text)) rule('LLM');
     // Tabella ultra evoluti, p. 266: ritmo ultramaratona (RUM) = VR + 1'30".
     if (/\bLLU\b/.test(text)) add('LLU', 'lunghissimo ultra (RUM)', 90, 90, '266');
     if (/\bDAU\b/.test(text)) add('DAU', 'day after ultra (CRMF)', RULES.CRMF.min, RULES.CRMF.max, RULES.CRMF.page);
     if (/\bSL\b/.test(text)) {
-        bands.push({ key: 'SL', label: 'SL', fastestSecondsPerKm: null, slowestSecondsPerKm: null, page: '267', note: 'Sigla senza passo numerico nel libro: usa sforzo e frequenza cardiaca.' });
+        bands.push({
+            key: 'SL',
+            label: 'SL',
+            fastestSecondsPerKm: null,
+            slowestSecondsPerKm: null,
+            page: '267',
+            note: 'Sigla senza passo numerico nel libro: usa sforzo e frequenza cardiaca.'
+        });
     }
     if (/\bRMA\b/.test(text)) rule('RMA');
     if (/\bRME\b/.test(text)) rule('RME');
@@ -158,12 +201,15 @@ export function singleTargetPace(bands) {
 }
 
 export function describeBands(bands) {
-    return bands.map(band => band.fastestSecondsPerKm === null
-        ? `${band.label}: ${band.note}`
-        : band.fastestSecondsPerKm === band.slowestSecondsPerKm
-            ? `${band.label} ${formatPace(band.fastestSecondsPerKm)}/km`
-            : `${band.label} ${formatPace(band.fastestSecondsPerKm)}-${formatPace(band.slowestSecondsPerKm)}/km`
-    ).join('; ');
+    return bands
+        .map(band =>
+            band.fastestSecondsPerKm === null
+                ? `${band.label}: ${band.note}`
+                : band.fastestSecondsPerKm === band.slowestSecondsPerKm
+                  ? `${band.label} ${formatPace(band.fastestSecondsPerKm)}/km`
+                  : `${band.label} ${formatPace(band.fastestSecondsPerKm)}-${formatPace(band.slowestSecondsPerKm)}/km`
+        )
+        .join('; ');
 }
 
 function repMeters(rep) {

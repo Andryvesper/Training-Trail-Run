@@ -6,3 +6,8 @@ package-lock.json
 *.html
 *.sql
 supabase/
+package.json
+# Trascrizioni e regole approvate dall'atleta: impaginazione a mano, non riformattare.
+js/modules/training-cycle-transcriptions.js
+js/modules/training-trail-transcriptions.js
+js/modules/training-methodology-rules.js

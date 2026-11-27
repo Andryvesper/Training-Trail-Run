@@ -3,25 +3,37 @@ import assert from 'node:assert/strict';
 import { ageOn, AthleteProfileService, normalizePersonalData } from '../js/modules/athlete-profile.js';
 
 test('normalizza i dati anagrafici e accetta campi vuoti', () => {
-    assert.deepEqual(normalizePersonalData({
-        full_name: '  Andrea Baron ',
-        birth_date: '1980-05-20',
-        sex: 'male',
-        city: 'Treviso',
-        phone: '+39 333 1234567',
-        height_cm: '178',
-        weight_kg: '68,46'
-    }, '2026-11-14'), {
-        full_name: 'Andrea Baron',
-        birth_date: '1980-05-20',
-        sex: 'male',
-        city: 'Treviso',
-        phone: '+39 333 1234567',
-        height_cm: 178,
-        weight_kg: 68.5
-    });
+    assert.deepEqual(
+        normalizePersonalData(
+            {
+                full_name: '  Andrea Baron ',
+                birth_date: '1980-05-20',
+                sex: 'male',
+                city: 'Treviso',
+                phone: '+39 333 1234567',
+                height_cm: '178',
+                weight_kg: '68,46'
+            },
+            '2026-11-14'
+        ),
+        {
+            full_name: 'Andrea Baron',
+            birth_date: '1980-05-20',
+            sex: 'male',
+            city: 'Treviso',
+            phone: '+39 333 1234567',
+            height_cm: 178,
+            weight_kg: 68.5
+        }
+    );
     assert.deepEqual(normalizePersonalData({}), {
-        full_name: null, birth_date: null, sex: null, city: null, phone: null, height_cm: null, weight_kg: null
+        full_name: null,
+        birth_date: null,
+        sex: null,
+        city: null,
+        phone: null,
+        height_cm: null,
+        weight_kg: null
     });
 });
 
@@ -44,14 +56,25 @@ test('salva solo i campi anagrafici sulla propria riga, senza toccare il ruolo',
     const calls = [];
     const query = {};
     ['update', 'eq', 'select'].forEach(method => {
-        query[method] = (...args) => { calls.push([method, ...args]); return query; };
+        query[method] = (...args) => {
+            calls.push([method, ...args]);
+            return query;
+        };
     });
     query.single = () => Promise.resolve({ data: { id: 'u1' }, error: null });
-    const service = new AthleteProfileService({ from: table => { calls.push(['from', table]); return query; } });
+    const service = new AthleteProfileService({
+        from: table => {
+            calls.push(['from', table]);
+            return query;
+        }
+    });
 
     await service.save('u1', { full_name: 'Andrea', role: 'admin' });
     const update = calls.find(call => call[0] === 'update')[1];
     assert.equal(update.full_name, 'Andrea');
     assert.equal('role' in update, false);
-    assert.deepEqual(calls.find(call => call[0] === 'eq'), ['eq', 'id', 'u1']);
+    assert.deepEqual(
+        calls.find(call => call[0] === 'eq'),
+        ['eq', 'id', 'u1']
+    );
 });

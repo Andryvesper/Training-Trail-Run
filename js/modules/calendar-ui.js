@@ -48,13 +48,23 @@ export async function initCalendarModule(supabaseClient, userId) {
     const openGroups = new Set();
     const status = createStatusElement(container);
     container.setAttribute('aria-busy', 'true');
-    container.append(createSkeleton({ lines: 4, label: 'Caricamento del tuo piano…', className: 'rounded-2xl border border-slate-800 bg-slate-900/70 p-5' }));
+    container.append(
+        createSkeleton({
+            lines: 4,
+            label: 'Caricamento del tuo piano…',
+            className: 'rounded-2xl border border-slate-800 bg-slate-900/70 p-5'
+        })
+    );
     let sessions = [];
     let editingSession = null;
     let pendingAssociation = null;
     exportToolbar?.remove();
     // "Tutto il piano futuro" va oltre la finestra del calendario: si legge dal database al clic.
-    exportToolbar = createExportToolbar(() => sessions, status, today => planService.listSessions(userId, today, '9999-12-31'));
+    exportToolbar = createExportToolbar(
+        () => sessions,
+        status,
+        today => planService.listSessions(userId, today, '9999-12-31')
+    );
     status.before(exportToolbar);
 
     try {
@@ -79,17 +89,18 @@ export async function initCalendarModule(supabaseClient, userId) {
             if (requestId !== activitiesRequestId) return;
             if (!isConnected(connection)) {
                 intervalsService = null;
-                weeks.forEach(week => week.days.forEach(day => {
-                    day.intervalsActivities = [];
-                }));
+                weeks.forEach(week =>
+                    week.days.forEach(day => {
+                        day.intervalsActivities = [];
+                    })
+                );
                 showStatus(status, 'Collega Intervals.icu per visualizzare le attività svolte. Il piano resta disponibile.', 'info');
                 render();
                 return;
             }
 
             intervalsService = createIntervalsService(supabaseClient, connection);
-            const activities = await intervalsService
-                .getActivities(weeks[0].startDate, weeks[weeks.length - 1].endDate);
+            const activities = await intervalsService.getActivities(weeks[0].startDate, weeks[weeks.length - 1].endDate);
             if (requestId !== activitiesRequestId) return;
             const byDate = new Map();
             activities.forEach(activity => {
@@ -98,9 +109,11 @@ export async function initCalendarModule(supabaseClient, userId) {
                 if (!byDate.has(date)) byDate.set(date, []);
                 byDate.get(date).push(activity);
             });
-            weeks.forEach(week => week.days.forEach(day => {
-                day.intervalsActivities = byDate.get(day.date) || [];
-            }));
+            weeks.forEach(week =>
+                week.days.forEach(day => {
+                    day.intervalsActivities = byDate.get(day.date) || [];
+                })
+            );
             render();
         } catch (error) {
             if (requestId !== activitiesRequestId) return;
@@ -177,15 +190,17 @@ export async function initCalendarModule(supabaseClient, userId) {
             button.disabled = true;
             try {
                 await planService.unlinkActivity(userId, sessionId);
-                sessions = sessions.map(session => session.id === sessionId
-                    ? {
-                        ...session,
-                        intervals_activity_id: null,
-                        completed_at: null,
-                        adherence_score: null,
-                        completed_activity: null
-                    }
-                    : session);
+                sessions = sessions.map(session =>
+                    session.id === sessionId
+                        ? {
+                              ...session,
+                              intervals_activity_id: null,
+                              completed_at: null,
+                              adherence_score: null,
+                              completed_activity: null
+                          }
+                        : session
+                );
                 showStatus(status, 'Associazione rimossa. L’attività resta in Intervals.icu.', 'success');
                 render();
                 notifySessionsUpdated();
@@ -239,13 +254,8 @@ export async function initCalendarModule(supabaseClient, userId) {
             submitButton.disabled = true;
             try {
                 const snapshot = createActivitySnapshot(selectedActivity);
-                const savedSession = await planService.confirmActivity(
-                    userId,
-                    selectedSession.id,
-                    snapshot,
-                    score
-                );
-                sessions = sessions.map(session => session.id === savedSession.id ? savedSession : session);
+                const savedSession = await planService.confirmActivity(userId, selectedSession.id, snapshot, score);
+                sessions = sessions.map(session => (session.id === savedSession.id ? savedSession : session));
                 pendingAssociation = null;
                 showStatus(status, 'Attività associata e valutazione salvate.', 'success');
                 render();
@@ -271,14 +281,12 @@ export async function initCalendarModule(supabaseClient, userId) {
             return;
         }
         const date = form.dataset.date;
-        const existing = editingSession?.id
-            ? sessions.find(session => session.id === editingSession.id)
-            : null;
-        const sessionOrder = existing?.session_order || (
+        const existing = editingSession?.id ? sessions.find(session => session.id === editingSession.id) : null;
+        const sessionOrder =
+            existing?.session_order ||
             sessions
                 .filter(session => session.scheduled_date === date)
-                .reduce((maximum, session) => Math.max(maximum, session.session_order), 0) + 1
-        );
+                .reduce((maximum, session) => Math.max(maximum, session.session_order), 0) + 1;
         const session = {
             id: existing?.id,
             scheduled_date: date,
@@ -295,9 +303,7 @@ export async function initCalendarModule(supabaseClient, userId) {
 
         try {
             const savedSession = await planService.saveSession(userId, session);
-            sessions = existing
-                ? sessions.map(item => item.id === savedSession.id ? savedSession : item)
-                : [...sessions, savedSession];
+            sessions = existing ? sessions.map(item => (item.id === savedSession.id ? savedSession : item)) : [...sessions, savedSession];
             editingSession = null;
             showStatus(status, 'Seduta salvata nel piano.', 'success');
             render();
@@ -320,7 +326,12 @@ function createExportToolbar(getSessions, status, loadFutureSessions) {
         option.value = value;
         select.append(option);
     });
-    const button = createButton('Esporta calendario (.ics)', null, {}, 'min-h-10 rounded-xl border border-brand-500/40 px-4 text-sm font-medium text-brand-300 hover:bg-brand-500/10');
+    const button = createButton(
+        'Esporta calendario (.ics)',
+        null,
+        {},
+        'min-h-10 rounded-xl border border-brand-500/40 px-4 text-sm font-medium text-brand-300 hover:bg-brand-500/10'
+    );
     button.addEventListener('click', async () => {
         const now = new Date();
         const today = localDateKey(now);
@@ -335,7 +346,7 @@ function createExportToolbar(getSessions, status, loadFutureSessions) {
             downloadIcs(buildIcsCalendar(selected, { now }), exportFileName(today, select.value));
             showStatus(status, `Esportate ${selected.length} sedute in formato .ics.`, 'success');
         } catch (error) {
-            console.error('Errore nell\'esportazione del calendario:', error);
+            console.error("Errore nell'esportazione del calendario:", error);
             showStatus(status, `Esportazione non riuscita: ${error.message}`, 'error');
         } finally {
             button.disabled = false;
@@ -357,10 +368,12 @@ function renderCalendar(container, weeks, sessions, editingSession, pendingAssoc
     const visible = weeks.slice(currentIndex, currentIndex + 1 + VISIBLE_FUTURE_WEEKS);
     const later = weeks.slice(currentIndex + 1 + VISIBLE_FUTURE_WEEKS);
     // Carico pianificato per settimana, con avviso oltre +10% (non dal libro).
-    const plannedLoad = loadIncreaseWarnings(weeklyLoad(plannedLoadEntries(sessions), {
-        fromWeek: weeks[0].startDate,
-        toWeek: weeks[weeks.length - 1].startDate
-    }));
+    const plannedLoad = loadIncreaseWarnings(
+        weeklyLoad(plannedLoadEntries(sessions), {
+            fromWeek: weeks[0].startDate,
+            toWeek: weeks[weeks.length - 1].startDate
+        })
+    );
     const context = {
         sessions,
         editingSession,
@@ -381,12 +394,15 @@ function renderCalendar(container, weeks, sessions, editingSession, pendingAssoc
 
 function renderWeek(week, offset, context) {
     const section = createElement('section', 'calendar-week space-y-3');
-    const relative = offset === 0
-        ? 'Questa settimana'
-        : offset === 1 ? 'Prossima settimana' : offset > 1 ? `Tra ${offset} settimane` : '';
+    const relative = offset === 0 ? 'Questa settimana' : offset === 1 ? 'Prossima settimana' : offset > 1 ? `Tra ${offset} settimane` : '';
     const heading = createElement('div', 'flex flex-wrap items-center gap-x-3 gap-y-1');
-    heading.append(createElement('h3', 'text-sm font-semibold text-slate-200',
-        `${formatDateIt(week.startDate)} – ${formatDateIt(week.endDate)}${relative ? ` · ${relative}` : ''}`));
+    heading.append(
+        createElement(
+            'h3',
+            'text-sm font-semibold text-slate-200',
+            `${formatDateIt(week.startDate)} – ${formatDateIt(week.endDate)}${relative ? ` · ${relative}` : ''}`
+        )
+    );
     appendPlannedLoad(heading, context.loadByWeek?.get(week.startDate), week.startDate >= (context.currentWeekStart || ''));
     const daysGrid = createElement('div', 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7');
     week.days.forEach(day => {
@@ -406,8 +422,11 @@ function appendPlannedLoad(heading, load, isFuture) {
     if (load.seconds > 0) parts.push(formatDurationIt(load.seconds));
     heading.append(createElement('span', 'text-xs text-slate-400', `Pianificato: ${parts.join(' · ')}`));
     if (!isFuture || !load.warning) return;
-    const badge = createElement('span', 'rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200',
-        `Carico in aumento: ${describeIncreases(load.increases)}`);
+    const badge = createElement(
+        'span',
+        'rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200',
+        `Carico in aumento: ${describeIncreases(load.increases)}`
+    );
     badge.title = `Aumento oltre il 10% rispetto alla settimana precedente pianificata (${LOAD_RULE_LABEL}).`;
     heading.append(badge, createElement('span', 'text-[11px] text-slate-500', LOAD_RULE_LABEL));
 }
@@ -415,17 +434,32 @@ function appendPlannedLoad(heading, load, isFuture) {
 // Menù a tendina per anno e mese; lo stato aperto/chiuso sopravvive ai
 // ridisegni, così modificare una seduta non richiude il gruppo.
 function renderWeekArchive(kind, title, weeks, context) {
-    const root = collapsible(`${kind}`, title, summarizeWeeks(weeks, context.sessions), context.openGroups,
-        'rounded-2xl border border-slate-800 bg-slate-900/70');
+    const root = collapsible(
+        `${kind}`,
+        title,
+        summarizeWeeks(weeks, context.sessions),
+        context.openGroups,
+        'rounded-2xl border border-slate-800 bg-slate-900/70'
+    );
     const byYear = groupBy(weeks, week => week.startDate.slice(0, 4));
     byYear.forEach((yearWeeks, year) => {
-        const yearNode = collapsible(`${kind}-${year}`, year, summarizeWeeks(yearWeeks, context.sessions), context.openGroups,
-            'rounded-xl border border-slate-800 bg-slate-950/40');
+        const yearNode = collapsible(
+            `${kind}-${year}`,
+            year,
+            summarizeWeeks(yearWeeks, context.sessions),
+            context.openGroups,
+            'rounded-xl border border-slate-800 bg-slate-950/40'
+        );
         groupBy(yearWeeks, week => week.startDate.slice(0, 7)).forEach((monthWeeks, month) => {
             const monthName = new Date(`${month}-01T12:00:00`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
             const label = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-            const monthNode = collapsible(`${kind}-${month}`, label, summarizeWeeks(monthWeeks, context.sessions), context.openGroups,
-                'rounded-xl border border-slate-800');
+            const monthNode = collapsible(
+                `${kind}-${month}`,
+                label,
+                summarizeWeeks(monthWeeks, context.sessions),
+                context.openGroups,
+                'rounded-xl border border-slate-800'
+            );
             if (monthNode.open) {
                 monthWeeks.forEach(week => monthNode.body.append(renderWeek(week, -1, context)));
             }
@@ -439,7 +473,10 @@ function renderWeekArchive(kind, title, weeks, context) {
 function collapsible(key, title, detail, openGroups, className) {
     const element = createElement('details', className);
     element.open = openGroups.has(key);
-    const summary = createElement('summary', 'flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-white');
+    const summary = createElement(
+        'summary',
+        'flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-white'
+    );
     summary.append(createElement('span', '', title), createElement('span', 'text-xs font-normal normal-case text-slate-400', detail));
     const body = createElement('div', 'space-y-3 px-3 pb-3');
     element.append(summary, body);
@@ -488,23 +525,25 @@ function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
     });
     const heading = createElement('div', 'flex items-center justify-between gap-2');
     heading.append(createElement('h3', 'text-sm font-bold text-white capitalize', dayLabel));
-    if (isToday) heading.append(createElement('span', 'shrink-0 rounded-full bg-brand-500/10 px-2.5 py-1 text-[10px] font-semibold text-brand-300', 'Oggi'));
+    if (isToday)
+        heading.append(
+            createElement('span', 'shrink-0 rounded-full bg-brand-500/10 px-2.5 py-1 text-[10px] font-semibold text-brand-300', 'Oggi')
+        );
     card.append(heading);
 
     if (day.intervalsActivities.length) {
         const activityHeading = createElement('p', 'text-xs font-semibold uppercase tracking-wide text-emerald-300', 'Attività svolte');
         card.append(activityHeading);
-        day.intervalsActivities.forEach(activity => card.append(renderActivity(
-            activity,
-            day.plannedSessions,
-            allSessions,
-            pendingAssociation
-        )));
+        day.intervalsActivities.forEach(activity =>
+            card.append(renderActivity(activity, day.plannedSessions, allSessions, pendingAssociation))
+        );
     }
 
     const sessionsSection = createElement('div', 'space-y-2');
     if (day.plannedSessions.length) {
-        sessionsSection.append(createElement('p', 'text-xs font-semibold uppercase tracking-wide text-slate-400', 'Allenamenti pianificati'));
+        sessionsSection.append(
+            createElement('p', 'text-xs font-semibold uppercase tracking-wide text-slate-400', 'Allenamenti pianificati')
+        );
         day.plannedSessions.forEach(session => sessionsSection.append(renderSession(session, day.intervalsActivities)));
     } else if (!day.intervalsActivities.length) {
         sessionsSection.append(createElement('p', 'text-sm text-slate-500', 'Nessuna seduta pianificata.'));
@@ -533,9 +572,17 @@ function renderActivity(activity, daySessions, allSessions, pendingAssociation) 
     const detailId = normalizeActivityId(activity.id);
     if (detailId) {
         // Il nome apre il dettaglio dell'attività.
-        const open = createButton('', 'activity-detail', { activityId: detailId }, 'group flex w-full items-start justify-between gap-2 text-left text-sm font-semibold text-white hover:text-brand-200');
+        const open = createButton(
+            '',
+            'activity-detail',
+            { activityId: detailId },
+            'group flex w-full items-start justify-between gap-2 text-left text-sm font-semibold text-white hover:text-brand-200'
+        );
         open.setAttribute('aria-label', `Dettaglio attività: ${activityName}`);
-        open.append(createElement('span', 'underline decoration-slate-600 underline-offset-2 group-hover:decoration-brand-300', activityName), createElement('span', 'shrink-0 text-brand-300', '›'));
+        open.append(
+            createElement('span', 'underline decoration-slate-600 underline-offset-2 group-hover:decoration-brand-300', activityName),
+            createElement('span', 'shrink-0 text-brand-300', '›')
+        );
         section.append(open);
     } else {
         section.append(createElement('p', 'text-sm font-semibold text-white', activityName));
@@ -548,38 +595,36 @@ function renderActivity(activity, daySessions, allSessions, pendingAssociation) 
     if (details.length) section.append(createElement('p', 'text-xs text-slate-400', details.join(' · ')));
 
     const activityId = normalizeActivityId(activity.id);
-    const linkedSession = activityId
-        ? allSessions.find(session => session.intervals_activity_id === activityId)
-        : null;
+    const linkedSession = activityId ? allSessions.find(session => session.intervals_activity_id === activityId) : null;
     if (linkedSession) {
-        if (pendingAssociation?.activityId === activityId
-            && pendingAssociation?.sessionId === linkedSession.id) {
-            section.append(renderAssociationForm(
-                activity,
-                linkedSession,
-                pendingAssociation.score,
-                true
-            ));
+        if (pendingAssociation?.activityId === activityId && pendingAssociation?.sessionId === linkedSession.id) {
+            section.append(renderAssociationForm(activity, linkedSession, pendingAssociation.score, true));
             return section;
         }
-        section.append(createElement(
-            'p',
-            'text-xs text-emerald-200',
-            `Associata a: ${linkedSession.title} · aderenza personale ${linkedSession.adherence_score}/5`
-        ));
+        section.append(
+            createElement(
+                'p',
+                'text-xs text-emerald-200',
+                `Associata a: ${linkedSession.title} · aderenza personale ${linkedSession.adherence_score}/5`
+            )
+        );
         const actions = createElement('div', 'flex flex-wrap gap-3 pt-1');
-        actions.append(createButton(
-            'Modifica valutazione',
-            'assess-activity',
-            { activityId, sessionId: linkedSession.id },
-            'min-h-10 text-xs font-medium text-brand-300'
-        ));
-        actions.append(createButton(
-            'Rimuovi associazione',
-            'unlink-activity',
-            { sessionId: linkedSession.id },
-            'min-h-10 text-xs font-medium text-rose-300'
-        ));
+        actions.append(
+            createButton(
+                'Modifica valutazione',
+                'assess-activity',
+                { activityId, sessionId: linkedSession.id },
+                'min-h-10 text-xs font-medium text-brand-300'
+            )
+        );
+        actions.append(
+            createButton(
+                'Rimuovi associazione',
+                'unlink-activity',
+                { sessionId: linkedSession.id },
+                'min-h-10 text-xs font-medium text-rose-300'
+            )
+        );
         section.append(actions);
         return section;
     }
@@ -589,34 +634,27 @@ function renderActivity(activity, daySessions, allSessions, pendingAssociation) 
         const message = !activityId
             ? 'Intervals non ha fornito un ID: non è possibile salvare un’associazione.'
             : daySessions.length
-                ? 'Attività sincronizzata da Intervals.icu; non c’è una seduta pianificata dello stesso giorno e sport da associare.'
-                : 'Attività sincronizzata da Intervals.icu; non hai una seduta pianificata per questo giorno.';
-        section.append(createElement(
-            'p',
-            'text-xs text-slate-400',
-            message
-        ));
+              ? 'Attività sincronizzata da Intervals.icu; non c’è una seduta pianificata dello stesso giorno e sport da associare.'
+              : 'Attività sincronizzata da Intervals.icu; non hai una seduta pianificata per questo giorno.';
+        section.append(createElement('p', 'text-xs text-slate-400', message));
         return section;
     }
 
-    section.append(createElement(
-        'p',
-        'pt-1 text-xs font-medium text-amber-200',
-        'Possibile corrispondenza: verifica prima di associare.'
-    ));
+    section.append(createElement('p', 'pt-1 text-xs font-medium text-amber-200', 'Possibile corrispondenza: verifica prima di associare.'));
     matches.forEach(session => {
-        const isPending = pendingAssociation?.activityId === activityId
-            && pendingAssociation?.sessionId === session.id;
+        const isPending = pendingAssociation?.activityId === activityId && pendingAssociation?.sessionId === session.id;
         if (isPending) {
             section.append(renderAssociationForm(activity, session, pendingAssociation.score, false));
             return;
         }
-        section.append(createButton(
-            `Verifica: ${session.title}`,
-            'assess-activity',
-            { activityId, sessionId: session.id },
-            'min-h-10 w-full rounded-lg border border-amber-400/30 px-3 py-2 text-sm text-amber-100 hover:bg-amber-400/10'
-        ));
+        section.append(
+            createButton(
+                `Verifica: ${session.title}`,
+                'assess-activity',
+                { activityId, sessionId: session.id },
+                'min-h-10 w-full rounded-lg border border-amber-400/30 px-3 py-2 text-sm text-amber-100 hover:bg-amber-400/10'
+            )
+        );
     });
     return section;
 }
@@ -624,13 +662,15 @@ function renderActivity(activity, daySessions, allSessions, pendingAssociation) 
 function renderAssociationForm(activity, session, currentScore, isEditing) {
     const form = createElement('form', 'mt-2 space-y-3 rounded-xl border border-amber-400/30 bg-slate-950 p-3');
     form.dataset.activityAssociation = 'true';
-    form.append(createElement(
-        'p',
-        'text-sm font-medium text-white',
-        isEditing
-            ? `Aggiorna la valutazione per "${session.title}".`
-            : `Confermi che "${activity.name || activity.type || 'questa attività'}" è la seduta "${session.title}"?`
-    ));
+    form.append(
+        createElement(
+            'p',
+            'text-sm font-medium text-white',
+            isEditing
+                ? `Aggiorna la valutazione per "${session.title}".`
+                : `Confermi che "${activity.name || activity.type || 'questa attività'}" è la seduta "${session.title}"?`
+        )
+    );
 
     if (!isEditing) {
         const confirmationLabel = createElement('label', 'flex min-h-11 items-center gap-3 text-sm text-slate-200');
@@ -663,26 +703,21 @@ function renderAssociationForm(activity, session, currentScore, isEditing) {
     });
     fieldset.append(choices);
     form.append(fieldset);
-    form.append(createElement(
-        'p',
-        'text-xs text-slate-400',
-        'Il voto è personale. Dopo il salvataggio la seduta mostra il confronto con km, D+, tempo e passo pianificati.'
-    ));
+    form.append(
+        createElement(
+            'p',
+            'text-xs text-slate-400',
+            'Il voto è personale. Dopo il salvataggio la seduta mostra il confronto con km, D+, tempo e passo pianificati.'
+        )
+    );
 
     const actions = createElement('div', 'grid grid-cols-2 gap-2');
-    actions.append(createButton(
-        'Annulla',
-        'cancel-association',
-        {},
-        'min-h-11 rounded-xl border border-slate-700 px-3 text-sm text-slate-300'
-    ));
-    actions.append(createButton(
-        'Conferma e salva',
-        null,
-        {},
-        'min-h-11 rounded-xl bg-brand-500 px-3 text-sm font-bold text-white',
-        'submit'
-    ));
+    actions.append(
+        createButton('Annulla', 'cancel-association', {}, 'min-h-11 rounded-xl border border-slate-700 px-3 text-sm text-slate-300')
+    );
+    actions.append(
+        createButton('Conferma e salva', null, {}, 'min-h-11 rounded-xl bg-brand-500 px-3 text-sm font-bold text-white', 'submit')
+    );
     form.append(actions);
     return form;
 }
@@ -711,14 +746,11 @@ function renderSession(session, dayActivities = []) {
     if (metrics.length) section.append(createElement('p', 'text-xs text-slate-300', metrics.join(' · ')));
     if (session.notes) section.append(createElement('p', 'text-sm text-slate-400 whitespace-pre-wrap break-words', session.notes));
     if (session.completed_at && session.completed_activity) {
-        section.append(createElement(
-            'p',
-            'text-xs font-medium text-emerald-300',
-            `Completata · aderenza personale ${session.adherence_score}/5`
-        ));
+        section.append(
+            createElement('p', 'text-xs font-medium text-emerald-300', `Completata · aderenza personale ${session.adherence_score}/5`)
+        );
         // Lo snapshot salvato prima del D+ viene completato con l'attività del giorno.
-        const liveActivity = dayActivities.find(activity =>
-            normalizeActivityId(activity.id) === session.intervals_activity_id) || null;
+        const liveActivity = dayActivities.find(activity => normalizeActivityId(activity.id) === session.intervals_activity_id) || null;
         section.append(renderComparison(comparePlannedVsDone(session, session.completed_activity, liveActivity)));
         if (session.completed_activity.name) {
             section.append(createElement('p', 'text-xs text-slate-400', session.completed_activity.name));
@@ -753,9 +785,11 @@ function renderComparison(comparison) {
         if (metric.done === null) return;
         list.append(createElement('dt', 'text-slate-500', label));
         const value = createElement('dd', 'flex flex-wrap items-center gap-x-1.5 tabular-nums text-slate-200');
-        value.append(document.createTextNode(metric.planned === null
-            ? `${format(metric.done)} svolti`
-            : `${format(metric.planned)} → ${format(metric.done)}`));
+        value.append(
+            document.createTextNode(
+                metric.planned === null ? `${format(metric.done)} svolti` : `${format(metric.planned)} → ${format(metric.done)}`
+            )
+        );
         if (metric.delta !== null) value.append(createElement('span', 'text-slate-400', `(${formatDelta(metric.delta)})`));
         if (metric.status) value.append(statusChip(metric.status, true));
         list.append(value);
@@ -769,9 +803,11 @@ function renderComparison(comparison) {
 }
 
 function statusChip(status, small = false) {
-    return createElement('span',
+    return createElement(
+        'span',
         `rounded-full border px-2 ${small ? 'py-0 text-[10px]' : 'py-0.5 text-[11px] font-semibold'} ${STATUS_CLASSES[status] || ''}`,
-        STATUS_LABELS[status] || status);
+        STATUS_LABELS[status] || status
+    );
 }
 
 function formatKmIt(value) {
@@ -826,7 +862,8 @@ function renderSessionForm(session) {
     targetPace.placeholder = 'es. 5:20';
     targetPace.pattern = '^\\d{1,2}:[0-5]\\d$';
     targetPace.setAttribute('aria-label', 'Passo obiettivo in minuti e secondi per chilometro, facoltativo');
-    targetPace.title = 'Facoltativo. Per la condivisione, questo valore può essere riparametrizzato usando i riferimenti dichiarati da entrambi gli atleti.';
+    targetPace.title =
+        'Facoltativo. Per la condivisione, questo valore può essere riparametrizzato usando i riferimenti dichiarati da entrambi gli atleti.';
     form.append(targetPace);
 
     const notes = createElement('textarea', 'w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200');
@@ -839,7 +876,15 @@ function renderSessionForm(session) {
 
     const actions = createElement('div', 'grid grid-cols-2 gap-2');
     actions.append(createButton('Annulla', 'cancel-edit', {}, 'min-h-11 rounded-xl border border-slate-700 px-3 text-sm text-slate-300'));
-    actions.append(createButton(session.id ? 'Salva modifiche' : 'Salva seduta', null, {}, 'min-h-11 rounded-xl bg-brand-500 px-3 text-sm font-bold text-white', 'submit'));
+    actions.append(
+        createButton(
+            session.id ? 'Salva modifiche' : 'Salva seduta',
+            null,
+            {},
+            'min-h-11 rounded-xl bg-brand-500 px-3 text-sm font-bold text-white',
+            'submit'
+        )
+    );
     form.append(actions);
     return form;
 }
@@ -896,7 +941,5 @@ function sessionTypeLabel(type) {
 
 function formatDateIt(dateStr) {
     const [year, month, day] = dateStr.split('-');
-    return new Date(Number(year), Number(month) - 1, Number(day))
-        .toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 }
-

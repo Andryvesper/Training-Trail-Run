@@ -26,9 +26,15 @@ test('gli esempi fonte hanno blocchi tracciabili ma restano non eseguibili', () 
     assert.equal(bis.executable, false);
     assert.equal(bis.status, 'source_example_not_executable');
     assert.equal(bis.source.printedPages, '175');
-    assert.deepEqual(bis.structure.blocks.map(block => block.effort), ['CRF', 'CRLI', 'CRF', 'CRLI', 'CRF']);
+    assert.deepEqual(
+        bis.structure.blocks.map(block => block.effort),
+        ['CRF', 'CRLI', 'CRF', 'CRLI', 'CRF']
+    );
     assert.ok(bis.structure.blocks.every(block => block.duration === 15 && block.unit === 'minute'));
-    assert.equal(bis.structure.blocks.reduce((total, block) => total + block.duration, 0), bis.structure.totalDuration);
+    assert.equal(
+        bis.structure.blocks.reduce((total, block) => total + block.duration, 0),
+        bis.structure.totalDuration
+    );
     assert.deepEqual(bis.structure.separateRecoveryBlocks, []);
     assert.equal(bis.structure.warmupIncluded, false);
 
@@ -103,18 +109,27 @@ test('la valutazione espone i candidati pertinenti ma blocca la generazione', ()
 });
 
 test('il candidato trail e il ciclo 10 km rispettano terreno e distanza', () => {
-    const trail = assessTrainingMethodology({
-        goal_mode: 'race',
-        preferred_terrains: ['trail']
-    }, { distance_km: 10 });
-    const roadTenKm = assessTrainingMethodology({
-        goal_mode: 'race',
-        preferred_terrains: ['road']
-    }, { distance_km: 10 });
-    const road = assessTrainingMethodology({
-        goal_mode: 'race',
-        preferred_terrains: ['road']
-    }, { distance_km: 21.1 });
+    const trail = assessTrainingMethodology(
+        {
+            goal_mode: 'race',
+            preferred_terrains: ['trail']
+        },
+        { distance_km: 10 }
+    );
+    const roadTenKm = assessTrainingMethodology(
+        {
+            goal_mode: 'race',
+            preferred_terrains: ['road']
+        },
+        { distance_km: 10 }
+    );
+    const road = assessTrainingMethodology(
+        {
+            goal_mode: 'race',
+            preferred_terrains: ['road']
+        },
+        { distance_km: 21.1 }
+    );
 
     assert.ok(trail.candidate_pattern_ids.includes('trail_specificity'));
     assert.ok(!trail.approved_pattern_ids.includes('ten_km_breathing_cycle'));
@@ -131,10 +146,13 @@ test('seleziona il ciclo distanza-tempo in base alla gara stradale', () => {
     ];
 
     cases.forEach(({ distance, ruleId, exampleId }) => {
-        const assessment = assessTrainingMethodology({
-            goal_mode: 'race',
-            preferred_terrains: ['road']
-        }, { distance_km: distance });
+        const assessment = assessTrainingMethodology(
+            {
+                goal_mode: 'race',
+                preferred_terrains: ['road']
+            },
+            { distance_km: distance }
+        );
 
         assert.ok(assessment.approved_pattern_ids.includes(ruleId));
         assert.ok(assessment.source_example_ids.includes(exampleId));
@@ -144,10 +162,7 @@ test('seleziona il ciclo distanza-tempo in base alla gara stradale', () => {
 });
 
 test('non valuta la metodologia senza un obiettivo riconosciuto', () => {
-    assert.throws(
-        () => assessTrainingMethodology({ goal_mode: 'automatic' }),
-        /obiettivo valido/
-    );
+    assert.throws(() => assessTrainingMethodology({ goal_mode: 'automatic' }), /obiettivo valido/);
 });
 
 test('una regola promossa senza contratto di approvazione resta inutilizzabile', () => {
@@ -155,9 +170,13 @@ test('una regola promossa senza contratto di approvazione resta inutilizzabile',
         ...TRAINING_METHOD_RULES[0],
         ruleStatus: 'approved_for_drafts'
     };
-    const assessment = assessTrainingMethodology({
-        goal_mode: 'maintain'
-    }, null, [approvedRule]);
+    const assessment = assessTrainingMethodology(
+        {
+            goal_mode: 'maintain'
+        },
+        null,
+        [approvedRule]
+    );
 
     assert.equal(assessment.status, 'awaiting_rule_contract');
     assert.deepEqual(assessment.approved_pattern_ids, ['easy_effort']);
@@ -183,9 +202,13 @@ function completeApprovedRule(overrides = {}) {
 }
 
 test('la pipeline espone gli input mancanti richiesti dalla regola approvata', () => {
-    const assessment = assessTrainingMethodology({
-        goal_mode: 'maintain'
-    }, null, [completeApprovedRule()]);
+    const assessment = assessTrainingMethodology(
+        {
+            goal_mode: 'maintain'
+        },
+        null,
+        [completeApprovedRule()]
+    );
 
     assert.equal(assessment.status, 'awaiting_required_inputs');
     assert.equal(assessment.rule_pipeline_ready, false);
@@ -194,10 +217,14 @@ test('la pipeline espone gli input mancanti richiesti dalla regola approvata', (
 });
 
 test('una regola approvata e completa passa la valutazione senza attivare sedute', () => {
-    const assessment = assessTrainingMethodology({
-        goal_mode: 'maintain',
-        consistency_status: 'unknown'
-    }, null, [completeApprovedRule()]);
+    const assessment = assessTrainingMethodology(
+        {
+            goal_mode: 'maintain',
+            consistency_status: 'unknown'
+        },
+        null,
+        [completeApprovedRule()]
+    );
 
     assert.equal(assessment.status, 'rules_ready');
     assert.deepEqual(assessment.ready_pattern_ids, ['easy_effort']);
@@ -207,15 +234,21 @@ test('una regola approvata e completa passa la valutazione senza attivare sedute
 });
 
 test('la regola trail_specificity richiede esplicitamente terreno trail', () => {
-    const roadAssessment = assessTrainingMethodology({
-        goal_mode: 'race',
-        preferred_terrains: ['road']
-    }, { distance_km: 15 });
+    const roadAssessment = assessTrainingMethodology(
+        {
+            goal_mode: 'race',
+            preferred_terrains: ['road']
+        },
+        { distance_km: 15 }
+    );
 
-    const trailAssessment = assessTrainingMethodology({
-        goal_mode: 'race',
-        preferred_terrains: ['trail']
-    }, { distance_km: 15 });
+    const trailAssessment = assessTrainingMethodology(
+        {
+            goal_mode: 'race',
+            preferred_terrains: ['trail']
+        },
+        { distance_km: 15 }
+    );
 
     assert.ok(!roadAssessment.candidate_pattern_ids.includes('trail_specificity'));
     assert.ok(trailAssessment.candidate_pattern_ids.includes('trail_specificity'));
@@ -226,24 +259,38 @@ test('una regola approvata con pattern settimanale esplicito passa la validazion
         sessionPattern: {
             kind: 'explicit_weekly_cycle',
             weeks: [
-                { weekNumber: 1, sessions: [{ day: 'tue', type: 'easy' }, { day: 'thu', type: 'long' }] },
-                { weekNumber: 2, sessions: [{ day: 'tue', type: 'easy' }, { day: 'thu', type: 'tempo' }] }
+                {
+                    weekNumber: 1,
+                    sessions: [
+                        { day: 'tue', type: 'easy' },
+                        { day: 'thu', type: 'long' }
+                    ]
+                },
+                {
+                    weekNumber: 2,
+                    sessions: [
+                        { day: 'tue', type: 'easy' },
+                        { day: 'thu', type: 'tempo' }
+                    ]
+                }
             ]
         }
     });
-    const assessment = assessTrainingMethodology({
-        goal_mode: 'maintain',
-        consistency_status: 'unknown'
-    }, null, [rule]);
+    const assessment = assessTrainingMethodology(
+        {
+            goal_mode: 'maintain',
+            consistency_status: 'unknown'
+        },
+        null,
+        [rule]
+    );
 
-        assert.equal(assessment.status, 'rules_ready');
+    assert.equal(assessment.status, 'rules_ready');
     assert.deepEqual(assessment.ready_pattern_ids, ['easy_effort']);
 });
 
 test('il ciclo 10 km mantiene il contratto di outline non eseguibile e richiede verifiche esplicite sulla settimana 3', () => {
-    const tenKmOutline = TRAINING_METHOD_SOURCE_EXAMPLES.find(
-        example => example.id === 'ten_km_distance_time_cycle_outline'
-    );
+    const tenKmOutline = TRAINING_METHOD_SOURCE_EXAMPLES.find(example => example.id === 'ten_km_distance_time_cycle_outline');
 
     assert.ok(tenKmOutline);
     assert.equal(tenKmOutline.executable, false);
@@ -285,9 +332,15 @@ test('i cicli trascritti sono approvati dall’atleta e richiedono comunque gli 
     assert.equal(assessment.generation_enabled, false);
     assert.ok(assessment.blockers.some(item => item.includes('profilo.reference_test_date')));
 
-    const unapproved = TRAINING_METHOD_RULES.map(rule => !CYCLE_RULE_APPROVALS[rule.id] ? rule : {
-        ...rule, ruleStatus: 'candidate', approval: undefined
-    });
+    const unapproved = TRAINING_METHOD_RULES.map(rule =>
+        !CYCLE_RULE_APPROVALS[rule.id]
+            ? rule
+            : {
+                  ...rule,
+                  ruleStatus: 'candidate',
+                  approval: undefined
+              }
+    );
     const pending = assessTrainingMethodology(
         { goal_mode: 'race', preferred_terrains: ['road'] },
         { distance_km: 10, event_date: '2027-03-21' },
@@ -335,39 +388,44 @@ test('con più cicli pronti serve la scelta del metodo', () => {
     assert.equal(undecided.generation_enabled, false);
     assert.ok(undecided.blockers.some(item => item.includes('scegli il metodo')));
 
-    const breathing = assessTrainingMethodology(
-        { ...READY_CYCLE_PROFILE, preferred_cycle_method: 'breathing' }, race, rules, { asOfDate: '2026-11-13' }
-    );
+    const breathing = assessTrainingMethodology({ ...READY_CYCLE_PROFILE, preferred_cycle_method: 'breathing' }, race, rules, {
+        asOfDate: '2026-11-13'
+    });
     assert.deepEqual(breathing.generation_pattern_ids, ['ten_km_breathing_cycle']);
 });
 
 test('il gate di generazione blocca test VR scaduti, frequenze non supportate e variante a 5 mancante', () => {
     const race = { distance_km: 10, event_date: '2027-03-21' };
-    const expired = assessTrainingMethodology(
-        { ...READY_CYCLE_PROFILE, reference_test_date: '2026-09-01' },
-        race, [approvedCycleRule()], { asOfDate: '2026-11-13' }
-    );
+    const expired = assessTrainingMethodology({ ...READY_CYCLE_PROFILE, reference_test_date: '2026-09-01' }, race, [approvedCycleRule()], {
+        asOfDate: '2026-11-13'
+    });
     assert.equal(expired.status, 'awaiting_required_inputs');
     assert.equal(expired.generation_enabled, false);
     assert.ok(expired.blockers.some(item => item.includes('scaduto')));
 
     const sixRuns = assessTrainingMethodology(
         { ...READY_CYCLE_PROFILE, target_running_sessions_per_week: 6 },
-        race, [approvedCycleRule()], { asOfDate: '2026-11-13' }
+        race,
+        [approvedCycleRule()],
+        { asOfDate: '2026-11-13' }
     );
     assert.equal(sixRuns.generation_enabled, false);
     assert.ok(sixRuns.blockers.some(item => item.includes('6 corse settimanali non sono supportate')));
 
     const fiveWithoutOption = assessTrainingMethodology(
         { ...READY_CYCLE_PROFILE, target_running_sessions_per_week: 5 },
-        race, [approvedCycleRule()], { asOfDate: '2026-11-13' }
+        race,
+        [approvedCycleRule()],
+        { asOfDate: '2026-11-13' }
     );
     assert.equal(fiveWithoutOption.generation_enabled, false);
     assert.ok(fiveWithoutOption.blockers.some(item => item.includes('scegli la variante')));
 
     const breathingThree = assessTrainingMethodology(
         { ...READY_CYCLE_PROFILE, target_running_sessions_per_week: 3 },
-        race, [approvedCycleRule('ten_km_breathing_cycle')], { asOfDate: '2026-11-13' }
+        race,
+        [approvedCycleRule('ten_km_breathing_cycle')],
+        { asOfDate: '2026-11-13' }
     );
     assert.equal(breathingThree.generation_enabled, false);
 });
@@ -443,9 +501,13 @@ test('rigetta le regole promosse se mancano campi obbligatori del contratto o de
 test('test VR scaduto: propone il metodo respiratorio se la tabella 11 è pronta', () => {
     const race = { name: 'Ultra trail', distance_km: 102, event_date: '2027-06-04', status: 'planned' };
     const profile = {
-        goal_mode: 'race', preferred_terrains: ['road', 'trail'], consistency_status: 'returning',
-        target_running_sessions_per_week: 4, preferred_cycle_method: 'distance_time',
-        reference_test_date: '2026-09-25', reference_vr_seconds_per_km: 300
+        goal_mode: 'race',
+        preferred_terrains: ['road', 'trail'],
+        consistency_status: 'returning',
+        target_running_sessions_per_week: 4,
+        preferred_cycle_method: 'distance_time',
+        reference_test_date: '2026-09-25',
+        reference_vr_seconds_per_km: 300
     };
     const blocked = assessTrainingMethodology(profile, race, undefined, { asOfDate: '2026-11-27' });
     assert.equal(blocked.generation_enabled, false);
@@ -458,7 +520,9 @@ test('test VR scaduto: propone il metodo respiratorio se la tabella 11 è pronta
     assert.equal(valid.generation_enabled, true);
     assert.equal(valid.reference_test_alternative, null);
 
-    const breathing = assessTrainingMethodology({ ...profile, preferred_cycle_method: 'breathing' }, race, undefined, { asOfDate: '2026-11-27' });
+    const breathing = assessTrainingMethodology({ ...profile, preferred_cycle_method: 'breathing' }, race, undefined, {
+        asOfDate: '2026-11-27'
+    });
     assert.equal(breathing.generation_enabled, true);
     assert.equal(breathing.reference_test_alternative, null);
 });

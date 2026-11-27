@@ -24,12 +24,22 @@ test('stream: alias, priorità di fixed_altitude e tipi richiesti', () => {
         { type: 'altitude', data: [10, 11] },
         { type: 'fixed_altitude', data: [20, 21] },
         { type: 'stance_time', data: [250, 251] },
-        { type: 'latlng', data: [[1, 2], [1, 2]] }
+        {
+            type: 'latlng',
+            data: [
+                [1, 2],
+                [1, 2]
+            ]
+        }
     ]);
     assert.deepEqual(normalized.series.altitude, [20, 21]);
     assert.deepEqual(normalized.series.gct, [250, 251]);
     assert.ok(normalized.rawTypes.includes('latlng'));
-    assert.deepEqual(requestedStreamTypes({ stream_types: ['time', 'distance', 'latlng', 'heartrate'] }), ['time', 'distance', 'heartrate']);
+    assert.deepEqual(requestedStreamTypes({ stream_types: ['time', 'distance', 'latlng', 'heartrate'] }), [
+        'time',
+        'distance',
+        'heartrate'
+    ]);
     assert.ok(requestedStreamTypes({}).includes('vertical_oscillation'));
 });
 
@@ -43,8 +53,8 @@ test('stream: senza distanza né velocità nessun campione; le pause non contano
 });
 
 test('analisi completa di un trail con tutti gli stream', () => {
-    const altitude = d => 300 + 60 * Math.sin(d / 3000 * 2 * Math.PI);
-    const streams = syntheticRun({ seconds: 5400, altitude, hr: t => 140 + 6 * t / 5400, gct: () => 250, vo: () => 80 });
+    const altitude = d => 300 + 60 * Math.sin((d / 3000) * 2 * Math.PI);
+    const streams = syntheticRun({ seconds: 5400, altitude, hr: t => 140 + (6 * t) / 5400, gct: () => 250, vo: () => 80 });
     const analysis = analyzeActivity(runActivity({ type: 'TrailRun', decoupling: 2.1, icu_efficiency_factor: 1.3 }), streams);
     assert.equal(analysis.configVersion, PERFORMANCE_CONFIG_VERSION);
     assert.equal(analysis.date, '2026-11-20');
@@ -60,7 +70,10 @@ test('analisi completa di un trail con tutti gli stream', () => {
 });
 
 test('attività senza stream utili (nuoto): nessun errore, solo carico', () => {
-    const analysis = analyzeActivity({ id: 's1', type: 'Swim', start_date_local: '2026-11-20T07:00:00', moving_time: 2400, icu_training_load: 35 }, []);
+    const analysis = analyzeActivity(
+        { id: 's1', type: 'Swim', start_date_local: '2026-11-20T07:00:00', moving_time: 2400, icu_training_load: 35 },
+        []
+    );
     assert.equal(analysis.gap.status, 'unavailable');
     assert.equal(analysis.efficiency.status, 'unavailable');
     assert.equal(analysis.decoupling.status, 'unavailable');
@@ -77,9 +90,15 @@ test('corse da analizzare: ultimi 90 giorni, almeno 10 minuti, cache per version
         { id: 'e', type: 'Swim', start_date_local: '2026-11-24T08:00:00', moving_time: 3000 },
         runActivity({ id: 'f', start_date_local: '2026-11-23T08:00:00' })
     ];
-    const cached = new Map([['a', PERFORMANCE_CONFIG_VERSION], ['f', '0.9.0']]);
+    const cached = new Map([
+        ['a', PERFORMANCE_CONFIG_VERSION],
+        ['f', '0.9.0']
+    ]);
     const { pending } = activitiesToAnalyze(activities, cached, TODAY);
-    assert.deepEqual(pending.map(activity => activity.id), ['b', 'f']);
+    assert.deepEqual(
+        pending.map(activity => activity.id),
+        ['b', 'f']
+    );
 });
 
 test('trend EF: miglioramento a parità di FC', () => {
@@ -105,7 +124,13 @@ test('carico eccentrico giornaliero: analisi se presente, altrimenti riepilogo',
     ];
     const analyses = new Map([['r1', { mechanicalLoad: { eccentricPoints: 12, score: 70 } }]]);
     const entries = eccentricEntries(activities, analyses, TODAY);
-    assert.deepEqual(entries.map(entry => [entry.activityId, entry.eccentricPoints]), [['r1', 12], ['h1', 75]]);
+    assert.deepEqual(
+        entries.map(entry => [entry.activityId, entry.eccentricPoints]),
+        [
+            ['r1', 12],
+            ['h1', 75]
+        ]
+    );
 });
 
 test('revisione delle soglie ogni 15 giorni dalla data di approvazione', () => {
@@ -118,7 +143,7 @@ test('revisione delle soglie ogni 15 giorni dalla data di approvazione', () => {
     assert.equal(nextReviewDate([{ reviewed_at: '2026-12-12', status: 'no_change' }]), '2026-12-27');
 });
 
-test('soglie effettive: solo l\'ultima revisione approvata', () => {
+test("soglie effettive: solo l'ultima revisione approvata", () => {
     const reviews = [
         { reviewed_at: '2026-12-12', status: 'approved', thresholds: { 'biomechanics.gctAlertPercent': 4.4 } },
         { reviewed_at: '2026-12-27', status: 'rejected', thresholds: {} },
@@ -126,7 +151,13 @@ test('soglie effettive: solo l\'ultima revisione approvata', () => {
     ];
     assert.deepEqual(effectiveThresholds(reviews), { 'biomechanics.gctAlertPercent': 4.8, 'readiness.ratioHigh': 1.65 });
     assert.equal(effectiveConfig(reviews).readiness.ratioHigh, 1.65);
-    assert.deepEqual(applyChanges({ a: 1 }, [{ key: 'readiness.ratioHigh', proposed: 1.6 }, { key: 'x', proposed: 3 }]), { a: 1, 'readiness.ratioHigh': 1.6 });
+    assert.deepEqual(
+        applyChanges({ a: 1 }, [
+            { key: 'readiness.ratioHigh', proposed: 1.6 },
+            { key: 'x', proposed: 3 }
+        ]),
+        { a: 1, 'readiness.ratioHigh': 1.6 }
+    );
 });
 
 test('proposta: GCT molto variabile nelle corse costanti alza la soglia entro il 30%', () => {
@@ -166,13 +197,20 @@ test('le proposte partono dalle soglie approvate', () => {
         decoupling: { driftPercent: 2, steady: true },
         biomechanics: { metrics: { gct: { changePercent: change } } }
     }));
-    const change = proposeThresholdReview({ analyses, today: TODAY, config }).changes.find(item => item.key === 'biomechanics.gctAlertPercent');
+    const change = proposeThresholdReview({ analyses, today: TODAY, config }).changes.find(
+        item => item.key === 'biomechanics.gctAlertPercent'
+    );
     assert.equal(change.current, 5);
     assert.equal(PERFORMANCE_CONFIG.biomechanics.gctAlertPercent, 4);
 });
 
 test('record Supabase -> analisi', () => {
-    const analysis = analysisFromRecord({ intervals_activity_id: 42, activity_date: '2026-11-20', config_version: '1.0.0', metrics: { name: 'Lungo', gap: {} } });
+    const analysis = analysisFromRecord({
+        intervals_activity_id: 42,
+        activity_date: '2026-11-20',
+        config_version: '1.0.0',
+        metrics: { name: 'Lungo', gap: {} }
+    });
     assert.equal(analysis.activityId, '42');
     assert.equal(analysis.date, '2026-11-20');
     assert.equal(analysisFromRecord({ metrics: null }), null);

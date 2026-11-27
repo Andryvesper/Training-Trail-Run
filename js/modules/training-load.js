@@ -169,19 +169,15 @@ export function loadIncreaseWarnings(weeks, { threshold = LOAD_INCREASE_THRESHOL
 export const LOAD_METRIC_LABELS = Object.freeze({ km: 'km', elevationM: 'D+', seconds: 'tempo' });
 
 export function describeIncreases(increases) {
-    return increases
-        .map(item => `${LOAD_METRIC_LABELS[item.metric]} +${Math.round(item.ratio * 100)}%`)
-        .join(', ');
+    return increases.map(item => `${LOAD_METRIC_LABELS[item.metric]} +${Math.round(item.ratio * 100)}%`).join(', ');
 }
 
 // Carico pianificato: solo corsa e trail.
 export function plannedLoadEntries(sessions) {
-    return (Array.isArray(sessions) ? sessions : [])
-        .filter(isRunSession)
-        .map(session => {
-            const metrics = plannedSessionMetrics(session);
-            return { date: session.scheduled_date, km: metrics.km, elevationM: metrics.elevationM, seconds: metrics.seconds };
-        });
+    return (Array.isArray(sessions) ? sessions : []).filter(isRunSession).map(session => {
+        const metrics = plannedSessionMetrics(session);
+        return { date: session.scheduled_date, km: metrics.km, elevationM: metrics.elevationM, seconds: metrics.seconds };
+    });
 }
 
 // Carico svolto da attività normalizzate (dashboard-stats): solo corsa e trail.
@@ -217,8 +213,9 @@ export function recentWeekStarts(today, count = 4) {
 export function weeklyAdherence(sessions, weekStarts, activityById = new Map()) {
     return weekStarts.map(weekStart => {
         const end = addDays(weekStart, 6);
-        const inWeek = (Array.isArray(sessions) ? sessions : [])
-            .filter(session => session?.scheduled_date >= weekStart && session.scheduled_date <= end);
+        const inWeek = (Array.isArray(sessions) ? sessions : []).filter(
+            session => session?.scheduled_date >= weekStart && session.scheduled_date <= end
+        );
         const row = {
             weekStart,
             plannedCount: inWeek.length,

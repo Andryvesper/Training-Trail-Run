@@ -1,5 +1,6 @@
 const TABLE_NAME = 'training_races';
-const RACE_FIELDS = 'id, user_id, name, event_date, target_period, distance_km, elevation_gain_m, elevation_loss_m, priority, goal, status, official_time_seconds, chip_time_seconds, overall_position, gender_position, category_position, category, bib_number, result_source_url';
+const RACE_FIELDS =
+    'id, user_id, name, event_date, target_period, distance_km, elevation_gain_m, elevation_loss_m, priority, goal, status, official_time_seconds, chip_time_seconds, overall_position, gender_position, category_position, category, bib_number, result_source_url';
 
 export class TrainingRacesService {
     constructor(supabaseClient) {
@@ -22,14 +23,8 @@ export class TrainingRacesService {
         const raceData = validateRace(race);
         const record = { ...raceData, user_id: userId };
         const query = race.id
-            ? this.supabaseClient
-                .from(TABLE_NAME)
-                .update(record)
-                .eq('id', race.id)
-                .eq('user_id', userId)
-            : this.supabaseClient
-                .from(TABLE_NAME)
-                .insert(record);
+            ? this.supabaseClient.from(TABLE_NAME).update(record).eq('id', race.id).eq('user_id', userId)
+            : this.supabaseClient.from(TABLE_NAME).insert(record);
         const { data, error } = await query.select(RACE_FIELDS).single();
 
         if (error) throw error;
@@ -58,15 +53,9 @@ function validateRace(race) {
     const category = String(race.category ?? '').trim() || null;
     const bibNumber = String(race.bib_number ?? '').trim() || null;
     const sourceUrl = String(race.result_source_url ?? '').trim() || null;
-    const distance = race.distance_km === '' || race.distance_km == null
-        ? null
-        : Number(race.distance_km);
-    const elevation = race.elevation_gain_m === '' || race.elevation_gain_m == null
-        ? null
-        : Number(race.elevation_gain_m);
-    const elevationLoss = race.elevation_loss_m === '' || race.elevation_loss_m == null
-        ? null
-        : Number(race.elevation_loss_m);
+    const distance = race.distance_km === '' || race.distance_km == null ? null : Number(race.distance_km);
+    const elevation = race.elevation_gain_m === '' || race.elevation_gain_m == null ? null : Number(race.elevation_gain_m);
+    const elevationLoss = race.elevation_loss_m === '' || race.elevation_loss_m == null ? null : Number(race.elevation_loss_m);
     const priority = race.priority === '' || race.priority == null ? 2 : Number(race.priority);
     const eventDate = String(race.event_date ?? '').trim() || null;
     const status = race.status;
@@ -110,9 +99,17 @@ function validateRace(race) {
     if (status === 'completed' && !eventDate) {
         throw new Error('Per una gara completata serve la data esatta.');
     }
-    if (status === 'planned' && (officialTime !== null || chipTime !== null
-        || overallPosition !== null || genderPosition !== null || categoryPosition !== null
-        || category !== null || bibNumber !== null || sourceUrl !== null)) {
+    if (
+        status === 'planned' &&
+        (officialTime !== null ||
+            chipTime !== null ||
+            overallPosition !== null ||
+            genderPosition !== null ||
+            categoryPosition !== null ||
+            category !== null ||
+            bibNumber !== null ||
+            sourceUrl !== null)
+    ) {
         throw new Error('I risultati si possono inserire solo per una gara completata.');
     }
     if (sourceUrl && !isHttpsUrl(sourceUrl)) {

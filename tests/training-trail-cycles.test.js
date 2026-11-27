@@ -61,11 +61,23 @@ test('le tabelle respiratorie non richiedono il test VR', () => {
         consistency_status: 'consistent',
         target_running_sessions_per_week: 4
     };
-    const t13 = assessTrainingMethodology(profile, { distance_km: 25, event_date: '2027-03-01' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    const t13 = assessTrainingMethodology(profile, { distance_km: 25, event_date: '2027-03-01' }, TRAINING_METHOD_RULES, {
+        asOfDate: '2026-11-14'
+    });
     assert.deepEqual(t13.generation_pattern_ids, ['trail_15_50km']);
-    const road = assessTrainingMethodology({ ...profile, preferred_terrains: ['road'] }, { distance_km: 25, event_date: '2027-03-01' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    const road = assessTrainingMethodology(
+        { ...profile, preferred_terrains: ['road'] },
+        { distance_km: 25, event_date: '2027-03-01' },
+        TRAINING_METHOD_RULES,
+        { asOfDate: '2026-11-14' }
+    );
     assert.ok(!road.approved_pattern_ids.includes('trail_15_50km'));
-    const t11 = assessTrainingMethodology({ ...profile, preferred_terrains: ['road'] }, { distance_km: 100, event_date: '2027-05-29' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    const t11 = assessTrainingMethodology(
+        { ...profile, preferred_terrains: ['road'] },
+        { distance_km: 100, event_date: '2027-05-29' },
+        TRAINING_METHOD_RULES,
+        { asOfDate: '2026-11-14' }
+    );
     assert.deepEqual(t11.generation_pattern_ids, ['ultra_100km_passatore']);
 });
 
@@ -84,13 +96,17 @@ test('tra tabella 10 evoluti e tabella 11 si propone la tabella in base all’es
     assert.equal(amateur.method_recommendation.pattern_id, 'ultra_100km_passatore');
     assert.equal(amateur.method_recommendation.preferred_cycle_method, 'breathing');
     assert.equal(amateur.method_recommendation.rule_status, 'derived_pending_athlete_confirmation');
-    assert.ok(amateur.blockers.some(item => item.includes('regola derivata, da confermare dall\'atleta')));
+    assert.ok(amateur.blockers.some(item => item.includes("regola derivata, da confermare dall'atleta")));
 
-    const expert = assessTrainingMethodology({ ...profile, self_profile: 'structured_experienced' }, race, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    const expert = assessTrainingMethodology({ ...profile, self_profile: 'structured_experienced' }, race, TRAINING_METHOD_RULES, {
+        asOfDate: '2026-11-14'
+    });
     assert.equal(expert.method_recommendation.pattern_id, 'ultra_100km_evoluto');
     assert.equal(expert.method_recommendation.preferred_cycle_method, 'distance_time');
 
-    const chosen = assessTrainingMethodology({ ...profile, preferred_cycle_method: 'breathing' }, race, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    const chosen = assessTrainingMethodology({ ...profile, preferred_cycle_method: 'breathing' }, race, TRAINING_METHOD_RULES, {
+        asOfDate: '2026-11-14'
+    });
     assert.deepEqual(chosen.generation_pattern_ids, ['ultra_100km_passatore']);
     assert.equal(recommendUltraTable(profile, [TRAINING_METHOD_RULES.find(rule => rule.id === 'ultra_100km_passatore')]), null);
 });
@@ -106,7 +122,7 @@ test('legge le celle della tabella 11: test Conconi, km senza unità, terreno e 
     assert.deepEqual(flat.breathing, ['CRF']);
     assert.equal(parseCycleCell('28 CRF / ss').terrain, 'saliscendi');
     assert.equal(parseCycleCell('Riposo o / esercizio').kind, 'rest_or_exercises');
-    const hills = parseCycleCell('14 x 100 / in salita / CRI rec. / 100 / CRMI + / rec. 3\' / + 10 km / CRF');
+    const hills = parseCycleCell("14 x 100 / in salita / CRI rec. / 100 / CRMI + / rec. 3' / + 10 km / CRF");
     assert.equal(hills.distanceKm, 11.4);
     assert.ok(hills.quality && hills.climb);
 
@@ -151,7 +167,9 @@ test('tabella 11 a 4, 3 e 5 corse con le regole approvate', () => {
     assert.match(added.raw, /km CRF$/);
     assert.equal(runCount(fiveSpread.weeks.at(-1)), 3);
 
-    const fiveExtra = scheduleCycleDraft(t11Options({ targetSessions: 5, fiveSessionOption: 'extra_quality_or_strength', availableDays: ALL_DAYS }));
+    const fiveExtra = scheduleCycleDraft(
+        t11Options({ targetSessions: 5, fiveSessionOption: 'extra_quality_or_strength', availableDays: ALL_DAYS })
+    );
     assert.equal(fiveExtra.requiresSelection, true);
     assert.throws(() => adaptWeekToFrequency(pattern.weeks[0], pattern.method, 5), /scegli/);
 });
@@ -198,11 +216,17 @@ test('il dislivello indica D+ e D-, con D- stimato se manca', () => {
     assert.match(estimated.text, /circa 1700 m D\+ e 1700 m D-/);
     assert.match(estimated.text, /D- stimato uguale al D\+ \(percorso ad anello\)/);
     assert.equal(estimated.lossMeters, 1700);
-    const known = elevationGuidance({ ...long, distanceKm: 20 }, { raceKm: 100, raceElevationM: 2000, raceElevationLossM: 3000, climbRate: 500 });
+    const known = elevationGuidance(
+        { ...long, distanceKm: 20 },
+        { raceKm: 100, raceElevationM: 2000, raceElevationLossM: 3000, climbRate: 500 }
+    );
     assert.equal(known.meters, 400);
     assert.equal(known.lossMeters, 600);
     assert.ok(!known.text.includes('stimato'));
-    const flat = elevationGuidance({ ...long, distanceKm: 20, terrain: 'pianeggiante' }, { raceKm: 100, raceElevationM: 2000, climbRate: 500 });
+    const flat = elevationGuidance(
+        { ...long, distanceKm: 20, terrain: 'pianeggiante' },
+        { raceKm: 100, raceElevationM: 2000, climbRate: 500 }
+    );
     assert.equal(flat.meters, 0);
 });
 
@@ -216,7 +240,10 @@ test('salite a sforzo con tempo verticale indicativo', () => {
     assert.match(expert.text, /7'30" ogni 100 m D\+/);
 
     const long = { type: 'run', bookDay: 7, distanceKm: 30, means: ['LLU'], breathing: [], quality: false };
-    assert.match(elevationGuidance(long, { raceKm: 100, raceElevationM: 3000, climbRate: 800 }).text, /7'30" ogni 100 m D\+.*solo per i tratti pianeggianti/);
+    assert.match(
+        elevationGuidance(long, { raceKm: 100, raceElevationM: 3000, climbRate: 800 }).text,
+        /7'30" ogni 100 m D\+.*solo per i tratti pianeggianti/
+    );
 
     const draft = scheduleCycleDraft(t11Options());
     const hillSession = draftToCalendarSessions(draft).find(session => session.title.includes('14 x 100'));
@@ -252,7 +279,10 @@ test('tabella 13: blocco ripetuto a ritroso, allineato sulla gara più vicina al
     const long = expandRepeatedBlock(pattern, { goalDistanceKm: 42, raceDate: '2027-06-06', today: '2026-11-14' });
     assert.equal(long.durationWeeks, 12);
     assert.equal(long.alignedBlockWeek, 1);
-    assert.deepEqual(long.weeks.map(week => week.blockWeek), [2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1]);
+    assert.deepEqual(
+        long.weeks.map(week => week.blockWeek),
+        [2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1]
+    );
     const lastLong = long.weeks.at(-1);
     assert.equal(lastLong.blockWeek, 1);
     assert.equal(lastLong.sessions.at(-1).type, 'race');
@@ -287,8 +317,8 @@ test('tabella 13: bozza fino al giorno della gara, gare reali al posto delle gar
     assert.ok(draft.startDate >= '2026-11-14');
     assert.equal(draft.endDate, '2027-01-31');
     assert.equal(draft.derivedRules[0].id, 'trail_block_repetition');
-    assert.ok(draft.notes.some(note => note.includes('approvata dall\'atleta')));
-    assert.ok(draft.weeks.every(week => week.notes[0].includes('regola derivata dal motore, approvata dall\'atleta')));
+    assert.ok(draft.notes.some(note => note.includes("approvata dall'atleta")));
+    assert.ok(draft.weeks.every(week => week.notes[0].includes("regola derivata dal motore, approvata dall'atleta")));
     const real = draft.weeks[6].sessions.find(session => session.type === 'race_training');
     assert.equal(real.date, '2027-01-03');
     assert.match(real.raw, /Trail della Befana/);

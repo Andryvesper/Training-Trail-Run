@@ -15,8 +15,14 @@ const valueOf = (items, label) => items.find(item => item.label === label)?.valu
 
 test('riepilogo corsa: solo campi presenti, passo in min/km', () => {
     const items = activitySummaryItems({
-        type: 'TrailRun', distance: 12600, moving_time: 4200, elapsed_time: 4300,
-        total_elevation_gain: 300, average_heartrate: 145.4, icu_training_load: 80, calories: 0
+        type: 'TrailRun',
+        distance: 12600,
+        moving_time: 4200,
+        elapsed_time: 4300,
+        total_elevation_gain: 300,
+        average_heartrate: 145.4,
+        icu_training_load: 80,
+        calories: 0
     });
     assert.equal(valueOf(items, 'Distanza'), '12,6 km');
     assert.equal(valueOf(items, 'Tempo in movimento'), '1 h 10 min');
@@ -42,7 +48,7 @@ test('tempo totale mostrato solo se le pause superano un minuto', () => {
     assert.equal(formatDuration(754), '12 min 34 s');
 });
 
-test('link Intervals.icu dall\'ID attività', () => {
+test("link Intervals.icu dall'ID attività", () => {
     assert.equal(intervalsActivityUrl('i9001'), 'https://intervals.icu/activities/i9001');
     assert.equal(intervalsActivityUrl(''), null);
 });
@@ -56,7 +62,10 @@ test('profilo: altitudine, FC e passo ridotti per tratti di distanza', () => {
     assert.ok(profile.heartrate[49] > profile.heartrate[0]);
     const paces = profile.pace.filter(value => value !== null);
     assert.ok(paces.length >= 45);
-    assert.ok(paces.every(value => value > 200 && value < 600), JSON.stringify(paces.slice(0, 5)));
+    assert.ok(
+        paces.every(value => value > 200 && value < 600),
+        JSON.stringify(paces.slice(0, 5))
+    );
     assert.match(profile.labels[0], /km$/);
 });
 
@@ -66,13 +75,24 @@ test('profilo senza distanza: null', () => {
 });
 
 test('giri: tipi tradotti, passo per giro, tratti vuoti esclusi', () => {
-    const rows = lapRows({
-        icu_intervals: [
-            { type: 'WARMUP', distance: 2000, moving_time: 660, average_speed: 2000 / 660, average_heartrate: 132 },
-            { type: 'WORK', label: 'Ripetuta 1', distance: 1000, moving_time: 240, average_heartrate: 168.6, max_heartrate: 175, total_elevation_gain: 4 },
-            { type: 'RECOVERY', distance: 0, moving_time: 0 }
-        ]
-    }, runActivity());
+    const rows = lapRows(
+        {
+            icu_intervals: [
+                { type: 'WARMUP', distance: 2000, moving_time: 660, average_speed: 2000 / 660, average_heartrate: 132 },
+                {
+                    type: 'WORK',
+                    label: 'Ripetuta 1',
+                    distance: 1000,
+                    moving_time: 240,
+                    average_heartrate: 168.6,
+                    max_heartrate: 175,
+                    total_elevation_gain: 4
+                },
+                { type: 'RECOVERY', distance: 0, moving_time: 0 }
+            ]
+        },
+        runActivity()
+    );
     assert.equal(rows.length, 2);
     assert.equal(rows[0].label, 'Riscaldamento');
     assert.equal(rows[0].pace, '5:30/km');

@@ -15,15 +15,10 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const GRID = '#1e293b';
 const AXIS_TEXT = '#94a3b8';
 
-export function renderLineChart(container, {
-    title,
-    description,
-    dates,
-    series,
-    valueFormat = value => String(value),
-    zeroLine = false,
-    xLabel = 'Data'
-}) {
+export function renderLineChart(
+    container,
+    { title, description, dates, series, valueFormat = value => String(value), zeroLine = false, xLabel = 'Data' }
+) {
     const visible = series.filter(item => item.values.some(value => value !== null));
     const card = chartCard(title, description);
     container.append(card.root);
@@ -35,32 +30,45 @@ export function renderLineChart(container, {
 
     const allValues = visible.flatMap(item => item.values).filter(value => value !== null);
     const [minY, maxY] = niceRange(Math.min(...allValues, zeroLine ? 0 : Infinity), Math.max(...allValues, zeroLine ? 0 : -Infinity));
-    const x = index => MARGIN.left + index * (WIDTH - MARGIN.left - MARGIN.right) / Math.max(1, dates.length - 1);
-    const y = value => MARGIN.top + (maxY - value) * (HEIGHT - MARGIN.top - MARGIN.bottom) / (maxY - minY || 1);
+    const x = index => MARGIN.left + (index * (WIDTH - MARGIN.left - MARGIN.right)) / Math.max(1, dates.length - 1);
+    const y = value => MARGIN.top + ((maxY - value) * (HEIGHT - MARGIN.top - MARGIN.bottom)) / (maxY - minY || 1);
 
     const { wrapper, svg, tooltip } = chartFrame(title);
     drawYAxis(svg, minY, maxY, y, valueFormat);
     drawXLabels(svg, dates, x, formatShortDate);
     if (zeroLine && minY < 0 && maxY > 0) {
-        svg.append(svgNode('line', { x1: MARGIN.left, x2: WIDTH - MARGIN.right, y1: y(0), y2: y(0), stroke: AXIS_TEXT, 'stroke-width': 1 }));
+        svg.append(
+            svgNode('line', { x1: MARGIN.left, x2: WIDTH - MARGIN.right, y1: y(0), y2: y(0), stroke: AXIS_TEXT, 'stroke-width': 1 })
+        );
     }
     visible.forEach(item => {
-        svg.append(svgNode('path', {
-            d: linePath(item.values, x, y),
-            fill: 'none',
-            stroke: item.color,
-            'stroke-width': 2,
-            'stroke-linejoin': 'round',
-            'stroke-linecap': 'round'
-        }));
+        svg.append(
+            svgNode('path', {
+                d: linePath(item.values, x, y),
+                fill: 'none',
+                stroke: item.color,
+                'stroke-width': 2,
+                'stroke-linejoin': 'round',
+                'stroke-linecap': 'round'
+            })
+        );
     });
     if (visible.length > 1) drawEndLabels(svg, visible, x, y);
 
-    const crosshair = svgNode('line', { y1: MARGIN.top, y2: HEIGHT - MARGIN.bottom, stroke: AXIS_TEXT, 'stroke-width': 1, visibility: 'hidden' });
-    const markers = visible.map(item => svgNode('circle', { r: 4, fill: item.color, stroke: '#0f172a', 'stroke-width': 2, visibility: 'hidden' }));
+    const crosshair = svgNode('line', {
+        y1: MARGIN.top,
+        y2: HEIGHT - MARGIN.bottom,
+        stroke: AXIS_TEXT,
+        'stroke-width': 1,
+        visibility: 'hidden'
+    });
+    const markers = visible.map(item =>
+        svgNode('circle', { r: 4, fill: item.color, stroke: '#0f172a', 'stroke-width': 2, visibility: 'hidden' })
+    );
     svg.append(crosshair, ...markers);
     const overlay = svgNode('rect', {
-        x: MARGIN.left, y: MARGIN.top,
+        x: MARGIN.left,
+        y: MARGIN.top,
         width: WIDTH - MARGIN.left - MARGIN.right,
         height: HEIGHT - MARGIN.top - MARGIN.bottom,
         fill: 'transparent'
@@ -93,24 +101,31 @@ export function renderLineChart(container, {
     });
     overlay.addEventListener('pointerleave', hide);
     card.body.append(wrapper);
-    card.body.append(dataTable(
-        [xLabel, ...visible.map(item => item.label)],
-        dates.map((date, index) => [formatLongDate(date), ...visible.map(item =>
-            item.values[index] === null ? '—' : valueFormat(item.values[index]))])
-    ));
+    card.body.append(
+        dataTable(
+            [xLabel, ...visible.map(item => item.label)],
+            dates.map((date, index) => [
+                formatLongDate(date),
+                ...visible.map(item => (item.values[index] === null ? '—' : valueFormat(item.values[index])))
+            ])
+        )
+    );
 }
 
-export function renderBarChart(container, {
-    title,
-    description,
-    labels,
-    values,
-    color,
-    valueFormat = value => String(value),
-    labelFormat = formatShortDate,
-    tooltipLabel = label => label,
-    extraTooltip = () => []
-}) {
+export function renderBarChart(
+    container,
+    {
+        title,
+        description,
+        labels,
+        values,
+        color,
+        valueFormat = value => String(value),
+        labelFormat = formatShortDate,
+        tooltipLabel = label => label,
+        extraTooltip = () => []
+    }
+) {
     const card = chartCard(title, description);
     container.append(card.root);
     if (!values.some(value => value > 0)) {
@@ -121,7 +136,7 @@ export function renderBarChart(container, {
     const plotWidth = WIDTH - MARGIN.left - MARGIN.right;
     const slot = plotWidth / values.length;
     const barWidth = Math.max(2, slot - 2);
-    const y = value => MARGIN.top + (maxY - value) * (HEIGHT - MARGIN.top - MARGIN.bottom) / (maxY || 1);
+    const y = value => MARGIN.top + ((maxY - value) * (HEIGHT - MARGIN.top - MARGIN.bottom)) / (maxY || 1);
     const x = index => MARGIN.left + index * slot + slot / 2;
 
     const { wrapper, svg, tooltip } = chartFrame(title);
@@ -132,14 +147,18 @@ export function renderBarChart(container, {
         if (value > 0) {
             const top = y(value);
             const radius = Math.min(4, barWidth / 2, baseline - top);
-            svg.append(svgNode('path', {
-                d: roundedTopBar(x(index) - barWidth / 2, top, barWidth, baseline - top, radius),
-                fill: color
-            }));
+            svg.append(
+                svgNode('path', {
+                    d: roundedTopBar(x(index) - barWidth / 2, top, barWidth, baseline - top, radius),
+                    fill: color
+                })
+            );
         }
         const hit = svgNode('rect', {
-            x: MARGIN.left + index * slot, y: MARGIN.top,
-            width: slot, height: HEIGHT - MARGIN.top - MARGIN.bottom,
+            x: MARGIN.left + index * slot,
+            y: MARGIN.top,
+            width: slot,
+            height: HEIGHT - MARGIN.top - MARGIN.bottom,
             fill: 'transparent'
         });
         hit.addEventListener('pointerenter', () => {
@@ -148,11 +167,18 @@ export function renderBarChart(container, {
                 ...extraTooltip(index)
             ]);
         });
-        hit.addEventListener('pointerleave', () => { tooltip.hidden = true; });
+        hit.addEventListener('pointerleave', () => {
+            tooltip.hidden = true;
+        });
         svg.append(hit);
     });
     card.body.append(wrapper);
-    card.body.append(dataTable(['Periodo', title], labels.map((label, index) => [tooltipLabel(label), valueFormat(values[index])])));
+    card.body.append(
+        dataTable(
+            ['Periodo', title],
+            labels.map((label, index) => [tooltipLabel(label), valueFormat(values[index])])
+        )
+    );
 }
 
 function chartCard(title, description) {
@@ -173,7 +199,10 @@ function chartFrame(title) {
         'aria-label': title,
         class: 'block h-auto w-full touch-pan-y select-none'
     });
-    const tooltip = textNode('div', 'pointer-events-none absolute top-0 z-10 min-w-36 rounded-lg border border-slate-700 bg-slate-950/95 p-2 text-xs text-slate-200 shadow-lg');
+    const tooltip = textNode(
+        'div',
+        'pointer-events-none absolute top-0 z-10 min-w-36 rounded-lg border border-slate-700 bg-slate-950/95 p-2 text-xs text-slate-200 shadow-lg'
+    );
     tooltip.hidden = true;
     wrapper.append(svg, tooltip);
     return { wrapper, svg, tooltip };
@@ -212,24 +241,42 @@ function dataTable(headers, rows) {
 function drawYAxis(svg, minY, maxY, y, format) {
     const steps = 4;
     for (let step = 0; step <= steps; step += 1) {
-        const value = minY + (maxY - minY) * step / steps;
-        svg.append(svgNode('line', { x1: MARGIN.left, x2: WIDTH - MARGIN.right, y1: y(value), y2: y(value), stroke: GRID, 'stroke-width': 1 }));
-        svg.append(svgNode('text', {
-            x: MARGIN.left - 6, y: y(value) + 4, fill: AXIS_TEXT, 'font-size': 11, 'text-anchor': 'end'
-        }, format(Math.round(value * 10) / 10)));
+        const value = minY + ((maxY - minY) * step) / steps;
+        svg.append(
+            svgNode('line', { x1: MARGIN.left, x2: WIDTH - MARGIN.right, y1: y(value), y2: y(value), stroke: GRID, 'stroke-width': 1 })
+        );
+        svg.append(
+            svgNode(
+                'text',
+                {
+                    x: MARGIN.left - 6,
+                    y: y(value) + 4,
+                    fill: AXIS_TEXT,
+                    'font-size': 11,
+                    'text-anchor': 'end'
+                },
+                format(Math.round(value * 10) / 10)
+            )
+        );
     }
 }
 
 function drawXLabels(svg, labels, x, format) {
     const indexes = [...new Set([0, Math.floor((labels.length - 1) / 2), labels.length - 1])];
     indexes.forEach(index => {
-        svg.append(svgNode('text', {
-            x: x(index),
-            y: HEIGHT - 6,
-            fill: AXIS_TEXT,
-            'font-size': 11,
-            'text-anchor': index === 0 ? 'start' : index === labels.length - 1 ? 'end' : 'middle'
-        }, format(labels[index])));
+        svg.append(
+            svgNode(
+                'text',
+                {
+                    x: x(index),
+                    y: HEIGHT - 6,
+                    fill: AXIS_TEXT,
+                    'font-size': 11,
+                    'text-anchor': index === 0 ? 'start' : index === labels.length - 1 ? 'end' : 'middle'
+                },
+                format(labels[index])
+            )
+        );
     });
 }
 
@@ -254,7 +301,7 @@ function showTooltip(tooltip, wrapper, svg, plotX, heading, rows) {
 
 function nearestIndex(svg, event, count, x) {
     const rect = svg.getBoundingClientRect();
-    const plotX = (event.clientX - rect.left) * WIDTH / rect.width;
+    const plotX = ((event.clientX - rect.left) * WIDTH) / rect.width;
     let best = 0;
     for (let index = 1; index < count; index += 1) {
         if (Math.abs(x(index) - plotX) < Math.abs(x(best) - plotX)) best = index;
@@ -288,16 +335,22 @@ function drawEndLabels(svg, series, x, y) {
         labels[index].y = Math.max(labels[index].y, labels[index - 1].y + 13);
     }
     labels.forEach(label => {
-        svg.append(svgNode('text', {
-            x: Math.min(label.x - 4, WIDTH - MARGIN.right),
-            y: Math.max(MARGIN.top + 10, Math.min(label.y, HEIGHT - MARGIN.bottom - 2)),
-            fill: '#e2e8f0',
-            'font-size': 11,
-            'text-anchor': 'end',
-            stroke: '#0f172a',
-            'stroke-width': 3,
-            'paint-order': 'stroke'
-        }, label.text));
+        svg.append(
+            svgNode(
+                'text',
+                {
+                    x: Math.min(label.x - 4, WIDTH - MARGIN.right),
+                    y: Math.max(MARGIN.top + 10, Math.min(label.y, HEIGHT - MARGIN.bottom - 2)),
+                    fill: '#e2e8f0',
+                    'font-size': 11,
+                    'text-anchor': 'end',
+                    stroke: '#0f172a',
+                    'stroke-width': 3,
+                    'paint-order': 'stroke'
+                },
+                label.text
+            )
+        );
     });
 }
 

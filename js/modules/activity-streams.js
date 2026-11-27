@@ -39,10 +39,12 @@ export const STREAM_ALIASES = Object.freeze({
     verticalRatio: ['vertical_ratio', 'verticalratio']
 });
 
-const canonical = name => String(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const canonical = name =>
+    String(name ?? '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
 
-const ALIAS_LOOKUP = new Map(Object.entries(STREAM_ALIASES)
-    .flatMap(([key, names]) => names.map(name => [canonical(name), key])));
+const ALIAS_LOOKUP = new Map(Object.entries(STREAM_ALIASES).flatMap(([key, names]) => names.map(name => [canonical(name), key])));
 
 export function streamKeyFor(type) {
     return ALIAS_LOOKUP.get(canonical(type)) || null;
@@ -66,7 +68,9 @@ export function requestedStreamTypes(activity) {
 export function normalizeStreams(raw) {
     const entries = Array.isArray(raw)
         ? raw.filter(item => item && typeof item === 'object').map(item => [item.type ?? item.name, item.data])
-        : raw && typeof raw === 'object' ? Object.entries(raw) : [];
+        : raw && typeof raw === 'object'
+          ? Object.entries(raw)
+          : [];
     const series = {};
     const rawTypes = [];
     entries.forEach(([type, data]) => {
@@ -177,7 +181,8 @@ export function indexAtMovingTime(samples, seconds) {
     let hi = samples.n - 1;
     while (lo < hi) {
         const mid = (lo + hi) >> 1;
-        if (samples.movingTime[mid] < seconds) lo = mid + 1; else hi = mid;
+        if (samples.movingTime[mid] < seconds) lo = mid + 1;
+        else hi = mid;
     }
     return lo;
 }
@@ -187,7 +192,8 @@ export function indexAtDistance(samples, meters) {
     let hi = samples.n - 1;
     while (lo < hi) {
         const mid = (lo + hi) >> 1;
-        if (samples.distance[mid] < meters) lo = mid + 1; else hi = mid;
+        if (samples.distance[mid] < meters) lo = mid + 1;
+        else hi = mid;
     }
     return lo;
 }
@@ -202,8 +208,16 @@ function smoothAltitude(altitude, distance, { altitudeMedianWindow, altitudeDist
     let sum = 0;
     let count = 0;
     for (let i = 0; i < n; i += 1) {
-        while (hi < n && distance[hi] - distance[i] <= half) { sum += median[hi]; count += 1; hi += 1; }
-        while (distance[i] - distance[lo] > half) { sum -= median[lo]; count -= 1; lo += 1; }
+        while (hi < n && distance[hi] - distance[i] <= half) {
+            sum += median[hi];
+            count += 1;
+            hi += 1;
+        }
+        while (distance[i] - distance[lo] > half) {
+            sum -= median[lo];
+            count -= 1;
+            lo += 1;
+        }
         out[i] = count ? sum / count : median[i];
     }
     return out;

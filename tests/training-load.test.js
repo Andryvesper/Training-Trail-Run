@@ -23,7 +23,8 @@ import {
 import { normalizeActivities } from '../js/modules/dashboard-stats.js';
 
 test('legge il D+ scritto dal motore nelle note', () => {
-    const notes = 'Lungo collinare.\nDislivello da inserire nella traccia: circa 650 m D+ (gara 40 m/km); a 600 m/h sono circa 1 h 05\' di salita.';
+    const notes =
+        "Lungo collinare.\nDislivello da inserire nella traccia: circa 650 m D+ (gara 40 m/km); a 600 m/h sono circa 1 h 05' di salita.";
     assert.equal(parsePlannedElevation(notes), 650);
 });
 
@@ -47,7 +48,10 @@ test('senza D+ nelle note restituisce null', () => {
 
 test('metriche pianificate: tempo da durata o da km e passo', () => {
     assert.deepEqual(plannedSessionMetrics({ distance_km: 10, target_pace_seconds_per_km: 300, notes: 'circa 200 m D+' }), {
-        km: 10, elevationM: 200, seconds: 3000, paceSecondsPerKm: 300
+        km: 10,
+        elevationM: 200,
+        seconds: 3000,
+        paceSecondsPerKm: 300
     });
     const fromDuration = plannedSessionMetrics({ distance_km: 12, duration_minutes: 60 });
     assert.equal(fromDuration.seconds, 3600);
@@ -101,7 +105,10 @@ test('carico settimanale con settimane vuote intermedie', () => {
         { date: '2026-11-04', km: 5, elevationM: 50, seconds: 1800 },
         { date: '2026-11-18', km: 12, elevationM: 0, seconds: 4000 }
     ]);
-    assert.deepEqual(weeks.map(week => week.weekStart), ['2026-11-02', '2026-11-09', '2026-11-16']);
+    assert.deepEqual(
+        weeks.map(week => week.weekStart),
+        ['2026-11-02', '2026-11-09', '2026-11-16']
+    );
     assert.equal(weeks[0].km, 15);
     assert.equal(weeks[0].elevationM, 150);
     assert.equal(weeks[1].count, 0);
@@ -116,7 +123,10 @@ test('avviso oltre +10% sulla settimana precedente', () => {
     ]);
     assert.equal(warnings[0].warning, false);
     assert.equal(warnings[1].warning, true);
-    assert.deepEqual(warnings[1].increases.map(item => item.metric), ['elevationM']);
+    assert.deepEqual(
+        warnings[1].increases.map(item => item.metric),
+        ['elevationM']
+    );
     assert.equal(describeIncreases(warnings[1].increases), 'D+ +20%');
     assert.equal(warnings[3].warning, false, 'dopo una settimana vuota non si confronta');
     assert.equal(LOAD_RULE_LABEL, 'regola generale di prudenza, non dal libro');
@@ -146,8 +156,24 @@ test('carico svolto dalle attività normalizzate', () => {
 
 test('aderenza settimanale: sedute, km e D+', () => {
     const sessions = [
-        { scheduled_date: '2026-11-02', sport_type: 'run', distance_km: 10, notes: null, completed_at: '2026-11-02T10:00:00Z', intervals_activity_id: 'a1', completed_activity: { id: 'a1', distance: 9500 } },
-        { scheduled_date: '2026-11-07', sport_type: 'trail', distance_km: 20, notes: 'circa 800 m D+', completed_at: '2026-11-07T10:00:00Z', intervals_activity_id: 'a2', completed_activity: { id: 'a2', distance: 21000, total_elevation_gain: 750 } },
+        {
+            scheduled_date: '2026-11-02',
+            sport_type: 'run',
+            distance_km: 10,
+            notes: null,
+            completed_at: '2026-11-02T10:00:00Z',
+            intervals_activity_id: 'a1',
+            completed_activity: { id: 'a1', distance: 9500 }
+        },
+        {
+            scheduled_date: '2026-11-07',
+            sport_type: 'trail',
+            distance_km: 20,
+            notes: 'circa 800 m D+',
+            completed_at: '2026-11-07T10:00:00Z',
+            intervals_activity_id: 'a2',
+            completed_activity: { id: 'a2', distance: 21000, total_elevation_gain: 750 }
+        },
         { scheduled_date: '2026-11-05', sport_type: 'run', distance_km: 8 },
         { scheduled_date: '2026-11-10', sport_type: 'run', distance_km: 6 }
     ];
@@ -170,9 +196,15 @@ test('carico svolto recente: la prima settimana mostrata è confrontata con la p
         { id: 3, start_date_local: '2026-11-12T07:00:00', type: 'Run', distance: 10000, moving_time: 3000 }
     ]);
     const weeks = recentDoneLoad(activities, '2026-11-14', 2);
-    assert.deepEqual(weeks.map(week => week.weekStart), ['2026-11-02', '2026-11-09']);
+    assert.deepEqual(
+        weeks.map(week => week.weekStart),
+        ['2026-11-02', '2026-11-09']
+    );
     assert.equal(weeks[0].warning, true);
-    assert.deepEqual(weeks[0].increases.map(item => item.metric), ['km', 'seconds']);
+    assert.deepEqual(
+        weeks[0].increases.map(item => item.metric),
+        ['km', 'seconds']
+    );
     assert.equal(weeks[1].warning, false);
     assert.deepEqual(recentDoneLoad(activities, 'oggi'), []);
 });

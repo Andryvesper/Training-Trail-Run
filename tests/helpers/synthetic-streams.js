@@ -28,7 +28,10 @@ export function syntheticRun({
         if (vo) oscillation.push(vo(t, d));
         if (watts) power.push(watts(t, d));
     }
-    const streams = [{ type: 'time', data: time }, { type: 'distance', data: distance }];
+    const streams = [
+        { type: 'time', data: time },
+        { type: 'distance', data: distance }
+    ];
     if (altitude) streams.push({ type: altitudeType, data: alt });
     if (hr) streams.push({ type: 'heartrate', data: heart });
     if (gct) streams.push({ type: gctType, data: contact });

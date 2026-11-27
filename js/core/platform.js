@@ -44,9 +44,9 @@ function setupUserInterfaceByRole(profile) {
     const roleBadge = document.getElementById('user-role-badge');
 
     if (profile.role === 'admin') {
-        if (roleBadge) roleBadge.textContent = "Ruolo: Amministratore";
+        if (roleBadge) roleBadge.textContent = 'Ruolo: Amministratore';
     } else {
-        if (roleBadge) roleBadge.textContent = "Ruolo: Atleta";
+        if (roleBadge) roleBadge.textContent = 'Ruolo: Atleta';
     }
 
     const emailDisplay = document.getElementById('logged-user-email');

@@ -39,21 +39,26 @@ test('crea una condivisione tramite RPC con i soli parametri espliciti', async (
     const mock = createRpcMock(result);
     const service = new TrainingPlanSharingService(mock.client);
 
-    assert.equal(await service.createShare({
-        title: '  Preparazione  ',
-        sessionIds: ['session-1'],
-        expiresInDays: 7,
-        sourceReferencePace: 250
-    }), result.data);
-    assert.deepEqual(mock.calls, [[
-        'create_training_plan_share',
-        {
-            p_title: 'Preparazione',
-            p_session_ids: ['session-1'],
-            p_expires_in_days: 7,
-            p_source_reference_pace_seconds_per_km: 250
-        }
-    ]]);
+    assert.equal(
+        await service.createShare({
+            title: '  Preparazione  ',
+            sessionIds: ['session-1'],
+            expiresInDays: 7,
+            sourceReferencePace: 250
+        }),
+        result.data
+    );
+    assert.deepEqual(mock.calls, [
+        [
+            'create_training_plan_share',
+            {
+                p_title: 'Preparazione',
+                p_session_ids: ['session-1'],
+                p_expires_in_days: 7,
+                p_source_reference_pace_seconds_per_km: 250
+            }
+        ]
+    ]);
 });
 
 test('importa solo dopo conferma esplicita di eventuali sovrapposizioni', async () => {
@@ -68,15 +73,17 @@ test('importa solo dopo conferma esplicita di eventuali sovrapposizioni', async 
         confirmOverlaps: true
     });
 
-    assert.deepEqual(mock.calls, [[
-        'import_training_plan_share',
-        {
-            p_share_code: 'c72b6575-314a-4b6c-a6af-1e1fd272b85c',
-            p_new_start_date: '2026-11-15',
-            p_target_reference_pace_seconds_per_km: 320,
-            p_confirm_overlaps: true
-        }
-    ]]);
+    assert.deepEqual(mock.calls, [
+        [
+            'import_training_plan_share',
+            {
+                p_share_code: 'c72b6575-314a-4b6c-a6af-1e1fd272b85c',
+                p_new_start_date: '2026-11-15',
+                p_target_reference_pace_seconds_per_km: 320,
+                p_confirm_overlaps: true
+            }
+        ]
+    ]);
 });
 
 test('valida codice e parametri localmente senza chiamare RPC', async () => {
@@ -84,15 +91,21 @@ test('valida codice e parametri localmente senza chiamare RPC', async () => {
     const service = new TrainingPlanSharingService(mock.client);
 
     await assert.rejects(service.previewShare('non-uuid'), /UUID valido/);
-    await assert.rejects(service.importShare({
-        shareCode: 'c72b6575-314a-4b6c-a6af-1e1fd272b85c',
-        newStartDate: '2026-02-30',
-        targetReferencePace: null
-    }), /data di inizio valida/);
-    await assert.rejects(service.createShare({
-        title: '',
-        sessionIds: ['session-1']
-    }), /titolo deve contenere/);
+    await assert.rejects(
+        service.importShare({
+            shareCode: 'c72b6575-314a-4b6c-a6af-1e1fd272b85c',
+            newStartDate: '2026-02-30',
+            targetReferencePace: null
+        }),
+        /data di inizio valida/
+    );
+    await assert.rejects(
+        service.createShare({
+            title: '',
+            sessionIds: ['session-1']
+        }),
+        /titolo deve contenere/
+    );
     assert.deepEqual(mock.calls, []);
 });
 

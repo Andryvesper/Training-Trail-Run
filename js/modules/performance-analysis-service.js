@@ -36,9 +36,7 @@ export class PerformanceAnalysisService {
             metrics: analysis,
             computed_at: new Date().toISOString()
         };
-        const { error } = await this.supabaseClient
-            .from(ANALYSES_TABLE)
-            .upsert(record, { onConflict: 'user_id,intervals_activity_id' });
+        const { error } = await this.supabaseClient.from(ANALYSES_TABLE).upsert(record, { onConflict: 'user_id,intervals_activity_id' });
         if (error) throw error;
         return record;
     }
@@ -66,11 +64,7 @@ export class PerformanceAnalysisService {
             thresholds: review.thresholds || {},
             decided_at: review.status === 'proposed' ? null : new Date().toISOString()
         };
-        const { data, error } = await this.supabaseClient
-            .from(REVIEWS_TABLE)
-            .insert(record)
-            .select(REVIEW_FIELDS)
-            .single();
+        const { data, error } = await this.supabaseClient.from(REVIEWS_TABLE).insert(record).select(REVIEW_FIELDS).single();
         if (error) throw error;
         return data;
     }

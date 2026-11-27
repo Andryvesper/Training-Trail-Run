@@ -48,7 +48,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const {
+            data: { session },
+            error
+        } = await supabase.auth.getSession();
         if (error) console.error('Errore nel recupero della sessione:', error);
         if (session?.user) {
             await startApp(session.user);
@@ -196,8 +199,7 @@ function setupTabNavigation() {
     });
 
     const activate = btn => {
-        document.querySelectorAll('#module-container > [role="tabpanel"]')
-            .forEach(panel => panel.classList.add('hidden'));
+        document.querySelectorAll('#module-container > [role="tabpanel"]').forEach(panel => panel.classList.add('hidden'));
         document.getElementById(btn.dataset.target)?.classList.remove('hidden');
 
         tabButtons.forEach(b => {

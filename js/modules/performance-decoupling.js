@@ -28,7 +28,17 @@ export function isEnduranceSession(activity, samples, config = PERFORMANCE_CONFI
  */
 export function computeDecoupling(activity, samples, gapSpeeds, config = PERFORMANCE_CONFIG) {
     const { warmupSeconds, splitBy, unsteadyCv } = config.decoupling;
-    const base = { driftPercent: null, powerDriftPercent: null, ef1: null, ef2: null, averageHr1: null, averageHr2: null, splitBy, steady: null, gapCv: null };
+    const base = {
+        driftPercent: null,
+        powerDriftPercent: null,
+        ef1: null,
+        ef2: null,
+        averageHr1: null,
+        averageHr2: null,
+        splitBy,
+        steady: null,
+        gapCv: null
+    };
     if (!samples) return { ...base, status: 'unavailable', reason: 'Nessuno stream di tempo e distanza.' };
     if (!isEnduranceSession(activity, samples, config)) {
         return { ...base, status: 'unavailable', reason: 'Seduta sotto 60 minuti e 12 km: deriva non applicabile.' };
@@ -45,17 +55,16 @@ export function computeDecoupling(activity, samples, gapSpeeds, config = PERFORM
         const from = samples.movingTime[start];
         middle = indexAtMovingTime(samples, from + (samples.movingTime[last] - from) / 2);
     }
-    if (middle <= start + 1 || middle >= last - 1) return { ...base, status: 'unavailable', reason: 'Dati insufficienti dopo il riscaldamento.' };
+    if (middle <= start + 1 || middle >= last - 1)
+        return { ...base, status: 'unavailable', reason: 'Dati insufficienti dopo il riscaldamento.' };
 
     const first = computeEfficiency(samples, gapSpeeds, config, { range: [start + 1, middle] });
     const second = computeEfficiency(samples, gapSpeeds, config, { range: [middle + 1, last] });
     if (first.ef === null || second.ef === null) {
         return { ...base, status: 'unavailable', reason: first.reason || second.reason };
     }
-    const driftPercent = round((first.ef - second.ef) / first.ef * 100, 1);
-    const powerDriftPercent = first.efPower && second.efPower
-        ? round((first.efPower - second.efPower) / first.efPower * 100, 1)
-        : null;
+    const driftPercent = round(((first.ef - second.ef) / first.ef) * 100, 1);
+    const powerDriftPercent = first.efPower && second.efPower ? round(((first.efPower - second.efPower) / first.efPower) * 100, 1) : null;
     const gapCv = blockCv(samples, gapSpeeds, start, last, config.decoupling.blockSeconds);
     const steady = gapCv === null ? null : gapCv <= unsteadyCv;
     const partialReasons = [];

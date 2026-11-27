@@ -22,7 +22,7 @@ test('90 minuti costanti: deriva circa 0, tenuta ottima', () => {
 });
 
 test('FC che sale da 140 a 160 a passo costante: deriva significativa', () => {
-    const result = decouple(syntheticRun({ seconds: 5400, altitude: () => 100, hr: t => 140 + 20 * t / 5400 }));
+    const result = decouple(syntheticRun({ seconds: 5400, altitude: () => 100, hr: t => 140 + (20 * t) / 5400 }));
     assert.ok(result.driftPercent > 5, `deriva ${result.driftPercent}`);
     assert.ok(result.averageHr2 > result.averageHr1);
     assert.equal(classifyDecoupling(result.driftPercent).key, 'significant');
@@ -30,8 +30,8 @@ test('FC che sale da 140 a 160 a passo costante: deriva significativa', () => {
 
 test('in collina la deriva usa il GAP: salite e discese alternate senza deriva', () => {
     // Onda di 40 m ogni 2 km: il passo reale cambia, lo sforzo (GAP) no.
-    const altitude = d => 300 + 20 * Math.sin(d / 2000 * 2 * Math.PI);
-    const grade = d => 20 * 2 * Math.PI / 2000 * Math.cos(d / 2000 * 2 * Math.PI);
+    const altitude = d => 300 + 20 * Math.sin((d / 2000) * 2 * Math.PI);
+    const grade = d => ((20 * 2 * Math.PI) / 2000) * Math.cos((d / 2000) * 2 * Math.PI);
     const speed = (t, d) => 3 / gapFactor(grade(d));
     const result = decouple(syntheticRun({ seconds: 5400, speed, altitude, hr: () => 150 }));
     assert.equal(result.status, 'ok');
@@ -48,7 +48,10 @@ test('classi della deriva con le soglie della config', () => {
 });
 
 test('seduta di 45 minuti (8 km): deriva non applicabile', () => {
-    const result = decouple(syntheticRun({ seconds: 2700, altitude: () => 100, hr: () => 150 }), runActivity({ moving_time: 2700, distance: 8100 }));
+    const result = decouple(
+        syntheticRun({ seconds: 2700, altitude: () => 100, hr: () => 150 }),
+        runActivity({ moving_time: 2700, distance: 8100 })
+    );
     assert.equal(result.status, 'unavailable');
     assert.match(result.reason, /60 minuti/);
 });
@@ -83,7 +86,7 @@ test('GCT costante: nessuna variazione e nessun allarme', () => {
 });
 
 test('GCT che si allunga del 10%: allarme di cedimento neuromuscolare', () => {
-    const result = biomech(syntheticRun({ seconds: 3600, altitude: () => 100, gct: t => 240 + 24 * t / 3600, vo: () => 85 }));
+    const result = biomech(syntheticRun({ seconds: 3600, altitude: () => 100, gct: t => 240 + (24 * t) / 3600, vo: () => 85 }));
     assert.ok(result.metrics.gct.changePercent > 4, `ΔGCT ${result.metrics.gct.changePercent}`);
     assert.ok(result.gctSlopePerHour > 20);
     const alerts = biomechanicsAlerts(result);

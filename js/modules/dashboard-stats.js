@@ -151,8 +151,7 @@ export function computeRecords(activities, races = []) {
                 sourceLabel: activity.elapsedS ? 'Intervals, tempo totale' : 'Intervals, tempo in movimento'
             });
         });
-        const best = candidates.reduce((winner, candidate) =>
-            !winner || candidate.seconds < winner.seconds ? candidate : winner, null);
+        const best = candidates.reduce((winner, candidate) => (!winner || candidate.seconds < winner.seconds ? candidate : winner), null);
         return {
             key: target.key,
             label: target.label,
@@ -163,8 +162,7 @@ export function computeRecords(activities, races = []) {
         };
     });
 
-    const longest = runs.reduce((winner, activity) =>
-        (activity.distanceM || 0) > (winner?.distanceM || 0) ? activity : winner, null);
+    const longest = runs.reduce((winner, activity) => ((activity.distanceM || 0) > (winner?.distanceM || 0) ? activity : winner), null);
     return {
         distances: records,
         longestRun: longest?.distanceM
@@ -184,26 +182,30 @@ export function wellnessSeries(wellness, fromDate) {
         .filter(record => /^\d{4}-\d{2}-\d{2}$/.test(record.date) && record.date >= fromDate)
         .sort((left, right) => left.date.localeCompare(right.date));
     const dates = records.map(record => record.date);
-    const read = key => records.map(record => {
-        if (key === 'sleepHours') {
-            const seconds = positive(record.sleepSecs);
-            return seconds === null ? null : round1(seconds / 3600);
-        }
-        if (key === 'tsb') {
-            const ctl = finite(record.ctl);
-            const atl = finite(record.atl);
-            return ctl === null || atl === null ? null : round1(ctl - atl);
-        }
-        return finite(record[key]);
-    });
+    const read = key =>
+        records.map(record => {
+            if (key === 'sleepHours') {
+                const seconds = positive(record.sleepSecs);
+                return seconds === null ? null : round1(seconds / 3600);
+            }
+            if (key === 'tsb') {
+                const ctl = finite(record.ctl);
+                const atl = finite(record.atl);
+                return ctl === null || atl === null ? null : round1(ctl - atl);
+            }
+            return finite(record[key]);
+        });
     const series = {
         ctl: read('ctl'),
         atl: read('atl'),
         tsb: read('tsb')
     };
-    WELLNESS_FIELDS.forEach(field => { series[field.key] = read(field.key); });
-    const available = Object.fromEntries(Object.entries(series)
-        .map(([key, values]) => [key, values.filter(value => value !== null).length >= 2]));
+    WELLNESS_FIELDS.forEach(field => {
+        series[field.key] = read(field.key);
+    });
+    const available = Object.fromEntries(
+        Object.entries(series).map(([key, values]) => [key, values.filter(value => value !== null).length >= 2])
+    );
     return { dates, series, available };
 }
 

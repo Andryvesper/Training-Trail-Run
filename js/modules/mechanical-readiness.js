@@ -38,9 +38,13 @@ export function eccentricFromSamples(samples, config = PERFORMANCE_CONFIG) {
         elevationLossM: Math.round(lossM),
         descentM: Math.round(descentM),
         weightedDescentM: Math.round(weighted),
-        averageDescentGradePercent: descentDistance > 0 ? round(-descentM / descentDistance * 100, 1) : null,
+        averageDescentGradePercent: descentDistance > 0 ? round((-descentM / descentDistance) * 100, 1) : null,
         // minGrade null = nessun limite inferiore (JSON non ammette -Infinity).
-        byBand: eccentricBands.map((item, index) => ({ minGrade: Number.isFinite(item.minGrade) ? item.minGrade : null, weight: item.weight, meters: Math.round(byBand[index]) }))
+        byBand: eccentricBands.map((item, index) => ({
+            minGrade: Number.isFinite(item.minGrade) ? item.minGrade : null,
+            weight: item.weight,
+            meters: Math.round(byBand[index])
+        }))
     };
 }
 
@@ -65,7 +69,7 @@ export function cardioLoad(activity, movingSeconds, config = PERFORMANCE_CONFIG)
     const trimp = positiveOrZero(activity?.trimp);
     if (trimp !== null) return { value: Math.round(trimp), source: 'trimp' };
     const seconds = movingSeconds || positiveOrZero(activity?.moving_time) || 0;
-    if (seconds > 0) return { value: Math.round(seconds / 3600 * config.mechanicalLoad.durationLoadPerHour), source: 'duration' };
+    if (seconds > 0) return { value: Math.round((seconds / 3600) * config.mechanicalLoad.durationLoadPerHour), source: 'duration' };
     return { value: 0, source: 'none' };
 }
 
@@ -79,13 +83,11 @@ export function isEccentricSport(activity) {
  */
 export function computeMechanicalLoad(activity, samples, movingSeconds, config = PERFORMANCE_CONFIG) {
     const cardio = cardioLoad(activity, movingSeconds, config);
-    const eccentric = isEccentricSport(activity)
-        ? eccentricFromSamples(samples, config) || eccentricFromSummary(activity, config)
-        : null;
-    const eccentricPoints = eccentric ? round(eccentric.weightedDescentM / 100 * config.mechanicalLoad.pointsPer100m, 1) : 0;
+    const eccentric = isEccentricSport(activity) ? eccentricFromSamples(samples, config) || eccentricFromSummary(activity, config) : null;
+    const eccentricPoints = eccentric ? round((eccentric.weightedDescentM / 100) * config.mechanicalLoad.pointsPer100m, 1) : 0;
     const reasons = [];
     if (cardio.source === 'duration') reasons.push('Carico cardio stimato dalla durata.');
-    if (eccentric?.source === 'summary') reasons.push('D- dal riepilogo dell\'attività, senza pendenza.');
+    if (eccentric?.source === 'summary') reasons.push("D- dal riepilogo dell'attività, senza pendenza.");
     if (eccentric?.source === 'summary_assumed') reasons.push('D- non disponibile: assunto uguale al D+.');
     return {
         status: cardio.source === 'none' ? 'unavailable' : reasons.length ? 'partial' : 'ok',
@@ -204,7 +206,15 @@ export function computeReadiness({ eccentricEntries = [], wellness = [], today, 
     const restingHr = restingHrStatus(wellness, today, config);
     const hasEccentricData = (eccentricEntries || []).length > 0;
     if (!hasEccentricData && hrv.status !== 'ok') {
-        return { level: 'unavailable', kind: null, headline: 'Prontezza non calcolabile: servono attività analizzate o dati HRV.', advice: [], eccentric, hrv, restingHr };
+        return {
+            level: 'unavailable',
+            kind: null,
+            headline: 'Prontezza non calcolabile: servono attività analizzate o dati HRV.',
+            advice: [],
+            eccentric,
+            hrv,
+            restingHr
+        };
     }
     const advice = [];
     let level = 'green';
@@ -220,7 +230,7 @@ export function computeReadiness({ eccentricEntries = [], wellness = [], today, 
         level = 'amber';
         kind = 'systemic';
         headline = 'Fatica sistemica: HRV sotto il tuo range normale.';
-        advice.push('Rimanda i lavori di qualità; resta su intensità facile finché l\'HRV rientra.');
+        advice.push("Rimanda i lavori di qualità; resta su intensità facile finché l'HRV rientra.");
     } else if (eccentric.level === 'high') {
         level = 'amber';
         kind = 'muscular';
@@ -238,7 +248,10 @@ export function computeReadiness({ eccentricEntries = [], wellness = [], today, 
         advice.push('HRV sopra il range: a volte segnala fatica accumulata, valuta le sensazioni.');
     }
     if (hrv.status !== 'ok') advice.push(hrv.reason);
-    if (restingHr?.elevated) advice.push(`FC a riposo media ${String(restingHr.shortMean).replace('.', ',')} bpm, sopra la tua media di ${String(restingHr.baselineMean).replace('.', ',')}.`);
+    if (restingHr?.elevated)
+        advice.push(
+            `FC a riposo media ${String(restingHr.shortMean).replace('.', ',')} bpm, sopra la tua media di ${String(restingHr.baselineMean).replace('.', ',')}.`
+        );
     return { level, kind, headline, advice, eccentric, hrv, restingHr };
 }
 

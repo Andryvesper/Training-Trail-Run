@@ -116,12 +116,16 @@ export function scaleTrainingPace(sessionPace, sourceReferencePace, targetRefere
 export function scaleSessionDuration(session, sourceReferencePace, targetReferencePace) {
     const duration = session?.duration_minutes;
     if (duration == null) return null;
-    if (session.distance_km == null || session.target_pace_seconds_per_km == null
-        || sourceReferencePace == null || targetReferencePace == null) {
+    if (
+        session.distance_km == null ||
+        session.target_pace_seconds_per_km == null ||
+        sourceReferencePace == null ||
+        targetReferencePace == null
+    ) {
         return duration;
     }
     const pace = session.target_pace_seconds_per_km;
-    return Math.round(duration * scaleTrainingPace(pace, sourceReferencePace, targetReferencePace) / pace);
+    return Math.round((duration * scaleTrainingPace(pace, sourceReferencePace, targetReferencePace)) / pace);
 }
 
 function validateDateRange(startDate, endDate) {
@@ -145,8 +149,7 @@ function validateShareCode(value) {
 }
 
 function validateOptionalPace(value) {
-    if (value !== null && value !== undefined
-        && (!Number.isInteger(value) || value < 120 || value > 1800)) {
+    if (value !== null && value !== undefined && (!Number.isInteger(value) || value < 120 || value > 1800)) {
         throw new Error('Il passo deve essere compreso tra 2:00 e 30:00 min/km.');
     }
 }

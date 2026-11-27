@@ -5,7 +5,7 @@ export class TrainingCalendarService {
     generateMultiWeekPlan(centerDate = new Date(), pastWeeks = 1, futureWeeks = 4) {
         const weeks = [];
         const currentCenter = new Date(centerDate);
-        
+
         const dayOfWeek = currentCenter.getDay();
         const distanceToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
         const startOfCenterWeek = new Date(currentCenter);
@@ -13,14 +13,14 @@ export class TrainingCalendarService {
 
         const totalWeeks = pastWeeks + futureWeeks + 1;
         const startGlobalDate = new Date(startOfCenterWeek);
-        startGlobalDate.setDate(startOfCenterWeek.getDate() - (pastWeeks * 7));
+        startGlobalDate.setDate(startOfCenterWeek.getDate() - pastWeeks * 7);
 
         for (let w = 0; w < totalWeeks; w++) {
             const weekDays = [];
 
             for (let d = 0; d < 7; d++) {
                 const currentDate = new Date(startGlobalDate);
-                currentDate.setDate(startGlobalDate.getDate() + (w * 7) + d);
+                currentDate.setDate(startGlobalDate.getDate() + w * 7 + d);
                 const dayOfWeekNum = currentDate.getDay();
 
                 weekDays.push({
@@ -43,4 +43,3 @@ export class TrainingCalendarService {
         return weeks;
     }
 }
-

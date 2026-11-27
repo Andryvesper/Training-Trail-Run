@@ -29,9 +29,7 @@ export function mergeActivities(cached, fresh, from) {
 }
 
 export function isValidEntry(entry) {
-    return entry?.v === FORMAT_VERSION
-        && Array.isArray(entry.activities)
-        && /^\d{4}-\d{2}-\d{2}$/.test(String(entry.syncedAt || ''));
+    return entry?.v === FORMAT_VERSION && Array.isArray(entry.activities) && /^\d{4}-\d{2}-\d{2}$/.test(String(entry.syncedAt || ''));
 }
 
 export async function readActivityCache(key) {
@@ -96,4 +94,3 @@ function transactionDone(transaction) {
 function activityDate(activity) {
     return String(activity?.start_date_local || '').slice(0, 10);
 }
-

@@ -1,25 +1,12 @@
 import { IntervalsService, summarizeIntervalsData } from './intervals.js';
 import { createIntervalsService, isConnected, loadIntervalsConnection, saveIntervalsCredentials } from './intervals-connection.js';
 import { mergeActivities, readActivityCache, refetchStart, writeActivityCache } from './intervals-cache.js';
-import {
-    computeRecords,
-    normalizeActivities,
-    summarizePeriod,
-    weeklyVolumes,
-    WELLNESS_FIELDS,
-    wellnessSeries
-} from './dashboard-stats.js';
+import { computeRecords, normalizeActivities, summarizePeriod, weeklyVolumes, WELLNESS_FIELDS, wellnessSeries } from './dashboard-stats.js';
 import { CHART_COLORS, renderBarChart, renderLineChart } from './dashboard-charts.js';
 import { TrainingRacesService } from './training-races.js';
 import { resetPerformanceSection, runPerformanceAnalysis } from './performance-analysis-ui.js';
 import { TrainingPlanService } from './training-plan.js';
-import {
-    describeIncreases,
-    LOAD_RULE_LABEL,
-    recentDoneLoad,
-    recentWeekStarts,
-    weeklyAdherence
-} from './training-load.js';
+import { describeIncreases, LOAD_RULE_LABEL, recentDoneLoad, recentWeekStarts, weeklyAdherence } from './training-load.js';
 import { addDays, localDateKey } from '../core/date-utils.js';
 import { createEmptyState, createSkeleton } from '../core/ui-feedback.js';
 
@@ -78,9 +65,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
     const showKeyState = () => {
         // La chiave salvata non torna mai nel campo: si mostra solo che esiste.
         apiKeyInput.value = '';
-        apiKeyInput.placeholder = connection.hasKey
-            ? 'Chiave salvata · lascia vuoto per mantenerla'
-            : 'Inserisci API Key';
+        apiKeyInput.placeholder = connection.hasKey ? 'Chiave salvata · lascia vuoto per mantenerla' : 'Inserisci API Key';
     };
 
     try {
@@ -93,17 +78,17 @@ export async function initIntervalsModule(supabaseClient, userId) {
                 await syncDashboard(createIntervalsService(supabaseClient, connection));
             } catch (syncError) {
                 console.error('Errore nella sincronizzazione iniziale Intervals.icu:', syncError);
-                setDashboardStatus(
-                    `Collegamento non riuscito: ${syncError.message}`,
-                    'error'
-                );
+                setDashboardStatus(`Collegamento non riuscito: ${syncError.message}`, 'error');
             }
         } else {
             setDashboardStatus(
                 'Intervals.icu non è ancora collegato. Inserisci il tuo Athlete ID e la tua API Key per visualizzare i dati reali.',
                 'empty'
             );
-            showDashboardPlaceholders('Intervals.icu non è collegato', 'Inserisci Athlete ID e API Key nella scheda Intervals.icu per vedere metriche e grafici.');
+            showDashboardPlaceholders(
+                'Intervals.icu non è collegato',
+                'Inserisci Athlete ID e API Key nella scheda Intervals.icu per vedere metriche e grafici.'
+            );
         }
     } catch (error) {
         console.error('Errore nel caricamento della configurazione Intervals:', error);
@@ -159,9 +144,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
         try {
             // Chiave appena digitata: verifica diretta, senza salvarla.
             // Campo vuoto: verifica la chiave salvata, attraverso il proxy.
-            const service = apiKey
-                ? new IntervalsService(athleteId, apiKey)
-                : createIntervalsService(supabaseClient, connection);
+            const service = apiKey ? new IntervalsService(athleteId, apiKey) : createIntervalsService(supabaseClient, connection);
             await syncDashboard(service);
             showStatus(statusMsg, 'Collegamento verificato: dati aggiornati da Intervals.icu.', 'success');
         } catch (error) {
@@ -188,18 +171,22 @@ async function syncDashboardData(supabaseClient, userId, service) {
     const activitiesFrom = refetchStart(cached, ACTIVITY_HISTORY_START);
     let wellness, freshActivities, races, sessions;
     try {
-    [wellness, freshActivities, races, sessions] = await Promise.all([
-        service.getWellness(oldestWellness, newest),
-        service.getActivities(activitiesFrom, newest),
-        new TrainingRacesService(supabaseClient).listRaces(userId).catch(error => {
-            console.error('Gare non disponibili per i record personali:', error);
-            return [];
-        }),
-        loadAdherenceSessions(supabaseClient, userId, newest)
-    ]);
+        [wellness, freshActivities, races, sessions] = await Promise.all([
+            service.getWellness(oldestWellness, newest),
+            service.getActivities(activitiesFrom, newest),
+            new TrainingRacesService(supabaseClient).listRaces(userId).catch(error => {
+                console.error('Gare non disponibili per i record personali:', error);
+                return [];
+            }),
+            loadAdherenceSessions(supabaseClient, userId, newest)
+        ]);
     } catch (error) {
         // Niente scheletri infiniti: le sezioni dicono che i dati mancano.
-        if (syncId === syncCounter) showDashboardPlaceholders('Dati Intervals.icu non disponibili', 'Controlla il collegamento nella scheda Intervals.icu e riprova.');
+        if (syncId === syncCounter)
+            showDashboardPlaceholders(
+                'Dati Intervals.icu non disponibili',
+                'Controlla il collegamento nella scheda Intervals.icu e riprova.'
+            );
         throw error;
     }
     const activities = cached ? mergeActivities(cached.activities, freshActivities, activitiesFrom) : freshActivities;
@@ -274,18 +261,32 @@ function renderSummary() {
     if (rangeText) rangeText.textContent = `Attività registrate ${label} (dal ${formatDisplayDate(from)}).`;
     container.replaceChildren();
     if (summary.totalCount === 0) {
-        container.append(createElement(
-            'p',
-            'col-span-full rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-400',
-            `Nessuna attività registrata ${label}.`
-        ));
+        container.append(
+            createElement(
+                'p',
+                'col-span-full rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-400',
+                `Nessuna attività registrata ${label}.`
+            )
+        );
         return;
     }
     const values = [
-        ['Corse', String(summary.run.count), summary.run.count ? `${formatMetric(round1(summary.run.km))} km · ${formatDuration(summary.run.seconds)}` : 'nessuna corsa'],
-        ['Ritmo medio corsa', formatPace(summary.run.averagePaceSecondsPerKm), summary.run.count ? `Più lunga: ${formatMetric(round1(summary.run.longestKm))} km` : ''],
+        [
+            'Corse',
+            String(summary.run.count),
+            summary.run.count ? `${formatMetric(round1(summary.run.km))} km · ${formatDuration(summary.run.seconds)}` : 'nessuna corsa'
+        ],
+        [
+            'Ritmo medio corsa',
+            formatPace(summary.run.averagePaceSecondsPerKm),
+            summary.run.count ? `Più lunga: ${formatMetric(round1(summary.run.longestKm))} km` : ''
+        ],
         ['Dislivello corsa', summary.run.count ? `${Math.round(summary.run.elevationM)} m D+` : '—', ''],
-        ['Nuotate', String(summary.swim.count), summary.swim.count ? `${formatThousands(summary.swim.meters)} m · ${formatDuration(summary.swim.seconds)}` : 'nessuna nuotata'],
+        [
+            'Nuotate',
+            String(summary.swim.count),
+            summary.swim.count ? `${formatThousands(summary.swim.meters)} m · ${formatDuration(summary.swim.seconds)}` : 'nessuna nuotata'
+        ],
         ['Altre attività', String(summary.otherCount), ''],
         ['Totale attività', String(summary.totalCount), formatDuration(summary.totalSeconds)]
     ];
@@ -302,17 +303,23 @@ function renderSummary() {
         .reverse();
     if (runs.length) {
         const details = createElement('details', 'col-span-full rounded-xl border border-slate-800 bg-slate-950/60');
-        details.append(createElement(
-            'summary',
-            'min-h-11 cursor-pointer px-4 py-3 text-sm font-medium text-slate-200',
-            `Corse conteggiate (${runs.length})`
-        ));
+        details.append(
+            createElement(
+                'summary',
+                'min-h-11 cursor-pointer px-4 py-3 text-sm font-medium text-slate-200',
+                `Corse conteggiate (${runs.length})`
+            )
+        );
         const list = createElement('ul', 'max-h-72 space-y-2 overflow-y-auto border-t border-slate-800 p-4');
         runs.forEach(activity => {
             const row = createElement('li', 'flex items-start justify-between gap-3 text-sm');
             row.append(
                 createElement('span', 'min-w-0 text-slate-300', `${activity.date} · ${activity.name} (${activity.type})`),
-                createElement('span', 'shrink-0 font-semibold text-white', activity.distanceM ? `${formatMetric(round1(activity.distanceM / 1000))} km` : 'distanza n/d')
+                createElement(
+                    'span',
+                    'shrink-0 font-semibold text-white',
+                    activity.distanceM ? `${formatMetric(round1(activity.distanceM / 1000))} km` : 'distanza n/d'
+                )
             );
             list.append(row);
         });
@@ -333,8 +340,20 @@ function renderRecords() {
             card.append(createElement('p', 'mt-1 text-lg sm:text-xl font-semibold text-slate-500', '—'));
             card.append(createElement('p', 'mt-1 text-xs text-slate-500', 'Nessuna gara o attività sull’intera distanza.'));
         } else {
-            card.append(createElement('p', 'mt-1 text-lg sm:text-xl font-semibold tabular-nums text-white', formatDuration(record.best.seconds, true)));
-            card.append(createElement('p', 'mt-1 text-xs text-slate-300', `${formatPace(record.paceSecondsPerKm)} · ${formatDisplayDate(record.best.date)}`));
+            card.append(
+                createElement(
+                    'p',
+                    'mt-1 text-lg sm:text-xl font-semibold tabular-nums text-white',
+                    formatDuration(record.best.seconds, true)
+                )
+            );
+            card.append(
+                createElement(
+                    'p',
+                    'mt-1 text-xs text-slate-300',
+                    `${formatPace(record.paceSecondsPerKm)} · ${formatDisplayDate(record.best.date)}`
+                )
+            );
             card.append(createElement('p', 'mt-1 truncate text-xs text-slate-500', `${record.best.name} (${record.best.sourceLabel})`));
         }
         container.append(card);
@@ -342,8 +361,20 @@ function renderRecords() {
     const longest = createElement('div', 'rounded-xl border border-slate-800 bg-slate-950/60 p-3 sm:p-4');
     longest.append(createElement('p', 'text-xs text-slate-400', 'Corsa più lunga'));
     if (records.longestRun) {
-        longest.append(createElement('p', 'mt-1 text-lg sm:text-xl font-semibold tabular-nums text-white', `${formatMetric(round1(records.longestRun.km))} km`));
-        longest.append(createElement('p', 'mt-1 text-xs text-slate-300', `${formatDisplayDate(records.longestRun.date)}${records.longestRun.seconds ? ` · ${formatDuration(records.longestRun.seconds)}` : ''}`));
+        longest.append(
+            createElement(
+                'p',
+                'mt-1 text-lg sm:text-xl font-semibold tabular-nums text-white',
+                `${formatMetric(round1(records.longestRun.km))} km`
+            )
+        );
+        longest.append(
+            createElement(
+                'p',
+                'mt-1 text-xs text-slate-300',
+                `${formatDisplayDate(records.longestRun.date)}${records.longestRun.seconds ? ` · ${formatDuration(records.longestRun.seconds)}` : ''}`
+            )
+        );
         longest.append(createElement('p', 'mt-1 truncate text-xs text-slate-500', records.longestRun.name));
     } else {
         longest.append(createElement('p', 'mt-1 text-lg sm:text-xl font-semibold text-slate-500', '—'));
@@ -428,17 +459,16 @@ function renderCharts() {
         valueFormat: value => `${formatMetric(round1(value))} h`,
         tooltipLabel: weekTitle
     });
-    WELLNESS_FIELDS
-        .filter(field => wellness.available[field.key])
-        .forEach(field => {
-            renderLineChart(container, {
-                title: field.label,
-                description: 'Dato wellness registrato in Intervals.icu.',
-                dates: wellness.dates,
-                series: [{ label: field.label, color: CHART_COLORS.blue, values: wellness.series[field.key] }],
-                valueFormat: value => `${field.decimals ? value.toFixed(field.decimals).replace('.', ',') : formatThousands(value)}${field.unit ? ` ${field.unit}` : ''}`
-            });
+    WELLNESS_FIELDS.filter(field => wellness.available[field.key]).forEach(field => {
+        renderLineChart(container, {
+            title: field.label,
+            description: 'Dato wellness registrato in Intervals.icu.',
+            dates: wellness.dates,
+            series: [{ label: field.label, color: CHART_COLORS.blue, values: wellness.series[field.key] }],
+            valueFormat: value =>
+                `${field.decimals ? value.toFixed(field.decimals).replace('.', ',') : formatThousands(value)}${field.unit ? ` ${field.unit}` : ''}`
         });
+    });
 }
 
 // Sedute delle ultime settimane per l'aderenza; null se non leggibili.
@@ -469,31 +499,38 @@ function renderAdherence() {
     }
     const today = dashboardState.today;
     const sessions = dashboardState.sessions.filter(session => session.scheduled_date <= today);
-    const activityById = new Map(dashboardState.activities
-        .filter(activity => activity.id !== null)
-        .map(activity => [String(activity.id), {
-            distance: activity.distanceM,
-            moving_time: activity.movingS,
-            elapsed_time: activity.elapsedS,
-            total_elevation_gain: activity.elevationM
-        }]));
+    const activityById = new Map(
+        dashboardState.activities
+            .filter(activity => activity.id !== null)
+            .map(activity => [
+                String(activity.id),
+                {
+                    distance: activity.distanceM,
+                    moving_time: activity.movingS,
+                    elapsed_time: activity.elapsedS,
+                    total_elevation_gain: activity.elevationM
+                }
+            ])
+    );
     const rows = weeklyAdherence(sessions, recentWeekStarts(today, ADHERENCE_WEEKS), activityById);
     if (!rows.some(row => row.plannedCount)) {
         container.append(createElement('p', 'text-sm text-slate-500', 'Nessuna seduta pianificata nelle ultime 4 settimane.'));
         return;
     }
-    container.append(dashboardTable(
-        ['Settimana', 'Sedute', 'Km', 'D+'],
-        rows.map(row => [
-            weekCell(row.weekStart),
-            ratioCell(row.doneCount, row.plannedCount, String),
-            ratioCell(row.doneKm, row.plannedKm, value => formatMetric(round1(value))),
-            row.elevationPlannedSessions
-                ? ratioCell(row.doneElevationM, row.plannedElevationM, formatThousands)
-                : `${formatThousands(row.doneElevationM)} m svolti`
-        ]),
-        'Aderenza al piano nelle ultime 4 settimane'
-    ));
+    container.append(
+        dashboardTable(
+            ['Settimana', 'Sedute', 'Km', 'D+'],
+            rows.map(row => [
+                weekCell(row.weekStart),
+                ratioCell(row.doneCount, row.plannedCount, String),
+                ratioCell(row.doneKm, row.plannedKm, value => formatMetric(round1(value))),
+                row.elevationPlannedSessions
+                    ? ratioCell(row.doneElevationM, row.plannedElevationM, formatThousands)
+                    : `${formatThousands(row.doneElevationM)} m svolti`
+            ]),
+            'Aderenza al piano nelle ultime 4 settimane'
+        )
+    );
 }
 
 // Carico svolto (corsa e trail) con avviso oltre +10% sulla settimana prima.
@@ -506,23 +543,29 @@ function renderDoneLoad() {
         container.append(createElement('p', 'text-sm text-slate-500', 'Nessuna corsa nelle ultime settimane.'));
         return;
     }
-    container.append(dashboardTable(
-        ['Settimana', 'Km', 'D+', 'Tempo', 'Avviso'],
-        weeks.map(week => {
-            const warning = week.warning
-                ? createElement('span', 'rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[11px] font-semibold text-amber-200', describeIncreases(week.increases))
-                : '—';
-            if (week.warning) warning.title = `Aumento oltre il 10% sulla settimana precedente (${LOAD_RULE_LABEL}).`;
-            return [
-                weekCell(week.weekStart),
-                `${formatMetric(round1(week.km))} km`,
-                `${formatThousands(week.elevationM)} m`,
-                formatDuration(week.seconds),
-                warning
-            ];
-        }),
-        'Carico settimanale di corsa e trail'
-    ));
+    container.append(
+        dashboardTable(
+            ['Settimana', 'Km', 'D+', 'Tempo', 'Avviso'],
+            weeks.map(week => {
+                const warning = week.warning
+                    ? createElement(
+                          'span',
+                          'rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[11px] font-semibold text-amber-200',
+                          describeIncreases(week.increases)
+                      )
+                    : '—';
+                if (week.warning) warning.title = `Aumento oltre il 10% sulla settimana precedente (${LOAD_RULE_LABEL}).`;
+                return [
+                    weekCell(week.weekStart),
+                    `${formatMetric(round1(week.km))} km`,
+                    `${formatThousands(week.elevationM)} m`,
+                    formatDuration(week.seconds),
+                    warning
+                ];
+            }),
+            'Carico settimanale di corsa e trail'
+        )
+    );
 }
 
 function weekCell(weekStart) {
@@ -531,7 +574,7 @@ function weekCell(weekStart) {
 }
 
 function ratioCell(done, planned, format) {
-    const percent = planned > 0 ? ` (${Math.round(done / planned * 100)}%)` : '';
+    const percent = planned > 0 ? ` (${Math.round((done / planned) * 100)}%)` : '';
     return `${format(done)} / ${format(planned)}${percent}`;
 }
 
@@ -551,7 +594,10 @@ function dashboardTable(headers, rows, caption) {
     rows.forEach(values => {
         const row = createElement('tr', 'border-b border-slate-800/60 last:border-0');
         values.forEach((value, index) => {
-            const cell = createElement(index === 0 ? 'th' : 'td', `px-2 py-2 tabular-nums ${index === 0 ? 'font-medium text-slate-300' : 'text-slate-200'}`);
+            const cell = createElement(
+                index === 0 ? 'th' : 'td',
+                `px-2 py-2 tabular-nums ${index === 0 ? 'font-medium text-slate-300' : 'text-slate-200'}`
+            );
             if (index === 0) cell.scope = 'row';
             if (value instanceof Node) cell.append(value);
             else cell.textContent = value;
@@ -569,11 +615,7 @@ function renderMetrics(metrics) {
         const element = document.getElementById(elementId);
         if (!element) return;
         const value = metrics[key];
-        element.textContent = value === null
-            ? '—'
-            : key === 'tsb'
-                ? formatMetric(value, true)
-                : formatMetric(value);
+        element.textContent = value === null ? '—' : key === 'tsb' ? formatMetric(value, true) : formatMetric(value);
     });
 }
 
@@ -585,7 +627,9 @@ function clearDashboardData() {
         if (element) element.textContent = '—';
     });
     DASHBOARD_SECTIONS.forEach(id => {
-        document.getElementById(id)?.replaceChildren(createSkeleton({ lines: 3, label: 'Caricamento dei dati Intervals.icu…', className: 'col-span-full' }));
+        document
+            .getElementById(id)
+            ?.replaceChildren(createSkeleton({ lines: 3, label: 'Caricamento dei dati Intervals.icu…', className: 'col-span-full' }));
     });
 }
 
@@ -628,11 +672,8 @@ function setDashboardStatus(message, state) {
     const container = document.getElementById('intervals-dashboard-status');
     if (!container) return;
     container.replaceChildren();
-    const className = state === 'error'
-        ? 'text-sm text-rose-300'
-        : state === 'success'
-            ? 'text-sm text-emerald-300'
-            : 'text-sm text-slate-300';
+    const className =
+        state === 'error' ? 'text-sm text-rose-300' : state === 'success' ? 'text-sm text-emerald-300' : 'text-sm text-slate-300';
     container.append(createElement('p', className, message));
     if (state === 'empty') showConnectionButton(container);
 }

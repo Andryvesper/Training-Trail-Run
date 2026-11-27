@@ -40,8 +40,13 @@ let controlsBound = false;
 export function resetPerformanceSection() {
     state.runToken += 1;
     state.analyses = new Map();
-    ['dashboard-readiness', 'dashboard-threshold-review', 'dashboard-performance-charts', 'dashboard-performance-table', 'dashboard-performance-streams']
-        .forEach(id => document.getElementById(id)?.replaceChildren());
+    [
+        'dashboard-readiness',
+        'dashboard-threshold-review',
+        'dashboard-performance-charts',
+        'dashboard-performance-table',
+        'dashboard-performance-streams'
+    ].forEach(id => document.getElementById(id)?.replaceChildren());
     setStatus('In attesa dei dati Intervals.icu.', 'idle');
 }
 
@@ -65,7 +70,10 @@ export async function runPerformanceAnalysis({ supabaseClient, userId, intervals
     const from = addDays(today, -(PERFORMANCE_CONFIG.streams.historyDays + PERFORMANCE_CONFIG.readiness.chronicDays));
     try {
         const records = await state.store.listAnalyses(userId, from);
-        records.map(analysisFromRecord).filter(Boolean).forEach(analysis => state.analyses.set(analysis.activityId, analysis));
+        records
+            .map(analysisFromRecord)
+            .filter(Boolean)
+            .forEach(analysis => state.analyses.set(analysis.activityId, analysis));
     } catch (error) {
         console.error('Analisi prestazioni salvate non disponibili:', error);
         state.cacheAvailable = false;
@@ -154,11 +162,11 @@ async function maybeCreateReview(userId, today) {
 }
 
 async function decide(review, status) {
-    const thresholds = status === 'approved'
-        ? applyChanges(effectiveThresholds(state.reviews), review.proposal?.changes)
-        : {};
+    const thresholds = status === 'approved' ? applyChanges(effectiveThresholds(state.reviews), review.proposal?.changes) : {};
     const container = document.getElementById('dashboard-threshold-review');
-    container?.querySelectorAll('button').forEach(button => { button.disabled = true; });
+    container?.querySelectorAll('button').forEach(button => {
+        button.disabled = true;
+    });
     try {
         const saved = await state.store.decideReview(state.userId, review.id, status, thresholds);
         state.reviews = state.reviews.map(item => (item.id === review.id ? saved : item));
@@ -167,7 +175,9 @@ async function decide(review, status) {
     } catch (error) {
         console.error('Decisione sulla revisione non salvata:', error);
         container?.append(el('p', 'text-sm text-rose-300', `Operazione non completata: ${error.message}`));
-        container?.querySelectorAll('button').forEach(button => { button.disabled = false; });
+        container?.querySelectorAll('button').forEach(button => {
+            button.disabled = false;
+        });
     }
 }
 
@@ -210,7 +220,12 @@ function renderReadiness() {
     });
     const styles = {
         green: ['border-emerald-500/30 bg-emerald-500/10', 'text-emerald-300', '✓', 'Pronto'],
-        amber: ['border-amber-400/40 bg-amber-400/10', 'text-amber-200', '!', readiness.kind === 'muscular' ? 'Attenzione: muscoli' : 'Attenzione: fatica sistemica'],
+        amber: [
+            'border-amber-400/40 bg-amber-400/10',
+            'text-amber-200',
+            '!',
+            readiness.kind === 'muscular' ? 'Attenzione: muscoli' : 'Attenzione: fatica sistemica'
+        ],
         red: ['border-rose-500/40 bg-rose-500/10', 'text-rose-300', '✕', 'Solo recupero'],
         unavailable: ['border-slate-700 bg-slate-900', 'text-slate-300', '?', 'Non disponibile']
     };
@@ -229,9 +244,13 @@ function renderReadiness() {
     }
     const details = [];
     const ecc = readiness.eccentric;
-    details.push(`Carico eccentrico 7 giorni: ${formatNumber(ecc.acutePoints)} punti${ecc.ratio !== null ? `, ${formatNumber(ecc.ratio, 2)} volte la tua media a 28 giorni` : ecc.noChronicBase ? ', nessuna discesa nei 28 giorni precedenti' : ''} (stato ${({ low: 'basso', moderate: 'medio', high: 'alto' })[ecc.level]}).`);
+    details.push(
+        `Carico eccentrico 7 giorni: ${formatNumber(ecc.acutePoints)} punti${ecc.ratio !== null ? `, ${formatNumber(ecc.ratio, 2)} volte la tua media a 28 giorni` : ecc.noChronicBase ? ', nessuna discesa nei 28 giorni precedenti' : ''} (stato ${{ low: 'basso', moderate: 'medio', high: 'alto' }[ecc.level]}).`
+    );
     if (readiness.hrv.status === 'ok') {
-        details.push(`HRV media 7 giorni ${readiness.hrv.shortMeanMs} ms, range normale ${readiness.hrv.normalRangeMs[0]}-${readiness.hrv.normalRangeMs[1]} ms (baseline 30 giorni).`);
+        details.push(
+            `HRV media 7 giorni ${readiness.hrv.shortMeanMs} ms, range normale ${readiness.hrv.normalRangeMs[0]}-${readiness.hrv.normalRangeMs[1]} ms (baseline 30 giorni).`
+        );
     }
     card.append(el('p', 'text-[11px] text-slate-400', details.join(' ')));
     container.append(card);
@@ -245,17 +264,34 @@ function renderReview() {
     const approvedOverrides = effectiveThresholds(state.reviews);
     if (pending) {
         const card = el('div', 'rounded-2xl border border-sky-500/30 bg-sky-500/10 p-4 space-y-3');
-        card.append(el('p', 'text-sm font-bold text-sky-200', `Revisione delle soglie del ${formatDate(pending.reviewed_at)}: proposta da approvare`));
+        card.append(
+            el(
+                'p',
+                'text-sm font-bold text-sky-200',
+                `Revisione delle soglie del ${formatDate(pending.reviewed_at)}: proposta da approvare`
+            )
+        );
         const list = el('ul', 'space-y-2 text-xs text-slate-200');
         (pending.proposal?.changes || []).forEach(change => {
             const item = el('li', '');
-            item.append(el('span', 'font-semibold', `${change.label}: ${formatNumber(change.current, 2)} → ${formatNumber(change.proposed, 2)}. `), document.createTextNode(change.reason));
+            item.append(
+                el('span', 'font-semibold', `${change.label}: ${formatNumber(change.current, 2)} → ${formatNumber(change.proposed, 2)}. `),
+                document.createTextNode(change.reason)
+            );
             list.append(item);
         });
         card.append(list, observationsDetails(pending.proposal?.observations));
         const actions = el('div', 'flex flex-wrap gap-2');
-        const approve = el('button', 'min-h-11 rounded-xl bg-brand-500 px-4 text-sm font-bold text-white hover:bg-brand-600', 'Approva le nuove soglie');
-        const reject = el('button', 'min-h-11 rounded-xl border border-slate-600 px-4 text-sm font-medium text-slate-200 hover:bg-slate-800', 'Mantieni le soglie attuali');
+        const approve = el(
+            'button',
+            'min-h-11 rounded-xl bg-brand-500 px-4 text-sm font-bold text-white hover:bg-brand-600',
+            'Approva le nuove soglie'
+        );
+        const reject = el(
+            'button',
+            'min-h-11 rounded-xl border border-slate-600 px-4 text-sm font-medium text-slate-200 hover:bg-slate-800',
+            'Mantieni le soglie attuali'
+        );
         approve.type = 'button';
         reject.type = 'button';
         approve.addEventListener('click', () => decide(pending, 'approved'));
@@ -268,10 +304,16 @@ function renderReview() {
     const last = [...state.reviews].reverse().find(review => review.status !== 'proposed');
     const text = [
         `Soglie considerate valide da ${PERFORMANCE_CONFIG.review.approvedBy} il ${formatDate(PERFORMANCE_CONFIG.review.approvedAt)}, rivalutate ogni ${PERFORMANCE_CONFIG.review.intervalDays} giorni sui tuoi dati.`,
-        Object.keys(approvedOverrides).length ? `${Object.keys(approvedOverrides).length} soglie modificate nelle revisioni approvate.` : null,
-        last ? `Ultima revisione: ${formatDate(last.reviewed_at)} (${({ approved: 'approvata', rejected: 'soglie mantenute', no_change: 'nessuna modifica necessaria' })[last.status]}).` : null,
+        Object.keys(approvedOverrides).length
+            ? `${Object.keys(approvedOverrides).length} soglie modificate nelle revisioni approvate.`
+            : null,
+        last
+            ? `Ultima revisione: ${formatDate(last.reviewed_at)} (${{ approved: 'approvata', rejected: 'soglie mantenute', no_change: 'nessuna modifica necessaria' }[last.status]}).`
+            : null,
         `Prossima revisione: ${formatDate(nextReviewDate(state.reviews, state.config))}.`
-    ].filter(Boolean).join(' ');
+    ]
+        .filter(Boolean)
+        .join(' ');
     const box = el('div', 'space-y-1');
     box.append(el('p', 'text-xs text-slate-400', text));
     if (last?.proposal?.observations?.length) box.append(observationsDetails(last.proposal.observations));
@@ -293,9 +335,10 @@ function renderCharts() {
     container.replaceChildren();
     const analyses = runAnalyses();
     const trend = efficiencyTrend(analyses, state.today, state.trendDays, state.config);
-    const trendText = trend.changePercent === null
-        ? 'Velocità GAP in m/min divisa per la FC media: più alto = più veloce a parità di battito.'
-        : `Velocità GAP (m/min) / FC media. Andamento ${trend.changePercent > 0 ? '+' : ''}${formatNumber(trend.changePercent)}% in ${state.trendDays} giorni: a ${trend.referenceHr} bpm il GAP passa da ${formatPace(trend.start.gapPaceAtReferenceHr)} a ${formatPace(trend.end.gapPaceAtReferenceHr)}.`;
+    const trendText =
+        trend.changePercent === null
+            ? 'Velocità GAP in m/min divisa per la FC media: più alto = più veloce a parità di battito.'
+            : `Velocità GAP (m/min) / FC media. Andamento ${trend.changePercent > 0 ? '+' : ''}${formatNumber(trend.changePercent)}% in ${state.trendDays} giorni: a ${trend.referenceHr} bpm il GAP passa da ${formatPace(trend.start.gapPaceAtReferenceHr)} a ${formatPace(trend.end.gapPaceAtReferenceHr)}.`;
     renderLineChart(container, {
         title: 'Efficiency Factor (GAP / FC)',
         description: trendText,
@@ -325,7 +368,13 @@ function renderCharts() {
             title: 'Variazione del GCT nel finale',
             description: `Mediana dell'ultimo 20% contro l'inizio dopo il riscaldamento, in piano e a passo simile quando possibile. Allarme oltre +${formatNumber(state.config.biomechanics.gctAlertPercent)}%.`,
             dates: gctRuns.map(item => item.date),
-            series: [{ label: 'Variazione GCT', color: CHART_COLORS.orange, values: gctRuns.map(item => item.biomechanics.metrics.gct.changePercent) }],
+            series: [
+                {
+                    label: 'Variazione GCT',
+                    color: CHART_COLORS.orange,
+                    values: gctRuns.map(item => item.biomechanics.metrics.gct.changePercent)
+                }
+            ],
             valueFormat: value => `${value > 0 ? '+' : ''}${formatNumber(value)}%`,
             zeroLine: true
         });
@@ -358,10 +407,27 @@ function renderTable() {
     container.replaceChildren();
     const rows = runAnalyses().slice().reverse().slice(0, 15);
     if (!rows.length) {
-        container.append(createEmptyState('Nessuna corsa analizzata negli ultimi 90 giorni.', { hint: 'Le corse con stream di frequenza cardiaca e altitudine compaiono qui dopo la sincronizzazione.' }));
+        container.append(
+            createEmptyState('Nessuna corsa analizzata negli ultimi 90 giorni.', {
+                hint: 'Le corse con stream di frequenza cardiaca e altitudine compaiono qui dopo la sincronizzazione.'
+            })
+        );
         return;
     }
-    const headers = ['Data', 'Attività', 'Passo', 'GAP', 'EF', 'EF salita', 'VAM migliore', 'Deriva', 'Δ GCT', 'Δ VO', 'Load (ecc.)', 'Note'];
+    const headers = [
+        'Data',
+        'Attività',
+        'Passo',
+        'GAP',
+        'EF',
+        'EF salita',
+        'VAM migliore',
+        'Deriva',
+        'Δ GCT',
+        'Δ VO',
+        'Load (ecc.)',
+        'Note'
+    ];
     const wrapper = el('div', 'overflow-x-auto');
     const table = el('table', 'w-full min-w-[56rem] text-left text-xs');
     table.append(el('caption', 'sr-only', 'Analisi delle ultime corse'));
@@ -392,17 +458,29 @@ function renderTable() {
             Number.isFinite(item.efficiency?.ef) ? formatNumber(item.efficiency.ef, 2) : '—',
             Number.isFinite(item.uphill?.ef) ? formatNumber(item.uphill.ef, 2) : '—',
             Number.isFinite(item.climbs?.bestVam) ? `${item.climbs.bestVam} m/h` : '—',
-            Number.isFinite(drift) ? `${formatNumber(drift)}% ${decouplingClass ? `(${({ excellent: 'ottima', good: 'buona', significant: 'significativa', negative: 'negativa' })[decouplingClass.key]})` : ''}` : '—',
+            Number.isFinite(drift)
+                ? `${formatNumber(drift)}% ${decouplingClass ? `(${{ excellent: 'ottima', good: 'buona', significant: 'significativa', negative: 'negativa' }[decouplingClass.key]})` : ''}`
+                : '—',
             Number.isFinite(gct) ? `${gct > 0 ? '+' : ''}${formatNumber(gct)}%` : '—',
             Number.isFinite(vo) ? `${vo > 0 ? '+' : ''}${formatNumber(vo)}%` : '—',
-            Number.isFinite(item.mechanicalLoad?.score) ? `${formatNumber(item.mechanicalLoad.score, 0)} (${formatNumber(item.mechanicalLoad.eccentricPoints, 0)})` : '—',
+            Number.isFinite(item.mechanicalLoad?.score)
+                ? `${formatNumber(item.mechanicalLoad.score, 0)} (${formatNumber(item.mechanicalLoad.eccentricPoints, 0)})`
+                : '—',
             notes.length ? notes.join(' ') : '—'
         ];
         const row = el('tr', 'border-b border-slate-800/60 last:border-0 align-top');
         values.forEach((value, index) => {
-            const cell = el(index === 0 ? 'th' : 'td', `px-2 py-2 ${index === 1 || index === 11 ? '' : 'tabular-nums whitespace-nowrap'} ${index === 0 ? 'font-medium text-slate-300' : 'text-slate-200'}`, value);
+            const cell = el(
+                index === 0 ? 'th' : 'td',
+                `px-2 py-2 ${index === 1 || index === 11 ? '' : 'tabular-nums whitespace-nowrap'} ${index === 0 ? 'font-medium text-slate-300' : 'text-slate-200'}`,
+                value
+            );
             if (index === 0) cell.scope = 'row';
-            if (index === 11 && notes.some(note => note.startsWith('GCT') || note.startsWith('Oscillazione') || note.startsWith('Vertical'))) cell.className += ' text-amber-200';
+            if (
+                index === 11 &&
+                notes.some(note => note.startsWith('GCT') || note.startsWith('Oscillazione') || note.startsWith('Vertical'))
+            )
+                cell.className += ' text-amber-200';
             row.append(cell);
         });
         tbody.append(row);
@@ -426,14 +504,22 @@ function renderStreams() {
         details.append(el('p', '', 'Nessuno stream ancora scaricato.'));
     } else {
         const list = el('ul', 'flex flex-wrap gap-2');
-        [...counts.entries()].sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
-            list.append(el('li', 'rounded-full border border-slate-700 px-2 py-0.5', `${type} · ${count}`));
-        });
+        [...counts.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([type, count]) => {
+                list.append(el('li', 'rounded-full border border-slate-700 px-2 py-0.5', `${type} · ${count}`));
+            });
         details.append(list);
         const withDynamics = analyses.filter(item => item.streams?.available?.includes('gct')).length;
-        details.append(el('p', 'mt-2', withDynamics
-            ? `${withDynamics} corse con dinamiche di corsa (GCT).`
-            : 'Nessuna corsa con dinamiche di corsa riconosciute: se il tuo orologio le registra, i nomi degli stream sopra mostrano come Intervals le chiama.'));
+        details.append(
+            el(
+                'p',
+                'mt-2',
+                withDynamics
+                    ? `${withDynamics} corse con dinamiche di corsa (GCT).`
+                    : 'Nessuna corsa con dinamiche di corsa riconosciute: se il tuo orologio le registra, i nomi degli stream sopra mostrano come Intervals le chiama.'
+            )
+        );
     }
     container.append(details);
 }

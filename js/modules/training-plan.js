@@ -1,5 +1,6 @@
 const TABLE_NAME = 'training_sessions';
-const SESSION_FIELDS = 'id, user_id, scheduled_date, session_order, title, sport_type, distance_km, duration_minutes, target_pace_seconds_per_km, notes, intervals_activity_id, completed_at, adherence_score, completed_activity';
+const SESSION_FIELDS =
+    'id, user_id, scheduled_date, session_order, title, sport_type, distance_km, duration_minutes, target_pace_seconds_per_km, notes, intervals_activity_id, completed_at, adherence_score, completed_activity';
 
 export class TrainingPlanService {
     constructor(supabaseClient) {
@@ -24,14 +25,8 @@ export class TrainingPlanService {
         const sessionData = validateSession(session);
         const record = { ...sessionData, user_id: userId };
         const query = session.id
-            ? this.supabaseClient
-                .from(TABLE_NAME)
-                .update(record)
-                .eq('id', session.id)
-                .eq('user_id', userId)
-            : this.supabaseClient
-                .from(TABLE_NAME)
-                .insert(record);
+            ? this.supabaseClient.from(TABLE_NAME).update(record).eq('id', session.id).eq('user_id', userId)
+            : this.supabaseClient.from(TABLE_NAME).insert(record);
         const { data, error } = await query.select(SESSION_FIELDS).single();
 
         if (error) throw error;
@@ -53,9 +48,7 @@ export class TrainingPlanService {
     }
 
     async confirmActivity(userId, sessionId, activity, score) {
-        const activityId = activity?.id === null || activity?.id === undefined
-            ? ''
-            : String(activity.id).trim();
+        const activityId = activity?.id === null || activity?.id === undefined ? '' : String(activity.id).trim();
         if (!activityId) throw new Error('L’attività non ha un ID Intervals valido.');
         if (!Number.isInteger(score) || score < 1 || score > 5) {
             throw new Error('Seleziona un voto da 1 a 5.');
@@ -111,15 +104,12 @@ function validateSession(session) {
         throw new Error('L’ordine della seduta non è valido.');
     }
 
-    const distance = session.distance_km === '' || session.distance_km == null
-        ? null
-        : Number(session.distance_km);
-    const duration = session.duration_minutes === '' || session.duration_minutes == null
-        ? null
-        : Number(session.duration_minutes);
-    const targetPace = session.target_pace_seconds_per_km === '' || session.target_pace_seconds_per_km == null
-        ? null
-        : Number(session.target_pace_seconds_per_km);
+    const distance = session.distance_km === '' || session.distance_km == null ? null : Number(session.distance_km);
+    const duration = session.duration_minutes === '' || session.duration_minutes == null ? null : Number(session.duration_minutes);
+    const targetPace =
+        session.target_pace_seconds_per_km === '' || session.target_pace_seconds_per_km == null
+            ? null
+            : Number(session.target_pace_seconds_per_km);
 
     if (distance !== null && (!Number.isFinite(distance) || distance < 0)) {
         throw new Error('La distanza deve essere un numero non negativo.');

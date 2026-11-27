@@ -1,13 +1,6 @@
 // js/modules/activity-detail-ui.js - Finestra con il dettaglio di un'attività svolta.
 import { requestedStreamTypes } from './activity-streams.js';
-import {
-    activityProfile,
-    activitySummaryItems,
-    formatClock,
-    intervalsActivityUrl,
-    lapRows,
-    usesPace
-} from './activity-detail.js';
+import { activityProfile, activitySummaryItems, formatClock, intervalsActivityUrl, lapRows, usesPace } from './activity-detail.js';
 import { CHART_COLORS, renderLineChart } from './dashboard-charts.js';
 import { analyzeActivity, isRunActivity } from './performance-analysis.js';
 import { classifyDecoupling } from './performance-decoupling.js';
@@ -15,9 +8,19 @@ import { classifyDecoupling } from './performance-decoupling.js';
 let openDialog = null;
 
 const SPORT_LABELS = {
-    Run: 'Corsa', TrailRun: 'Trail', VirtualRun: 'Corsa al chiuso', Walk: 'Camminata', Hike: 'Escursione',
-    Ride: 'Bici', VirtualRide: 'Bici al chiuso', GravelRide: 'Gravel', MountainBikeRide: 'Mountain bike',
-    Swim: 'Nuoto', OpenWaterSwim: 'Nuoto in acque libere', WeightTraining: 'Pesi', Workout: 'Allenamento'
+    Run: 'Corsa',
+    TrailRun: 'Trail',
+    VirtualRun: 'Corsa al chiuso',
+    Walk: 'Camminata',
+    Hike: 'Escursione',
+    Ride: 'Bici',
+    VirtualRide: 'Bici al chiuso',
+    GravelRide: 'Gravel',
+    MountainBikeRide: 'Mountain bike',
+    Swim: 'Nuoto',
+    OpenWaterSwim: 'Nuoto in acque libere',
+    WeightTraining: 'Pesi',
+    Workout: 'Allenamento'
 };
 
 /**
@@ -26,15 +29,25 @@ const SPORT_LABELS = {
  */
 export function openActivityDetail({ activity, intervalsService = null, trigger = null }) {
     openDialog?.close();
-    const dialog = el('dialog', 'activity-detail m-auto w-[min(56rem,calc(100vw-1rem))] max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 p-0 text-slate-100 shadow-2xl backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm');
+    const dialog = el(
+        'dialog',
+        'activity-detail m-auto w-[min(56rem,calc(100vw-1rem))] max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 p-0 text-slate-100 shadow-2xl backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm'
+    );
     dialog.setAttribute('aria-labelledby', 'activity-detail-title');
 
-    const header = el('header', 'sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur sm:px-6');
+    const header = el(
+        'header',
+        'sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur sm:px-6'
+    );
     const titleBox = el('div', 'min-w-0');
     const title = el('h2', 'truncate text-lg font-bold text-white', activity.name || activity.type || 'Attività');
     title.id = 'activity-detail-title';
     titleBox.append(title, el('p', 'text-xs text-slate-400', subtitle(activity)));
-    const close = el('button', 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-200 hover:bg-slate-800', '✕');
+    const close = el(
+        'button',
+        'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-200 hover:bg-slate-800',
+        '✕'
+    );
     close.type = 'button';
     close.setAttribute('aria-label', 'Chiudi dettaglio');
     close.addEventListener('click', () => dialog.close());
@@ -44,7 +57,11 @@ export function openActivityDetail({ activity, intervalsService = null, trigger 
     body.append(summarySection(activity));
     const url = intervalsActivityUrl(activity.id);
     if (url) {
-        const link = el('a', 'inline-flex min-h-11 items-center text-sm font-medium text-brand-300 underline underline-offset-2 hover:text-brand-200', 'Apri in Intervals.icu ↗');
+        const link = el(
+            'a',
+            'inline-flex min-h-11 items-center text-sm font-medium text-brand-300 underline underline-offset-2 hover:text-brand-200',
+            'Apri in Intervals.icu ↗'
+        );
         link.href = url;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
@@ -57,7 +74,9 @@ export function openActivityDetail({ activity, intervalsService = null, trigger 
     dialog.append(header, body);
 
     // Clic sullo sfondo: chiude.
-    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    dialog.addEventListener('click', event => {
+        if (event.target === dialog) dialog.close();
+    });
     dialog.addEventListener('close', () => {
         dialog.remove();
         if (openDialog === dialog) openDialog = null;
@@ -95,7 +114,7 @@ async function loadDetails({ activity, activityId, intervalsService, analysisBox
             profileBox.replaceChildren(note("Profilo non disponibile: dati dell'attività non leggibili."));
         }
     } else {
-        console.error('Stream dell\'attività non disponibili:', streams.reason);
+        console.error("Stream dell'attività non disponibili:", streams.reason);
         profileBox.append(note(`Profilo non disponibile: ${streams.reason?.message || 'errore sconosciuto'}.`));
     }
 
@@ -108,7 +127,7 @@ async function loadDetails({ activity, activityId, intervalsService, analysisBox
             lapsBox.replaceChildren(note("Giri non disponibili: dati dell'attività non leggibili."));
         }
     } else {
-        console.error('Giri dell\'attività non disponibili:', intervals.reason);
+        console.error("Giri dell'attività non disponibili:", intervals.reason);
         lapsBox.append(note(`Giri non disponibili: ${intervals.reason?.message || 'errore sconosciuto'}.`));
     }
 }
@@ -130,11 +149,13 @@ function renderAnalysis(container, activity, streams) {
     try {
         analysis = analyzeActivity(activity, streams);
     } catch (error) {
-        console.error('Analisi dell\'attività non riuscita:', error);
+        console.error("Analisi dell'attività non riuscita:", error);
         return;
     }
     const items = [];
-    const add = (label, value) => { if (value) items.push({ label, value }); };
+    const add = (label, value) => {
+        if (value) items.push({ label, value });
+    };
     add('Passo GAP (Minetti)', pace(analysis.gap?.gapPaceSecondsPerKm));
     add('Efficiency Factor', number(analysis.efficiency?.ef, 2));
     add('EF in salita (> +6%)', number(analysis.uphill?.ef, 2));
@@ -145,11 +166,27 @@ function renderAnalysis(container, activity, streams) {
     // Ritmo non costante: la classe non vale, il numero resta indicativo.
     const driftNote = analysis.decoupling?.steady === false ? 'poco affidabile' : driftClass?.label;
     add('Deriva cardiaca', Number.isFinite(drift) ? `${signed(drift)}%${driftNote ? ` · ${driftNote}` : ''}` : null);
-    add('Variazione GCT', Number.isFinite(analysis.biomechanics?.metrics?.gct?.changePercent) ? `${signed(analysis.biomechanics.metrics.gct.changePercent)}%` : null);
-    add('Variazione oscillazione verticale', Number.isFinite(analysis.biomechanics?.metrics?.verticalOscillation?.changePercent) ? `${signed(analysis.biomechanics.metrics.verticalOscillation.changePercent)}%` : null);
+    add(
+        'Variazione GCT',
+        Number.isFinite(analysis.biomechanics?.metrics?.gct?.changePercent)
+            ? `${signed(analysis.biomechanics.metrics.gct.changePercent)}%`
+            : null
+    );
+    add(
+        'Variazione oscillazione verticale',
+        Number.isFinite(analysis.biomechanics?.metrics?.verticalOscillation?.changePercent)
+            ? `${signed(analysis.biomechanics.metrics.verticalOscillation.changePercent)}%`
+            : null
+    );
     const load = analysis.mechanicalLoad;
-    add('Mechanical Load Score', Number.isFinite(load?.score) ? `${number(load.score, 0)} (eccentrico ${number(load.eccentricPoints, 0)})` : null);
-    add('D- pesato per pendenza', Number.isFinite(load?.eccentric?.weightedDescentM) ? `${Math.round(load.eccentric.weightedDescentM)} m` : null);
+    add(
+        'Mechanical Load Score',
+        Number.isFinite(load?.score) ? `${number(load.score, 0)} (eccentrico ${number(load.eccentricPoints, 0)})` : null
+    );
+    add(
+        'D- pesato per pendenza',
+        Number.isFinite(load?.eccentric?.weightedDescentM) ? `${Math.round(load.eccentric.weightedDescentM)} m` : null
+    );
     if (!items.length) return;
     container.append(el('h3', 'text-sm font-semibold text-white', 'Analisi prestazione'));
     container.append(metricGrid(items));
@@ -171,15 +208,36 @@ function renderProfile(container, activity, streams) {
     container.append(charts);
     const common = { dates: profile.labels, xLabel: 'Distanza' };
     if (profile.has.altitude) {
-        renderLineChart(charts, { ...common, title: 'Altitudine', series: [{ label: 'Altitudine', color: CHART_COLORS.aqua, values: profile.altitude }], valueFormat: value => `${Math.round(value)} m` });
+        renderLineChart(charts, {
+            ...common,
+            title: 'Altitudine',
+            series: [{ label: 'Altitudine', color: CHART_COLORS.aqua, values: profile.altitude }],
+            valueFormat: value => `${Math.round(value)} m`
+        });
     }
     if (profile.has.heartrate) {
-        renderLineChart(charts, { ...common, title: 'Frequenza cardiaca', series: [{ label: 'FC', color: CHART_COLORS.orange, values: profile.heartrate }], valueFormat: value => `${Math.round(value)} bpm` });
+        renderLineChart(charts, {
+            ...common,
+            title: 'Frequenza cardiaca',
+            series: [{ label: 'FC', color: CHART_COLORS.orange, values: profile.heartrate }],
+            valueFormat: value => `${Math.round(value)} bpm`
+        });
     }
     if (usesPace(activity) && profile.has.pace) {
-        renderLineChart(charts, { ...common, title: 'Passo', description: 'Più in basso = più veloce. Tratti sotto 1 m/s esclusi.', series: [{ label: 'Passo', color: CHART_COLORS.blue, values: profile.pace }], valueFormat: value => `${formatClock(value)}/km` });
+        renderLineChart(charts, {
+            ...common,
+            title: 'Passo',
+            description: 'Più in basso = più veloce. Tratti sotto 1 m/s esclusi.',
+            series: [{ label: 'Passo', color: CHART_COLORS.blue, values: profile.pace }],
+            valueFormat: value => `${formatClock(value)}/km`
+        });
     } else if (!usesPace(activity) && profile.speed.some(value => value !== null)) {
-        renderLineChart(charts, { ...common, title: 'Velocità', series: [{ label: 'Velocità', color: CHART_COLORS.blue, values: profile.speed }], valueFormat: value => `${value.toLocaleString('it-IT')} km/h` });
+        renderLineChart(charts, {
+            ...common,
+            title: 'Velocità',
+            series: [{ label: 'Velocità', color: CHART_COLORS.blue, values: profile.speed }],
+            valueFormat: value => `${value.toLocaleString('it-IT')} km/h`
+        });
     }
     if (!charts.childElementCount) container.append(note('Nessuno stream di altitudine, frequenza cardiaca o velocità.'));
 }
@@ -193,7 +251,7 @@ function renderLaps(container, activity, intervalsResponse) {
     }
     const wrapper = el('div', 'overflow-x-auto rounded-xl border border-slate-800');
     const table = el('table', 'w-full min-w-[36rem] text-left text-xs');
-    table.append(el('caption', 'sr-only', 'Giri e intervalli dell\'attività'));
+    table.append(el('caption', 'sr-only', "Giri e intervalli dell'attività"));
     const headers = ['#', 'Tipo', 'Distanza', 'Tempo', usesPace(activity) ? 'Passo' : 'Velocità', 'FC media', 'FC max', 'D+'];
     const head = el('tr', 'border-b border-slate-800 bg-slate-900 text-slate-400');
     headers.forEach(text => {
@@ -206,11 +264,17 @@ function renderLaps(container, activity, intervalsResponse) {
     const tbody = document.createElement('tbody');
     rows.forEach(row => {
         const line = el('tr', `border-b border-slate-800/60 last:border-0 ${row.kind === 'WORK' ? 'bg-brand-500/5' : ''}`);
-        [row.index, row.label, row.distance, row.duration, row.pace, row.heartrate, row.maxHeartrate, row.elevation].forEach((value, index) => {
-            const cell = el(index === 0 ? 'th' : 'td', `px-3 py-2 tabular-nums whitespace-nowrap ${index === 0 ? 'font-medium text-slate-400' : 'text-slate-200'}`, String(value));
-            if (index === 0) cell.scope = 'row';
-            line.append(cell);
-        });
+        [row.index, row.label, row.distance, row.duration, row.pace, row.heartrate, row.maxHeartrate, row.elevation].forEach(
+            (value, index) => {
+                const cell = el(
+                    index === 0 ? 'th' : 'td',
+                    `px-3 py-2 tabular-nums whitespace-nowrap ${index === 0 ? 'font-medium text-slate-400' : 'text-slate-200'}`,
+                    String(value)
+                );
+                if (index === 0) cell.scope = 'row';
+                line.append(cell);
+            }
+        );
         tbody.append(line);
     });
     table.append(thead, tbody);
@@ -232,7 +296,12 @@ function subtitle(activity) {
     const parts = [SPORT_LABELS[activity.type] || activity.type || null];
     const start = String(activity.start_date_local || '');
     if (/^\d{4}-\d{2}-\d{2}/.test(start)) {
-        const date = new Date(`${start.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        const date = new Date(`${start.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
         parts.push(start.length >= 16 ? `${date}, ore ${start.slice(11, 16)}` : date);
     }
     return parts.filter(Boolean).join(' · ');

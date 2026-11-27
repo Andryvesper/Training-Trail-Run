@@ -21,8 +21,14 @@ test('la finestra riscaricata sostituisce la cache: modifiche e cancellazioni', 
     const fresh = [act('c', '2026-10-20'), act('d', '2026-11-01')];
     const merged = mergeActivities(cached, fresh, '2026-10-06');
     // "b" non è più tra le nuove: era stata cancellata su Intervals.
-    assert.deepEqual(merged.map(item => item.id), ['a', 'c', 'd']);
-    assert.equal(merged.find(item => item.id === 'c'), fresh[0]);
+    assert.deepEqual(
+        merged.map(item => item.id),
+        ['a', 'c', 'd']
+    );
+    assert.equal(
+        merged.find(item => item.id === 'c'),
+        fresh[0]
+    );
 });
 
 test('senza IndexedDB la cache è semplicemente assente', async () => {

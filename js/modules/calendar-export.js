@@ -48,7 +48,10 @@ export function formatIcsDate(isoDate) {
 }
 
 export function formatIcsTimestamp(date) {
-    return new Date(date).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    return new Date(date)
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace(/\.\d{3}/, '');
 }
 
 function positive(value) {

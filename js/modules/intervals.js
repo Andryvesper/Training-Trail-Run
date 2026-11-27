@@ -29,7 +29,9 @@ export class IntervalsService {
 
     getAuthHeaders() {
         if (!this.apiKey) {
-            throw new Error('Il collegamento sicuro a Intervals.icu non è attivo: distribuisci la funzione "intervals-proxy" (vedi README).');
+            throw new Error(
+                'Il collegamento sicuro a Intervals.icu non è attivo: distribuisci la funzione "intervals-proxy" (vedi README).'
+            );
         }
         let token;
         try {
@@ -38,7 +40,7 @@ export class IntervalsService {
             throw new Error('La API Key di Intervals.icu contiene caratteri non validi: copiala di nuovo dal sito.');
         }
         return {
-            'Authorization': `Basic ${token}`,
+            Authorization: `Basic ${token}`,
             'Content-Type': 'application/json'
         };
     }
@@ -61,10 +63,7 @@ export class IntervalsService {
     // Risposta: array di { type, data }.
     async getActivityStreams(activityId, types = []) {
         const query = types.length ? `?types=${types.map(encodeURIComponent).join(',')}` : '';
-        return this.fetchCollection(
-            `activity/${encodeURIComponent(activityId)}/streams.json${query}`,
-            "stream dell'attività"
-        );
+        return this.fetchCollection(`activity/${encodeURIComponent(activityId)}/streams.json${query}`, "stream dell'attività");
     }
 
     // Giri e intervalli di un'attività: { icu_intervals: [...], icu_groups: [...] }.
@@ -98,7 +97,7 @@ export class IntervalsService {
         const token = await this.proxy.getAccessToken();
         if (!token) throw new Error('Sessione scaduta: esci e accedi di nuovo.');
         return {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             ...(this.proxy.apikey ? { apikey: this.proxy.apikey } : {})
         };
     }
@@ -129,9 +128,12 @@ export class IntervalsService {
 
 function checkResponse(response, resourceName) {
     if (!response.ok) {
-        const hint = response.status === 401 || response.status === 403
-            ? ' Controlla Athlete ID e API Key.'
-            : response.status === 429 ? ' Troppe richieste: riprova tra poco.' : '';
+        const hint =
+            response.status === 401 || response.status === 403
+                ? ' Controlla Athlete ID e API Key.'
+                : response.status === 429
+                  ? ' Troppe richieste: riprova tra poco.'
+                  : '';
         throw new Error(`Intervals.icu (${resourceName}): risposta HTTP ${response.status}.${hint}`);
     }
     return response;
@@ -174,9 +176,7 @@ export function summarizeIntervalsData(wellness, activities) {
         .slice()
         .sort((left, right) => wellnessDate(left).localeCompare(wellnessDate(right)))
         .reverse()
-        .find(record => readNumber(record.ctl) !== null
-            || readNumber(record.atl) !== null
-            || wellnessLoad(record) !== null);
+        .find(record => readNumber(record.ctl) !== null || readNumber(record.atl) !== null || wellnessLoad(record) !== null);
 
     const ctl = readNumber(latestWellness?.ctl);
     const atl = readNumber(latestWellness?.atl);
@@ -188,14 +188,10 @@ export function summarizeIntervalsData(wellness, activities) {
     const runDistances = runActivities.map(activity => readNumber(activity.distance)).filter(value => value !== null);
     const swimDistances = swimActivities.map(activity => readNumber(activity.distance)).filter(value => value !== null);
     const runBreakdown = runActivities.map(activity => ({
-        date: typeof activity.start_date_local === 'string'
-            ? activity.start_date_local.slice(0, 10)
-            : null,
+        date: typeof activity.start_date_local === 'string' ? activity.start_date_local.slice(0, 10) : null,
         name: activity.name || activity.type || 'Corsa',
         type: activityType(activity),
-        distanceKm: readNumber(activity.distance) === null
-            ? null
-            : readNumber(activity.distance) / 1000
+        distanceKm: readNumber(activity.distance) === null ? null : readNumber(activity.distance) / 1000
     }));
     const timedRunActivities = runActivities
         .map(activity => ({
@@ -215,16 +211,10 @@ export function summarizeIntervalsData(wellness, activities) {
         },
         activities: {
             count: activityRecords.length,
-            runKm: runDistances.length
-                ? runDistances.reduce((sum, distance) => sum + distance, 0) / 1000
-                : null,
+            runKm: runDistances.length ? runDistances.reduce((sum, distance) => sum + distance, 0) / 1000 : null,
             runBreakdown,
-            swimMeters: swimDistances.length
-                ? swimDistances.reduce((sum, distance) => sum + distance, 0)
-                : null,
-            averageRunPaceSecondsPerKm: totalRunDistance > 0
-                ? totalRunTime / (totalRunDistance / 1000)
-                : null
+            swimMeters: swimDistances.length ? swimDistances.reduce((sum, distance) => sum + distance, 0) : null,
+            averageRunPaceSecondsPerKm: totalRunDistance > 0 ? totalRunTime / (totalRunDistance / 1000) : null
         }
     };
 }
@@ -252,4 +242,3 @@ function isSwimActivity(activity) {
     const type = activityType(activity);
     return type.includes('swim') || type.includes('nuoto');
 }
-

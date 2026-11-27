@@ -25,23 +25,28 @@ export async function initRacesModule(supabaseClient, userId) {
 
     const showStatus = (message, kind) => {
         status.textContent = message;
-        status.className = `rounded-xl border p-3 text-sm ${kind === 'error'
-            ? 'border-rose-500/30 bg-rose-500/10 text-rose-300'
-            : kind === 'success'
-                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                : 'border-slate-700 bg-slate-900 text-slate-300'}`;
+        status.className = `rounded-xl border p-3 text-sm ${
+            kind === 'error'
+                ? 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+                : kind === 'success'
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                  : 'border-slate-700 bg-slate-900 text-slate-300'
+        }`;
         status.classList.remove('hidden');
     };
 
     const render = () => {
-        const hasResultDetails = [...resultFields.querySelectorAll('input')]
-            .some(input => input.value.trim() !== '');
+        const hasResultDetails = [...resultFields.querySelectorAll('input')].some(input => input.value.trim() !== '');
         resultFields.classList.toggle('hidden', raceStatus.value !== 'completed' && !hasResultDetails);
         cancelButton.classList.toggle('hidden', !editingRaceId);
         list.replaceChildren();
 
         if (!races.length) {
-            list.append(createEmptyState('Nessuna gara o risultato registrato.', { hint: 'Aggiungi la tua prossima gara con il modulo: diventa l’obiettivo dei piani di allenamento.' }));
+            list.append(
+                createEmptyState('Nessuna gara o risultato registrato.', {
+                    hint: 'Aggiungi la tua prossima gara con il modulo: diventa l’obiettivo dei piani di allenamento.'
+                })
+            );
             return;
         }
 
@@ -100,9 +105,7 @@ export async function initRacesModule(supabaseClient, userId) {
 
         try {
             const saved = await racesService.saveRace(userId, race);
-            races = sortRaces(editingRaceId
-                ? races.map(item => item.id === saved.id ? saved : item)
-                : [...races, saved]);
+            races = sortRaces(editingRaceId ? races.map(item => (item.id === saved.id ? saved : item)) : [...races, saved]);
             resetForm();
             showStatus('Gara salvata.', 'success');
             notifyRaceChanges(races);
@@ -124,8 +127,7 @@ export async function initRacesModule(supabaseClient, userId) {
             fillForm(race);
             return;
         }
-        if (button.dataset.action !== 'delete'
-            || !window.confirm(`Vuoi eliminare "${race.name}"?`)) return;
+        if (button.dataset.action !== 'delete' || !window.confirm(`Vuoi eliminare "${race.name}"?`)) return;
 
         button.disabled = true;
         try {
@@ -145,9 +147,11 @@ export async function initRacesModule(supabaseClient, userId) {
 }
 
 function notifyRaceChanges(races) {
-    document.dispatchEvent(new CustomEvent('training-races:changed', {
-        detail: { races }
-    }));
+    document.dispatchEvent(
+        new CustomEvent('training-races:changed', {
+            detail: { races }
+        })
+    );
 }
 
 function renderRace(race) {
@@ -155,8 +159,13 @@ function renderRace(race) {
     const heading = makeElement('div', 'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between');
     const information = makeElement('div', 'min-w-0 space-y-1');
     information.append(makeElement('h3', 'break-words text-base font-bold text-white', race.name));
-    information.append(makeElement('p', 'text-sm text-slate-400',
-        `${race.status === 'completed' ? 'Completata' : 'Obiettivo'} · Priorità ${race.priority} · ${formatRaceDate(race)} · ${race.distance_km} km`));
+    information.append(
+        makeElement(
+            'p',
+            'text-sm text-slate-400',
+            `${race.status === 'completed' ? 'Completata' : 'Obiettivo'} · Priorità ${race.priority} · ${formatRaceDate(race)} · ${race.distance_km} km`
+        )
+    );
     heading.append(information);
 
     const actions = makeElement('div', 'flex shrink-0 gap-4');
@@ -167,7 +176,8 @@ function renderRace(race) {
 
     const details = [];
     if (race.elevation_gain_m !== null && race.elevation_gain_m !== '') details.push(`D+ ${race.elevation_gain_m} m`);
-    if (race.elevation_loss_m !== null && race.elevation_loss_m !== undefined && race.elevation_loss_m !== '') details.push(`D- ${race.elevation_loss_m} m`);
+    if (race.elevation_loss_m !== null && race.elevation_loss_m !== undefined && race.elevation_loss_m !== '')
+        details.push(`D- ${race.elevation_loss_m} m`);
     if (race.status === 'completed') {
         if (race.chip_time_seconds) details.push(`Real time ${formatDuration(race.chip_time_seconds)}`);
         if (race.official_time_seconds) details.push(`Tempo ufficiale ${formatDuration(race.official_time_seconds)}`);
@@ -217,7 +227,7 @@ function formatRaceDate(race) {
 function formatDuration(seconds) {
     if (!seconds) return '';
     const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor(seconds % 3600 / 60);
+    const minutes = Math.floor((seconds % 3600) / 60);
     const remainder = seconds % 60;
     return [hours, minutes, remainder].map(value => String(value).padStart(2, '0')).join(':');
 }

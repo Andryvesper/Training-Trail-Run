@@ -24,7 +24,10 @@ test('le trascrizioni coprono tutte le settimane e i sette giorni delle tabelle 
         assert.equal(transcription.weeks.length, weeks);
         transcription.weeks.forEach((week, index) => {
             assert.equal(week.weekNumber, index + 1);
-            assert.deepEqual(week.days.map(day => day.day), [1, 2, 3, 4, 5, 6, 7]);
+            assert.deepEqual(
+                week.days.map(day => day.day),
+                [1, 2, 3, 4, 5, 6, 7]
+            );
         });
         assert.equal(transcription.weeks.at(-1).days[6].raw, 'Gara');
     });
@@ -37,7 +40,7 @@ test('il parser riconosce riposi, test, gare e somma i km senza contare la dista
     assert.equal(parseCycleCell('Test di / verifica / della VR').kind, 'reference_test');
     assert.equal(parseCycleCell('Gara').kind, 'race');
 
-    const repeats = parseCycleCell('10 x / 100 m / in salita / SB rec. / 2\' + rec. / 3\' + 6 / km L.');
+    const repeats = parseCycleCell("10 x / 100 m / in salita / SB rec. / 2' + rec. / 3' + 6 / km L.");
     assert.equal(repeats.kind, 'run');
     assert.equal(repeats.distanceKm, 7);
     assert.ok(repeats.quality);
@@ -60,7 +63,10 @@ test('variante a 3 corse: omette la seduta facile più breve, aggiunge 2+1 km e 
 
     assert.equal(adapted.sessions.length, 3);
     assert.equal(adapted.skipped.raw, '10 km L');
-    assert.deepEqual(adapted.sessions.map(session => session.distanceKm), [10, 13, 22]);
+    assert.deepEqual(
+        adapted.sessions.map(session => session.distanceKm),
+        [10, 13, 22]
+    );
     assert.equal(adapted.sessions[0].warmupKm, 2);
     assert.equal(adapted.sessions[0].cooldownKm, 1);
     assert.equal(adapted.sessions[2].warmupKm, undefined);
@@ -113,7 +119,10 @@ test('la bozza colloca le settimane a ritroso dalla gara sui giorni disponibili'
     assert.equal(draft.endDate, '2027-03-21');
     assert.equal(draft.weeks.length, 9);
     const raceWeek = draft.weeks.at(-1);
-    assert.deepEqual(raceWeek.sessions.map(session => session.date), ['2027-03-16', '2027-03-18', '2027-03-20', '2027-03-21']);
+    assert.deepEqual(
+        raceWeek.sessions.map(session => session.date),
+        ['2027-03-16', '2027-03-18', '2027-03-20', '2027-03-21']
+    );
     assert.equal(raceWeek.sessions.at(-1).type, 'race');
 
     const calendar = draftToCalendarSessions(draft);

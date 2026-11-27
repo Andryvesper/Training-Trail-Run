@@ -16,35 +16,42 @@ const SHELL = [
 
 self.addEventListener('install', event => {
     // Un file mancante non deve impedire l'installazione.
-    event.waitUntil(caches.open(CACHE)
-        .then(cache => Promise.allSettled(SHELL.map(url => cache.add(url))))
-        .then(() => self.skipWaiting()));
+    event.waitUntil(
+        caches
+            .open(CACHE)
+            .then(cache => Promise.allSettled(SHELL.map(url => cache.add(url))))
+            .then(() => self.skipWaiting())
+    );
 });
 
 self.addEventListener('activate', event => {
-    event.waitUntil((async () => {
-        const keys = await caches.keys();
-        await Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)));
-        await self.clients.claim();
-    })());
+    event.waitUntil(
+        (async () => {
+            const keys = await caches.keys();
+            await Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)));
+            await self.clients.claim();
+        })()
+    );
 });
 
 self.addEventListener('fetch', event => {
     const { request } = event;
     if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
-    event.respondWith((async () => {
-        try {
-            const response = await fetch(request);
-            // Solo risposte complete dello stesso sito: una 206 parziale fa fallire cache.put.
-            if (response.status === 200 && response.type === 'basic') {
-                const copy = response.clone();
-                event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)));
+    event.respondWith(
+        (async () => {
+            try {
+                const response = await fetch(request);
+                // Solo risposte complete dello stesso sito: una 206 parziale fa fallire cache.put.
+                if (response.status === 200 && response.type === 'basic') {
+                    const copy = response.clone();
+                    event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)));
+                }
+                return response;
+            } catch (error) {
+                const cached = await caches.match(request, { ignoreSearch: request.mode === 'navigate' });
+                if (cached) return cached;
+                throw error;
             }
-            return response;
-        } catch (error) {
-            const cached = await caches.match(request, { ignoreSearch: request.mode === 'navigate' });
-            if (cached) return cached;
-            throw error;
-        }
-    })());
+        })()
+    );
 });

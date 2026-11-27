@@ -1,9 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-    assessRaceCompatibility,
-    normalizeSecondaryRaceIntents
-} from '../js/modules/training-race-compatibility.js';
+import { assessRaceCompatibility, normalizeSecondaryRaceIntents } from '../js/modules/training-race-compatibility.js';
 
 const primaryUltra = {
     id: 'ultra-100',
@@ -42,13 +39,18 @@ test('senza obiettivo di prestazione non inventa un passo e invita a riconsidera
 });
 
 test('chiede di definire l’intento quando la gara non presenta un conflitto ravvicinato evidente', () => {
-    const [advisory] = assessRaceCompatibility({
-        ...primaryUltra,
-        event_date: '2027-08-01'
-    }, [{
-        ...marathon,
-        event_date: '2027-06-01'
-    }]);
+    const [advisory] = assessRaceCompatibility(
+        {
+            ...primaryUltra,
+            event_date: '2027-08-01'
+        },
+        [
+            {
+                ...marathon,
+                event_date: '2027-06-01'
+            }
+        ]
+    );
 
     assert.equal(advisory.days_before_primary, 61);
     assert.equal(advisory.status, 'intent_needed');
@@ -56,24 +58,31 @@ test('chiede di definire l’intento quando la gara non presenta un conflitto ra
 });
 
 test('se le date sono indicative l’avviso dichiara i dati insufficienti', () => {
-    const [advisory] = assessRaceCompatibility({
-        ...primaryUltra,
-        event_date: null
-    }, [{
-        ...marathon,
-        event_date: null,
-        target_period: 'giugno'
-    }]);
+    const [advisory] = assessRaceCompatibility(
+        {
+            ...primaryUltra,
+            event_date: null
+        },
+        [
+            {
+                ...marathon,
+                event_date: null,
+                target_period: 'giugno'
+            }
+        ]
+    );
 
     assert.equal(advisory.status, 'insufficient_data');
     assert.equal(advisory.days_before_primary, null);
 });
 
 test('se due gare sono nello stesso giorno chiede di sceglierne una', () => {
-    const [advisory] = assessRaceCompatibility(primaryUltra, [{
-        ...marathon,
-        event_date: primaryUltra.event_date
-    }]);
+    const [advisory] = assessRaceCompatibility(primaryUltra, [
+        {
+            ...marathon,
+            event_date: primaryUltra.event_date
+        }
+    ]);
 
     assert.equal(advisory.status, 'same_day_conflict');
     assert.ok(advisory.messages.some(message => message.includes('non è possibile partecipare a entrambe')));
@@ -83,8 +92,5 @@ test('normalizza le intenzioni solo per gare selezionate e rifiuta valori non va
     assert.deepEqual(normalizeSecondaryRaceIntents({ marathon: 'time_goal', ignored: 'social' }, ['marathon']), {
         marathon: 'time_goal'
     });
-    assert.throws(
-        () => normalizeSecondaryRaceIntents({ marathon: 'all_out' }, ['marathon']),
-        /non è valido/
-    );
+    assert.throws(() => normalizeSecondaryRaceIntents({ marathon: 'all_out' }, ['marathon']), /non è valido/);
 });

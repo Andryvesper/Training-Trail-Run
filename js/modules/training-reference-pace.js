@@ -30,9 +30,7 @@ export function calculateReferencePace(protocol, testDurationSeconds) {
         throw new Error('Il tempo del test deve essere un numero intero di secondi maggiore di zero.');
     }
 
-    const secondsPerKm = protocol === 'three_km_plus_10'
-        ? testDurationSeconds * 1.1 / 3
-        : testDurationSeconds / 10;
+    const secondsPerKm = protocol === 'three_km_plus_10' ? (testDurationSeconds * 1.1) / 3 : testDurationSeconds / 10;
 
     return Math.round(secondsPerKm);
 }
@@ -102,4 +100,3 @@ export function assessReferenceTestValidity(testDate, asOfDate, rule = REFERENCE
         message: `Test VR valido fino al ${validUntil}.`
     };
 }
-

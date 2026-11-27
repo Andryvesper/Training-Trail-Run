@@ -29,28 +29,31 @@ test('non propone attività senza ID, data o sport riconosciuto', () => {
 });
 
 test('uno snapshot salva solo i dati dell’attività necessari alla scheda', () => {
-    assert.deepEqual(createActivitySnapshot({
-        id: 42,
-        name: 'Corsa collinare',
-        type: 'TrailRun',
-        start_date_local: '2026-11-05T08:30:00',
-        distance: 12500,
-        moving_time: 4800,
-        elapsed_time: 5100,
-        total_elevation_gain: 640,
-        average_speed: 2.6,
-        description: 'informazione non necessaria'
-    }), {
-        id: '42',
-        name: 'Corsa collinare',
-        type: 'TrailRun',
-        start_date_local: '2026-11-05T08:30:00',
-        distance: 12500,
-        moving_time: 4800,
-        elapsed_time: 5100,
-        total_elevation_gain: 640,
-        average_speed: 2.6
-    });
+    assert.deepEqual(
+        createActivitySnapshot({
+            id: 42,
+            name: 'Corsa collinare',
+            type: 'TrailRun',
+            start_date_local: '2026-11-05T08:30:00',
+            distance: 12500,
+            moving_time: 4800,
+            elapsed_time: 5100,
+            total_elevation_gain: 640,
+            average_speed: 2.6,
+            description: 'informazione non necessaria'
+        }),
+        {
+            id: '42',
+            name: 'Corsa collinare',
+            type: 'TrailRun',
+            start_date_local: '2026-11-05T08:30:00',
+            distance: 12500,
+            moving_time: 4800,
+            elapsed_time: 5100,
+            total_elevation_gain: 640,
+            average_speed: 2.6
+        }
+    );
 });
 
 test('lo snapshot senza D+ o velocità salva null', () => {

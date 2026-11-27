@@ -1,16 +1,15 @@
 export function getMatchingSessions(activity, sessions) {
-    const activityDate = typeof activity?.start_date_local === 'string'
-        ? activity.start_date_local.slice(0, 10)
-        : null;
+    const activityDate = typeof activity?.start_date_local === 'string' ? activity.start_date_local.slice(0, 10) : null;
     const activityId = normalizeActivityId(activity?.id);
     const activitySport = activityCategory(activity?.type || activity?.sport_settings?.type);
 
     if (!activityDate || !activityId || !activitySport) return [];
 
-    return sessions.filter(session =>
-        session.scheduled_date === activityDate
-        && activityCategory(session.sport_type) === activitySport
-        && (!session.intervals_activity_id || session.intervals_activity_id === activityId)
+    return sessions.filter(
+        session =>
+            session.scheduled_date === activityDate &&
+            activityCategory(session.sport_type) === activitySport &&
+            (!session.intervals_activity_id || session.intervals_activity_id === activityId)
     );
 }
 

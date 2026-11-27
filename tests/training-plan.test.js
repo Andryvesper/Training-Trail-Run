@@ -36,7 +36,10 @@ test('carica le sedute del solo utente e dell’intervallo richiesto', async () 
     assert.equal(sessions, expected);
     assert.deepEqual(mock.calls, [
         ['from', 'training_sessions'],
-        ['select', 'id, user_id, scheduled_date, session_order, title, sport_type, distance_km, duration_minutes, target_pace_seconds_per_km, notes, intervals_activity_id, completed_at, adherence_score, completed_activity'],
+        [
+            'select',
+            'id, user_id, scheduled_date, session_order, title, sport_type, distance_km, duration_minutes, target_pace_seconds_per_km, notes, intervals_activity_id, completed_at, adherence_score, completed_activity'
+        ],
         ['eq', 'user_id', 'user-1'],
         ['gte', 'scheduled_date', '2026-05-04'],
         ['lte', 'scheduled_date', '2026-05-10'],
@@ -149,10 +152,15 @@ test('associa un’attività Intervals confermata e salva voto e snapshot per il
     };
 
     assert.equal(await service.confirmActivity('user-1', 'session-1', snapshot, 4), saved);
-    assert.ok(mock.calls.some(call => call[0] === 'update'
-        && call[1].intervals_activity_id === 'activity-1'
-        && call[1].adherence_score === 4
-        && call[1].completed_activity === snapshot));
+    assert.ok(
+        mock.calls.some(
+            call =>
+                call[0] === 'update' &&
+                call[1].intervals_activity_id === 'activity-1' &&
+                call[1].adherence_score === 4 &&
+                call[1].completed_activity === snapshot
+        )
+    );
     assert.ok(mock.calls.some(call => call[0] === 'eq' && call[1] === 'id' && call[2] === 'session-1'));
     assert.ok(mock.calls.some(call => call[0] === 'eq' && call[1] === 'user_id' && call[2] === 'user-1'));
 });
@@ -172,10 +180,15 @@ test('rimuove l’associazione e la valutazione senza toccare altri utenti', asy
 
     await service.unlinkActivity('user-1', 'session-1');
 
-    assert.ok(mock.calls.some(call => call[0] === 'update'
-        && call[1].intervals_activity_id === null
-        && call[1].completed_at === null
-        && call[1].adherence_score === null
-        && call[1].completed_activity === null));
+    assert.ok(
+        mock.calls.some(
+            call =>
+                call[0] === 'update' &&
+                call[1].intervals_activity_id === null &&
+                call[1].completed_at === null &&
+                call[1].adherence_score === null &&
+                call[1].completed_activity === null
+        )
+    );
     assert.ok(mock.calls.some(call => call[0] === 'eq' && call[1] === 'user_id' && call[2] === 'user-1'));
 });
