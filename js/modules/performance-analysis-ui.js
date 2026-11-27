@@ -2,6 +2,7 @@
 // corse recenti da Intervals.icu, calcola le metriche avanzate, le salva in
 // Supabase e mostra prontezza, revisione delle soglie, grafici e tabella.
 
+import { createEmptyState } from '../core/ui-feedback.js';
 import { PERFORMANCE_CONFIG, PERFORMANCE_CONFIG_VERSION } from './performance-config.js';
 import { requestedStreamTypes } from './activity-streams.js';
 import { activitiesToAnalyze, analyzeActivity, eccentricEntries, efficiencyTrend } from './performance-analysis.js';
@@ -357,7 +358,7 @@ function renderTable() {
     container.replaceChildren();
     const rows = runAnalyses().slice().reverse().slice(0, 15);
     if (!rows.length) {
-        container.append(el('p', 'text-sm text-slate-500', 'Nessuna corsa analizzata negli ultimi 90 giorni.'));
+        container.append(createEmptyState('Nessuna corsa analizzata negli ultimi 90 giorni.', { hint: 'Le corse con stream di frequenza cardiaca e altitudine compaiono qui dopo la sincronizzazione.' }));
         return;
     }
     const headers = ['Data', 'Attività', 'Passo', 'GAP', 'EF', 'EF salita', 'VAM migliore', 'Deriva', 'Δ GCT', 'Δ VO', 'Load (ecc.)', 'Note'];

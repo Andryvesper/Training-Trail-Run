@@ -1,4 +1,5 @@
 import { TrainingRacesService } from './training-races.js';
+import { createEmptyState, createSkeleton } from '../core/ui-feedback.js';
 
 // Stesso ordine della lettura dal database: data crescente, gare senza data in fondo.
 function sortRaces(races) {
@@ -40,8 +41,7 @@ export async function initRacesModule(supabaseClient, userId) {
         list.replaceChildren();
 
         if (!races.length) {
-            list.append(makeElement('p', 'rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-400',
-                'Nessuna gara o risultato registrato.'));
+            list.append(createEmptyState('Nessuna gara o risultato registrato.', { hint: 'Aggiungi la tua prossima gara con il modulo: diventa l’obiettivo dei piani di allenamento.' }));
             return;
         }
 
@@ -79,6 +79,7 @@ export async function initRacesModule(supabaseClient, userId) {
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
+    list.replaceChildren(createSkeleton({ lines: 3, label: 'Caricamento delle gare…' }));
     try {
         races = await racesService.listRaces(userId);
         render();

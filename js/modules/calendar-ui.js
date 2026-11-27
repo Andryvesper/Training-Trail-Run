@@ -1,5 +1,6 @@
 import { TrainingCalendarService } from './calendar.js';
 import { createIntervalsService, isConnected, loadIntervalsConnection } from './intervals-connection.js';
+import { createSkeleton } from '../core/ui-feedback.js';
 import { TrainingPlanService } from './training-plan.js';
 import { formatPace, parsePace } from './training-plan-sharing.js';
 import { initTrainingPlanSharingModule } from './training-plan-sharing-ui.js';
@@ -47,7 +48,7 @@ export async function initCalendarModule(supabaseClient, userId) {
     const openGroups = new Set();
     const status = createStatusElement(container);
     container.setAttribute('aria-busy', 'true');
-    container.append(createElement('p', 'rounded-2xl border border-slate-800 bg-slate-900/70 p-5 text-sm text-slate-400', 'Caricamento del tuo piano…'));
+    container.append(createSkeleton({ lines: 4, label: 'Caricamento del tuo piano…', className: 'rounded-2xl border border-slate-800 bg-slate-900/70 p-5' }));
     let sessions = [];
     let editingSession = null;
     let pendingAssociation = null;

@@ -1,3 +1,4 @@
+import { createEmptyState } from '../core/ui-feedback.js';
 import {
     TrainingPlanSharingService,
     formatPace,
@@ -197,7 +198,7 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
 
 function renderActiveShares(container, shares, revokeForm) {
     if (!shares.length) {
-        container.replaceChildren(createElement('p', 'text-xs text-slate-500', 'Nessuna condivisione attiva.'));
+        container.replaceChildren(createEmptyState('Nessuna condivisione attiva.', { hint: 'Seleziona un periodo qui sopra per creare un codice da inviare.' }));
         return;
     }
     const list = createElement('ul', 'space-y-2');

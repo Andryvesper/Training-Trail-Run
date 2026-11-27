@@ -21,6 +21,7 @@ import {
     weeklyAdherence
 } from './training-load.js';
 import { addDays, localDateKey } from '../core/date-utils.js';
+import { createEmptyState, createSkeleton } from '../core/ui-feedback.js';
 
 const LOAD_WEEKS = 8;
 const ADHERENCE_WEEKS = 4;
@@ -102,6 +103,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
                 'Intervals.icu non è ancora collegato. Inserisci il tuo Athlete ID e la tua API Key per visualizzare i dati reali.',
                 'empty'
             );
+            showDashboardPlaceholders('Intervals.icu non è collegato', 'Inserisci Athlete ID e API Key nella scheda Intervals.icu per vedere metriche e grafici.');
         }
     } catch (error) {
         console.error('Errore nel caricamento della configurazione Intervals:', error);
@@ -184,7 +186,9 @@ async function syncDashboardData(supabaseClient, userId, service) {
     const cacheKey = `${userId}:${service.athleteId}`;
     const cached = await readActivityCache(cacheKey);
     const activitiesFrom = refetchStart(cached, ACTIVITY_HISTORY_START);
-    const [wellness, freshActivities, races, sessions] = await Promise.all([
+    let wellness, freshActivities, races, sessions;
+    try {
+    [wellness, freshActivities, races, sessions] = await Promise.all([
         service.getWellness(oldestWellness, newest),
         service.getActivities(activitiesFrom, newest),
         new TrainingRacesService(supabaseClient).listRaces(userId).catch(error => {
@@ -193,6 +197,11 @@ async function syncDashboardData(supabaseClient, userId, service) {
         }),
         loadAdherenceSessions(supabaseClient, userId, newest)
     ]);
+    } catch (error) {
+        // Niente scheletri infiniti: le sezioni dicono che i dati mancano.
+        if (syncId === syncCounter) showDashboardPlaceholders('Dati Intervals.icu non disponibili', 'Controlla il collegamento nella scheda Intervals.icu e riprova.');
+        throw error;
+    }
     const activities = cached ? mergeActivities(cached.activities, freshActivities, activitiesFrom) : freshActivities;
     writeActivityCache(cacheKey, { activities, syncedAt: newest });
     if (syncId !== syncCounter) return;
@@ -575,12 +584,16 @@ function clearDashboardData() {
         const element = document.getElementById(elementId);
         if (element) element.textContent = '—';
     });
-    ['intervals-activity-summary', 'dashboard-records', 'dashboard-charts', 'dashboard-adherence', 'dashboard-load'].forEach(id => {
-        document.getElementById(id)?.replaceChildren(createElement(
-            'p',
-            'col-span-full text-sm text-slate-400',
-            'In attesa dei dati Intervals.icu.'
-        ));
+    DASHBOARD_SECTIONS.forEach(id => {
+        document.getElementById(id)?.replaceChildren(createSkeleton({ lines: 3, label: 'Caricamento dei dati Intervals.icu…', className: 'col-span-full' }));
+    });
+}
+
+const DASHBOARD_SECTIONS = ['intervals-activity-summary', 'dashboard-records', 'dashboard-charts', 'dashboard-adherence', 'dashboard-load'];
+
+function showDashboardPlaceholders(title, hint) {
+    DASHBOARD_SECTIONS.forEach(id => {
+        document.getElementById(id)?.replaceChildren(createEmptyState(title, { hint, className: 'col-span-full' }));
     });
 }
 
