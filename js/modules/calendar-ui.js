@@ -51,7 +51,8 @@ export async function initCalendarModule(supabaseClient, userId) {
     let editingSession = null;
     let pendingAssociation = null;
     exportToolbar?.remove();
-    exportToolbar = createExportToolbar(() => sessions, status);
+    // "Tutto il piano futuro" va oltre la finestra del calendario: si legge dal database al clic.
+    exportToolbar = createExportToolbar(() => sessions, status, today => planService.listSessions(userId, today, '9999-12-31'));
     status.before(exportToolbar);
 
     try {
@@ -205,6 +206,8 @@ export async function initCalendarModule(supabaseClient, userId) {
             try {
                 await planService.deleteSession(userId, sessionId);
                 sessions = sessions.filter(session => session.id !== sessionId);
+                // Il form della seduta eliminata si chiude: un invio creerebbe un duplicato.
+                if (editingSession?.id === sessionId) editingSession = null;
                 showStatus(status, 'Seduta eliminata.', 'success');
                 render();
                 notifySessionsUpdated();
@@ -314,7 +317,7 @@ export async function initCalendarModule(supabaseClient, userId) {
 }
 
 // Pulsante di esportazione .ics delle sedute future.
-function createExportToolbar(getSessions, status) {
+function createExportToolbar(getSessions, status, loadFutureSessions) {
     const toolbar = createElement('div', 'flex flex-wrap items-center gap-2');
     const select = createElement('select', 'min-h-10 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200');
     select.setAttribute('aria-label', 'Periodo da esportare');
@@ -324,20 +327,24 @@ function createExportToolbar(getSessions, status) {
         select.append(option);
     });
     const button = createButton('Esporta calendario (.ics)', null, {}, 'min-h-10 rounded-xl border border-brand-500/40 px-4 text-sm font-medium text-brand-300 hover:bg-brand-500/10');
-    button.addEventListener('click', () => {
+    button.addEventListener('click', async () => {
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        const selected = selectSessionsForExport(getSessions(), { today, range: select.value });
-        if (!selected.length) {
-            showStatus(status, 'Nessuna seduta futura da esportare nel periodo scelto.', 'info');
-            return;
-        }
+        button.disabled = true;
         try {
+            const source = select.value === 'all' ? await loadFutureSessions(today) : getSessions();
+            const selected = selectSessionsForExport(source, { today, range: select.value });
+            if (!selected.length) {
+                showStatus(status, 'Nessuna seduta futura da esportare nel periodo scelto.', 'info');
+                return;
+            }
             downloadIcs(buildIcsCalendar(selected, { now }), exportFileName(today, select.value));
             showStatus(status, `Esportate ${selected.length} sedute in formato .ics.`, 'success');
         } catch (error) {
             console.error('Errore nell\'esportazione del calendario:', error);
             showStatus(status, `Esportazione non riuscita: ${error.message}`, 'error');
+        } finally {
+            button.disabled = false;
         }
     });
     toolbar.append(select, button);

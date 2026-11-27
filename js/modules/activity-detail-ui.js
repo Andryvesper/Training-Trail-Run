@@ -87,8 +87,13 @@ async function loadDetails({ activity, activityId, intervalsService, analysisBox
 
     profileBox.replaceChildren();
     if (streams.status === 'fulfilled') {
-        renderProfile(profileBox, activity, streams.value);
-        if (isRunActivity(activity)) renderAnalysis(analysisBox, activity, streams.value);
+        try {
+            renderProfile(profileBox, activity, streams.value);
+            if (isRunActivity(activity)) renderAnalysis(analysisBox, activity, streams.value);
+        } catch (error) {
+            console.error("Profilo dell'attività non leggibile:", error);
+            profileBox.replaceChildren(note("Profilo non disponibile: dati dell'attività non leggibili."));
+        }
     } else {
         console.error('Stream dell\'attività non disponibili:', streams.reason);
         profileBox.append(note(`Profilo non disponibile: ${streams.reason?.message || 'errore sconosciuto'}.`));
@@ -96,7 +101,12 @@ async function loadDetails({ activity, activityId, intervalsService, analysisBox
 
     lapsBox.replaceChildren();
     if (intervals.status === 'fulfilled') {
-        renderLaps(lapsBox, activity, intervals.value);
+        try {
+            renderLaps(lapsBox, activity, intervals.value);
+        } catch (error) {
+            console.error("Giri dell'attività non leggibili:", error);
+            lapsBox.replaceChildren(note("Giri non disponibili: dati dell'attività non leggibili."));
+        }
     } else {
         console.error('Giri dell\'attività non disponibili:', intervals.reason);
         lapsBox.append(note(`Giri non disponibili: ${intervals.reason?.message || 'errore sconosciuto'}.`));

@@ -572,7 +572,10 @@ export class TrainingPlannerService {
             .insert(rows)
             .select('id');
         if (error) throw error;
-        return { session_count: data?.length ?? 0, overlapping_dates: [...new Set((existing || []).map(item => item.scheduled_date))] };
+        // Solo i giorni in cui una nuova seduta si affianca a una già presente.
+        const newDates = new Set(rows.map(row => row.scheduled_date));
+        const overlapping = [...new Set((existing || []).map(item => item.scheduled_date))].filter(date => newDates.has(date));
+        return { session_count: data?.length ?? 0, overlapping_dates: overlapping };
     }
 
     // Aggiunge al calendario la seduta del test VR proposta.
@@ -609,8 +612,10 @@ export class TrainingPlannerService {
             throw new Error('Serve la conferma esplicita dell’atleta prima di modificare il calendario.');
         }
         const changes = (preview?.changes || []).filter(change => change.scheduled_date >= today);
+        let updatedCount = 0;
         for (const change of changes) {
-            const { error } = await this.supabaseClient
+            // Una seduta associata nel frattempo a un'attività non viene toccata e non va contata.
+            const { data, error } = await this.supabaseClient
                 .from(SESSIONS_TABLE)
                 .update({ distance_km: change.to_km, notes: change.notes, ...(change.new_title ? { title: change.new_title } : {}) })
                 .eq('id', change.session_id)
@@ -618,8 +623,9 @@ export class TrainingPlannerService {
                 .is('intervals_activity_id', null)
                 .select('id');
             if (error) throw error;
+            updatedCount += Array.isArray(data) ? data.length : 1;
         }
-        return { updated_count: changes.length };
+        return { updated_count: updatedCount };
     }
 
     async listDraftRequests(userId) {

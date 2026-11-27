@@ -1,14 +1,22 @@
 // js/modules/intervals.js - Servizio API Intervals.icu per Metriche e Attività
 
+const REQUEST_TIMEOUT_MS = 30000;
+
 export class IntervalsService {
     constructor(athleteId, apiKey) {
-        this.athleteId = athleteId || 'me';
+        // L'ID entra nel percorso dell'URL: va codificato.
+        this.athleteId = encodeURIComponent(String(athleteId || 'me').trim());
         this.apiKey = apiKey;
         this.baseUrl = 'https://intervals.icu/api/v1';
     }
 
     getAuthHeaders() {
-        const token = btoa(`API_KEY:${this.apiKey}`);
+        let token;
+        try {
+            token = btoa(`API_KEY:${this.apiKey}`);
+        } catch {
+            throw new Error('La API Key di Intervals.icu contiene caratteri non validi: copiala di nuovo dal sito.');
+        }
         return {
             'Authorization': `Basic ${token}`,
             'Content-Type': 'application/json'
@@ -42,19 +50,35 @@ export class IntervalsService {
     // Giri e intervalli di un'attività: { icu_intervals: [...], icu_groups: [...] }.
     async getActivityIntervals(activityId) {
         const url = `${this.baseUrl}/activity/${encodeURIComponent(activityId)}/intervals`;
-        const response = await fetch(url, { headers: this.getAuthHeaders() });
-        if (!response.ok) {
-            throw new Error(`Intervals.icu (giri dell'attività): risposta HTTP ${response.status}.`);
-        }
+        const response = await this.request(url, "giri dell'attività");
         const data = await response.json();
         return data && typeof data === 'object' ? data : {};
     }
 
-    async fetchCollection(url, resourceName) {
-        const response = await fetch(url, { headers: this.getAuthHeaders() });
-        if (!response.ok) {
-            throw new Error(`Intervals.icu (${resourceName}): risposta HTTP ${response.status}.`);
+    // Richiesta con tempo massimo e messaggi chiari per credenziali errate.
+    async request(url, resourceName) {
+        const options = { headers: this.getAuthHeaders() };
+        if (typeof AbortSignal?.timeout === 'function') options.signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+        let response;
+        try {
+            response = await fetch(url, options);
+        } catch (error) {
+            if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+                throw new Error(`Intervals.icu (${resourceName}): nessuna risposta entro ${REQUEST_TIMEOUT_MS / 1000} secondi.`);
+            }
+            throw new Error(`Intervals.icu (${resourceName}): connessione non riuscita.`);
         }
+        if (!response.ok) {
+            const hint = response.status === 401 || response.status === 403
+                ? ' Controlla Athlete ID e API Key.'
+                : response.status === 429 ? ' Troppe richieste: riprova tra poco.' : '';
+            throw new Error(`Intervals.icu (${resourceName}): risposta HTTP ${response.status}.${hint}`);
+        }
+        return response;
+    }
+
+    async fetchCollection(url, resourceName) {
+        const response = await this.request(url, resourceName);
 
         const data = await response.json();
         if (!Array.isArray(data)) {

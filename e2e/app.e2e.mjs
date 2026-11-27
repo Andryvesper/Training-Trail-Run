@@ -71,7 +71,8 @@ const fakeSupabaseJs = db => `(() => {
     auth: {
       getSession: async () => ({ data: { session: { user: USER } }, error: null }),
       signInWithPassword: async () => ({ data: { user: USER }, error: null }),
-      signOut: async () => ({ error: null })
+      signOut: async () => ({ error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } })
     },
     from: builder,
     rpc: async () => ({ data: [], error: null })

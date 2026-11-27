@@ -1,5 +1,14 @@
 import { TrainingRacesService } from './training-races.js';
 
+// Stesso ordine della lettura dal database: data crescente, gare senza data in fondo.
+function sortRaces(races) {
+    return races.slice().sort((left, right) => {
+        if (!left.event_date) return right.event_date ? 1 : 0;
+        if (!right.event_date) return -1;
+        return left.event_date.localeCompare(right.event_date);
+    });
+}
+
 export async function initRacesModule(supabaseClient, userId) {
     const form = document.getElementById('race-form');
     const list = document.getElementById('races-list');
@@ -90,9 +99,9 @@ export async function initRacesModule(supabaseClient, userId) {
 
         try {
             const saved = await racesService.saveRace(userId, race);
-            races = editingRaceId
+            races = sortRaces(editingRaceId
                 ? races.map(item => item.id === saved.id ? saved : item)
-                : [...races, saved];
+                : [...races, saved]);
             resetForm();
             showStatus('Gara salvata.', 'success');
             notifyRaceChanges(races);
@@ -121,6 +130,8 @@ export async function initRacesModule(supabaseClient, userId) {
         try {
             await racesService.deleteRace(userId, race.id);
             races = races.filter(item => item.id !== race.id);
+            // Se la gara eliminata era in modifica, il form torna vuoto: altrimenti il salvataggio fallirebbe.
+            if (editingRaceId === race.id) resetForm();
             render();
             showStatus('Gara eliminata.', 'success');
             notifyRaceChanges(races);

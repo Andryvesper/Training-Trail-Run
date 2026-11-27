@@ -171,7 +171,7 @@ function chartFrame(title) {
         viewBox: `0 0 ${WIDTH} ${HEIGHT}`,
         role: 'img',
         'aria-label': title,
-        class: 'block h-auto w-full touch-none select-none'
+        class: 'block h-auto w-full touch-pan-y select-none'
     });
     const tooltip = textNode('div', 'pointer-events-none absolute top-0 z-10 min-w-36 rounded-lg border border-slate-700 bg-slate-950/95 p-2 text-xs text-slate-200 shadow-lg');
     tooltip.hidden = true;

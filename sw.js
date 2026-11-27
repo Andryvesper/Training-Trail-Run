@@ -20,7 +20,8 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
         try {
             const response = await fetch(request);
-            if (response.ok) {
+            // Solo risposte complete dello stesso sito: una 206 parziale fa fallire cache.put.
+            if (response.status === 200 && response.type === 'basic') {
                 const copy = response.clone();
                 event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)));
             }

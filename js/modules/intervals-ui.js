@@ -45,6 +45,8 @@ const METRICS = [
 ];
 
 let adherenceHandler = null;
+// Ogni sincronizzazione ha un numero: una risposta lenta e superata non sovrascrive i dati nuovi.
+let syncCounter = 0;
 
 export async function initIntervalsModule(supabaseClient, userId) {
     const syncDashboard = (athleteId, apiKey) => syncDashboardData(supabaseClient, userId, athleteId, apiKey);
@@ -116,7 +118,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
         btnSave.disabled = true;
         showStatus(statusMsg, 'Salvataggio credenziali…', 'loading');
         try {
-            const { error } = await supabaseClient
+            const { data, error } = await supabaseClient
                 .from('profiles')
                 .update({
                     intervals_id: athleteId,
@@ -124,9 +126,12 @@ export async function initIntervalsModule(supabaseClient, userId) {
                     intervals_athlete_id: athleteId,
                     intervals_api_key: apiKey
                 })
-                .eq('id', userId);
+                .eq('id', userId)
+                .select('id');
 
             if (error) throw error;
+            // Nessuna riga aggiornata (profilo assente o non accessibile): non è un salvataggio riuscito.
+            if (Array.isArray(data) && data.length === 0) throw new Error('profilo utente non trovato.');
         } catch (error) {
             console.error('Errore nel salvataggio delle credenziali Intervals.icu:', error);
             showStatus(statusMsg, `Operazione non completata: ${error.message}`, 'error');
@@ -172,6 +177,7 @@ export async function initIntervalsModule(supabaseClient, userId) {
 }
 
 async function syncDashboardData(supabaseClient, userId, athleteId, apiKey) {
+    const syncId = ++syncCounter;
     clearDashboardData();
     setDashboardStatus('Caricamento dei dati reali da Intervals.icu…', 'loading');
 
@@ -188,6 +194,7 @@ async function syncDashboardData(supabaseClient, userId, athleteId, apiKey) {
         }),
         loadAdherenceSessions(supabaseClient, userId, newest)
     ]);
+    if (syncId !== syncCounter) return;
 
     const summary = summarizeIntervalsData(wellness, []);
     renderMetrics(summary.metrics);
@@ -561,6 +568,7 @@ function renderMetrics(metrics) {
 }
 
 function clearDashboardData() {
+    dashboardState.today = null;
     resetPerformanceSection();
     METRICS.forEach(([, elementId]) => {
         const element = document.getElementById(elementId);

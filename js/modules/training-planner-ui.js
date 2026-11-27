@@ -51,7 +51,7 @@ export async function initTrainingPlannerModule(supabaseClient, userId) {
     try {
         races = await racesService.listRaces(userId);
         renderRaceOptions(raceSelect, races);
-        renderSecondaryRaceOptions(secondaryRaceContainer, races, [], raceSelect.value);
+        renderSecondaryRaceOptions(secondaryRaceContainer, races, [], {}, raceSelect.value);
     } catch (error) {
         console.error('Errore nel caricamento delle gare per la pianificazione:', error);
         showStatus(status, `Impossibile caricare le gare: ${error.message}`, 'error');

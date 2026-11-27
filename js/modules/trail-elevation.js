@@ -1,5 +1,6 @@
 export function calculateEquivalentDistance(distanceKm, elevationGainMeters, elevationLossMeters = 0) {
-    if (distanceKm < 0 || elevationGainMeters < 0 || elevationLossMeters < 0) {
+    // !(x >= 0) scarta anche NaN e valori mancanti, non solo i negativi.
+    if (!(distanceKm >= 0) || !(elevationGainMeters >= 0) || !(elevationLossMeters >= 0)) {
         throw new Error('Distanza e dislivello non possono essere negativi.');
     }
     const equivalentFromGain = elevationGainMeters / 100;
@@ -8,7 +9,7 @@ export function calculateEquivalentDistance(distanceKm, elevationGainMeters, ele
 }
 
 export function calculateTrailAdjustedPace(basePaceSecondsPerKm, distanceKm, elevationGainMeters, elevationLossMeters = 0) {
-    if (basePaceSecondsPerKm <= 0 || distanceKm <= 0) {
+    if (!(basePaceSecondsPerKm > 0) || !(distanceKm > 0)) {
         throw new Error('Passo base e distanza devono essere maggiori di zero.');
     }
     const eqDistance = calculateEquivalentDistance(distanceKm, elevationGainMeters, elevationLossMeters);

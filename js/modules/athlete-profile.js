@@ -4,7 +4,13 @@
 export const PROFILE_FIELDS = 'id, email, full_name, birth_date, sex, city, phone, height_cm, weight_kg, updated_at';
 const SEX_VALUES = ['female', 'male', 'other', 'prefer_not_to_say'];
 
-export function normalizePersonalData(input = {}, today = new Date().toISOString().slice(0, 10)) {
+// Data locale: toISOString() darebbe il giorno UTC, sbagliato dopo mezzanotte in Italia.
+function localToday() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+export function normalizePersonalData(input = {}, today = localToday()) {
     const fullName = text(input.full_name, 120, 'Il nome non può superare 120 caratteri.');
     const city = text(input.city, 80, 'La città non può superare 80 caratteri.');
     const phone = text(input.phone, 30, 'Il telefono non può superare 30 caratteri.');
@@ -42,7 +48,7 @@ export function normalizePersonalData(input = {}, today = new Date().toISOString
     };
 }
 
-export function ageOn(birthDate, today = new Date().toISOString().slice(0, 10)) {
+export function ageOn(birthDate, today = localToday()) {
     if (!birthDate) return null;
     const [by, bm, bd] = birthDate.split('-').map(Number);
     const [ty, tm, td] = today.split('-').map(Number);

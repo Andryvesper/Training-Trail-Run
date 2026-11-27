@@ -84,8 +84,9 @@ export class PerformanceAnalysisService {
             .eq('user_id', userId)
             .eq('status', 'proposed')
             .select(REVIEW_FIELDS)
-            .single();
+            .maybeSingle();
         if (error) throw error;
+        if (!data) throw new Error('Questa revisione è già stata decisa, anche da un altro dispositivo: ricarica la pagina.');
         return data;
     }
 }

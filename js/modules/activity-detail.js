@@ -70,7 +70,7 @@ export function activityProfile(rawStreams, points = 150) {
     for (let index = 0; index < samples.n; index += 1) {
         const distance = samples.distance[index];
         if (!Number.isFinite(distance)) continue;
-        const bucket = sums[Math.min(buckets - 1, Math.floor(distance / step))];
+        const bucket = sums[Math.max(0, Math.min(buckets - 1, Math.floor(distance / step)))];
         if (Number.isFinite(samples.altitude[index])) { bucket.alt[0] += samples.altitude[index]; bucket.alt[1] += 1; }
         if (Number.isFinite(samples.heartrate[index])) { bucket.hr[0] += samples.heartrate[index]; bucket.hr[1] += 1; }
         // Velocità del tratto: distanza percorsa sul tempo in movimento.

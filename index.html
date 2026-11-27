@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Training Trail Run - Dashboard</title>
+    <title>Training Trail Run</title>
+    <meta name="description" content="Pianificazione e analisi degli allenamenti di corsa su strada e trail.">
     <!-- App installabile (PWA) -->
     <link rel="manifest" href="manifest.webmanifest">
     <meta name="theme-color" content="#020617">
@@ -15,8 +16,8 @@
     <meta name="apple-mobile-web-app-title" content="Trail Run">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -64,8 +65,20 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-brand-500 selection:text-white">
 
+    <noscript>
+        <p style="padding:1rem;text-align:center;color:#f1f5f9">Per usare Training Trail Run attiva JavaScript nel browser.</p>
+    </noscript>
+
+    <!-- Avvio: evita il lampo della schermata di accesso mentre si verifica la sessione -->
+    <div id="boot-screen" class="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+        <div class="flex flex-col items-center gap-4 text-slate-400">
+            <img src="icons/icon-192.png" alt="" width="80" height="80" class="h-20 w-20 animate-pulse rounded-2xl">
+            <span class="text-sm">Caricamento…</span>
+        </div>
+    </div>
+
     <!-- Schermata di Autenticazione -->
-    <div id="auth-screen" class="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div id="auth-screen" class="hidden flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl w-full max-w-md shadow-2xl space-y-6">
             <div class="text-center space-y-2">
                 <img src="icons/icon-192.png" alt="Logo Training Trail Run" width="96" height="96" class="mx-auto mb-2 h-24 w-24 rounded-2xl ring-1 ring-brand-500/30">
@@ -73,18 +86,18 @@
                 <p class="text-xs text-slate-400">Piattaforma di Programmazione Atletica</p>
             </div>
             
-            <div class="space-y-4">
+            <form id="login-form" class="space-y-4" novalidate>
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
-                    <input type="email" id="auth-email" placeholder="nome@esempio.it" class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all">
+                    <label for="auth-email" class="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+                    <input type="email" id="auth-email" name="email" autocomplete="username" inputmode="email" required placeholder="nome@esempio.it" class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all">
+                    <label for="auth-password" class="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+                    <input type="password" id="auth-password" name="password" autocomplete="current-password" required placeholder="••••••••" class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all">
                 </div>
-                <button id="btn-login" class="w-full bg-brand-500 text-white font-bold py-3.5 rounded-xl text-sm hover:bg-brand-600 active:scale-[0.98] transition-all shadow-lg shadow-brand-500/20">Accedi alla Piattaforma</button>
-            </div>
-            <p id="auth-error" class="text-xs text-rose-400 text-center hidden bg-rose-500/10 p-3 rounded-xl border border-rose-500/20"></p>
+                <button id="btn-login" type="submit" class="w-full disabled:cursor-wait disabled:opacity-70 bg-brand-500 text-white font-bold py-3.5 rounded-xl text-sm hover:bg-brand-600 active:scale-[0.98] transition-all shadow-lg shadow-brand-500/20">Accedi alla Piattaforma</button>
+            </form>
+            <p id="auth-error" role="alert" class="text-xs text-rose-400 text-center hidden bg-rose-500/10 p-3 rounded-xl border border-rose-500/20"></p>
         </div>
     </div>
 
@@ -125,7 +138,7 @@
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     <span class="nav-label">Profilo</span>
                 </button>
-                <button role="tab" aria-selected="false" data-target="section-admin" class="tab-btn hidden min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" data-tab="admin" aria-label="Amministrazione">
+                <button role="tab" aria-selected="false" data-target="section-admin" class="tab-btn hidden flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" data-tab="admin" aria-label="Amministrazione">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
                     <span class="nav-label">Amministrazione</span>
                 </button>
@@ -154,6 +167,10 @@
             </header>
 
             <main class="mx-auto w-full max-w-7xl flex-1 space-y-5 p-4 sm:space-y-6 sm:p-6">
+            <div id="app-error" class="hidden flex items-start justify-between gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
+                <span data-app-error-text></span>
+                <button type="button" class="shrink-0 rounded-lg px-2 text-rose-200 hover:bg-rose-500/20" aria-label="Chiudi avviso" onclick="this.parentElement.classList.add('hidden')">✕</button>
+            </div>
             <div id="module-container" class="space-y-6">
                 
                 <!-- Modulo Dashboard Metriche -->
@@ -787,12 +804,12 @@
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5">Athlete ID</label>
-                                <input type="text" id="intervals-athlete-id" placeholder="es. i12345 o me" class="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 outline-none">
+                                <label for="intervals-athlete-id" class="block text-xs font-medium text-slate-400 mb-1.5">Athlete ID</label>
+                                <input type="text" id="intervals-athlete-id" autocomplete="off" spellcheck="false" placeholder="es. i12345 o me" class="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-slate-400 mb-1.5">API Key</label>
-                                <input type="password" id="intervals-api-key" placeholder="Inserisci API Key" class="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 outline-none">
+                                <label for="intervals-api-key" class="block text-xs font-medium text-slate-400 mb-1.5">API Key</label>
+                                <input type="password" id="intervals-api-key" autocomplete="off" spellcheck="false" placeholder="Inserisci API Key" class="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 outline-none">
                             </div>
                         </div>
                         
@@ -805,7 +822,7 @@
                 </div>
 
                 <!-- Sezione Admin -->
-                <div id="section-admin" class="space-y-4 hidden">
+                <div id="section-admin" role="tabpanel" class="space-y-4 hidden">
                     <div class="bg-slate-900/60 border border-slate-800/80 p-6 rounded-2xl space-y-4">
                         <h2 class="text-base font-bold text-amber-400">Pannello Amministrazione</h2>
                         <p class="text-xs text-slate-400">Gestione avanzata della piattaforma e degli utenti autorizzati.</p>

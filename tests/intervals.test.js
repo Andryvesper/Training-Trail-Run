@@ -85,3 +85,36 @@ test('legge data e carico dai campi reali del wellness Intervals.icu', () => {
     ], []);
     assert.deepEqual(summary.metrics, { ctl: 42, atl: 38, tsb: 4, load: 70 });
 });
+
+test('credenziali rifiutate: suggerisce di controllare ID e chiave', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: false, status: 403 });
+    try {
+        const service = new IntervalsService('i123', 'api-key');
+        await assert.rejects(service.getWellness('2026-11-01', '2026-11-04'), /HTTP 403\. Controlla Athlete ID e API Key/);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test("l'Athlete ID viene codificato nel percorso dell'URL", async () => {
+    const originalFetch = globalThis.fetch;
+    let requested = '';
+    globalThis.fetch = async url => { requested = url; return { ok: true, json: async () => [] }; };
+    try {
+        await new IntervalsService(' i1/../x?y ', 'api-key').getActivities('2026-11-01', '2026-11-04');
+        assert.match(requested, /\/athlete\/i1%2F\.\.%2Fx%3Fy\/activities\?/);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('una rete assente produce un messaggio leggibile', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    try {
+        await assert.rejects(new IntervalsService('i1', 'k').getActivities('2026-11-01', '2026-11-04'), /connessione non riuscita/);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});

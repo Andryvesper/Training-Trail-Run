@@ -1,15 +1,10 @@
-// js/app.js - Entry Point della Piattaforma Modulare con Debug
+// js/app.js - Entry point della piattaforma modulare
 import { initializePlatform } from './core/platform.js';
 import { initIntervalsModule } from './modules/intervals-ui.js';
 import { initCalendarModule } from './modules/calendar-ui.js';
 import { initRacesModule } from './modules/races-ui.js';
 import { initTrainingPlannerModule } from './modules/training-planner-ui.js';
 import { initAthleteProfileModule } from './modules/athlete-profile-ui.js';
-
-const supabase = window.supabase.createClient(
-    window.SUPABASE_CONFIG.URL, 
-    window.SUPABASE_CONFIG.KEY
-);
 
 // App installabile: registra il service worker (solo su HTTPS o localhost).
 if ('serviceWorker' in navigator && window.isSecureContext) {
@@ -18,97 +13,163 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
     });
 }
 
+// Ordine di avvio: prima i moduli leggeri, per ultimo Intervals.icu, che scarica
+// tutto lo storico e non deve ritardare calendario, gare e piani.
+const MODULES = [
+    ['Calendario', initCalendarModule],
+    ['Gare', initRacesModule],
+    ['Piani di allenamento', initTrainingPlannerModule],
+    ['Profilo', initAthleteProfileModule],
+    ['Intervals.icu', initIntervalsModule]
+];
+
+let supabase = null;
+let appStarted = false;
+
 document.addEventListener('DOMContentLoaded', async () => {
     setupTabNavigation();
     setupSidebar();
 
+    if (!window.supabase?.createClient || !window.SUPABASE_CONFIG?.URL) {
+        hideBootScreen();
+        showAuthScreen();
+        showAuthError('Impossibile caricare i servizi dell’app. Controlla la connessione e ricarica la pagina.');
+        return;
+    }
+    supabase = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
+
+    // I gestori di accesso e uscita sono attivi subito, anche durante l'avvio.
+    setupLogin();
+    setupLogout();
+    supabase.auth.onAuthStateChange(event => {
+        // Uscita da un'altra scheda o sessione scaduta: si torna al login pulito.
+        if (event === 'SIGNED_OUT' && appStarted) window.location.reload();
+    });
+
     try {
-        // Verifichiamo la sessione Supabase attiva
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) console.error("Errore sessione:", sessionError);
-        
-        if (session) {
-            console.log("Sessione trovata per:", session.user.email);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) console.error('Errore nel recupero della sessione:', error);
+        if (session?.user) {
             await startApp(session.user);
         } else {
-            console.log("Nessuna sessione attiva, mostro login.");
             showAuthScreen();
         }
     } catch (err) {
-        console.error("Errore critico in avvio:", err);
+        console.error('Errore critico in avvio:', err);
+        showAuthScreen();
+        showAuthError('Avvio non riuscito. Controlla la connessione e riprova.');
+    } finally {
+        hideBootScreen();
     }
+});
 
-    // Listener per il form di Login
-    document.getElementById('btn-login')?.addEventListener('click', async () => {
+function setupLogin() {
+    const form = document.getElementById('login-form');
+    const button = document.getElementById('btn-login');
+    form?.addEventListener('submit', async event => {
+        event.preventDefault();
         const email = document.getElementById('auth-email').value.trim();
         const password = document.getElementById('auth-password').value;
-        const errorElement = document.getElementById('auth-error');
 
         if (!email || !password) {
-            errorElement.textContent = "Inserisci email e password.";
-            errorElement.classList.remove('hidden');
+            showAuthError('Inserisci email e password.');
             return;
         }
 
-        console.log("Tentativo di login per:", email);
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-        if (error) {
-            console.error("Errore di autenticazione:", error.message);
-            errorElement.textContent = "Credenziali non valide: " + error.message;
-            errorElement.classList.remove('hidden');
-        } else {
-            console.log("Login riuscito, avvio app...");
-            errorElement.classList.add('hidden');
+        const label = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Accesso in corso…';
+        hideAuthError();
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                showAuthError(loginErrorMessage(error));
+                return;
+            }
             await startApp(data.user);
+        } catch (err) {
+            console.error('Errore di rete durante l’accesso:', err);
+            showAuthError('Connessione non riuscita. Controlla la rete e riprova.');
+        } finally {
+            button.disabled = false;
+            button.textContent = label;
         }
     });
+}
 
-    // Listener per il Logout
+function loginErrorMessage(error) {
+    const status = Number(error?.status);
+    const code = String(error?.code || '');
+    if (code === 'invalid_credentials' || status === 400) return 'Email o password non corrette.';
+    if (code === 'email_not_confirmed') return 'Conferma l’indirizzo email prima di accedere.';
+    if (status === 429) return 'Troppi tentativi. Attendi qualche minuto e riprova.';
+    if (status >= 500) return 'Servizio di accesso non disponibile. Riprova più tardi.';
+    return 'Accesso non riuscito. Riprova.';
+}
+
+function setupLogout() {
     document.getElementById('btn-logout')?.addEventListener('click', async () => {
-        await supabase.auth.signOut();
-        window.location.reload();
+        try {
+            await supabase.auth.signOut();
+        } catch (err) {
+            console.error('Errore durante l’uscita:', err);
+        } finally {
+            window.location.reload();
+        }
     });
-});
-
-/**
- * Avvia l'applicazione inizializzando core e moduli attivi
- */
-async function startApp(user) {
-    try {
-        console.log("Inizializzazione piattaforma per utente ID:", user.id);
-        const profile = await initializePlatform(supabase, user);
-        console.log("Profilo caricato:", profile);
-        
-        console.log("Inizializzazione Modulo Intervals...");
-        await initIntervalsModule(supabase, user.id);
-        
-        console.log("Inizializzazione Modulo Calendario...");
-        initCalendarModule(supabase, user.id);
-
-        console.log("Inizializzazione Modulo Gare...");
-        await initRacesModule(supabase, user.id);
-
-        console.log("Inizializzazione Piani di allenamento...");
-        await initTrainingPlannerModule(supabase, user.id);
-
-        console.log("Inizializzazione Profilo...");
-        await initAthleteProfileModule(supabase, user.id);
-
-        console.log("Mostro la dashboard principale...");
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('main-app').classList.remove('hidden');
-    } catch (err) {
-        console.error("Errore durante l'avvio dei moduli in startApp:", err);
-    }
 }
 
 /**
- * Mostra la schermata di login
+ * Avvia l'applicazione: profilo, interfaccia e moduli, ognuno isolato dagli altri.
  */
+async function startApp(user) {
+    if (appStarted) return;
+    appStarted = true;
+
+    const profile = await initializePlatform(supabase, user);
+    if (!profile) showAppError('Profilo utente non disponibile: alcune funzioni potrebbero non funzionare.');
+
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('main-app').classList.remove('hidden');
+
+    const failed = [];
+    for (const [name, init] of MODULES) {
+        try {
+            await init(supabase, user.id);
+        } catch (err) {
+            console.error(`Errore nell'avvio del modulo ${name}:`, err);
+            failed.push(name);
+        }
+    }
+    if (failed.length) {
+        showAppError(`Non è stato possibile caricare: ${failed.join(', ')}. Ricarica la pagina per riprovare.`);
+    }
+}
+
 function showAuthScreen() {
-    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('auth-screen').classList.remove('hidden');
     document.getElementById('main-app').classList.add('hidden');
+}
+
+function hideBootScreen() {
+    document.getElementById('boot-screen')?.classList.add('hidden');
+}
+
+function showAuthError(message) {
+    const element = document.getElementById('auth-error');
+    element.textContent = message;
+    element.classList.remove('hidden');
+}
+
+function hideAuthError() {
+    document.getElementById('auth-error').classList.add('hidden');
+}
+
+function showAppError(message) {
+    const banner = document.getElementById('app-error');
+    if (!banner) return;
+    banner.querySelector('[data-app-error-text]').textContent = message;
+    banner.classList.remove('hidden');
 }
 
 /**
@@ -116,25 +177,26 @@ function showAuthScreen() {
  */
 function setupTabNavigation() {
     const tabButtons = document.querySelectorAll('.tab-btn');
+    const ACTIVE = ['bg-brand-500', 'text-white', 'font-semibold'];
+    const INACTIVE = ['text-slate-300', 'font-medium', 'hover:bg-slate-900', 'hover:text-white'];
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-target');
-            
-            // Tutte le schede, anche quelle in <section>: prima la scheda piani restava visibile ovunque.
-            document.querySelectorAll('#module-container > [role="tabpanel"], #module-container > #section-admin')
+
+            document.querySelectorAll('#module-container > [role="tabpanel"]')
                 .forEach(panel => panel.classList.add('hidden'));
             document.getElementById(targetId)?.classList.remove('hidden');
-            
+
             tabButtons.forEach(b => {
-                b.classList.remove('bg-brand-500', 'text-white');
-                b.classList.remove('bg-slate-900', 'text-slate-400');
-                b.classList.add('text-slate-300');
+                b.classList.remove(...ACTIVE);
+                b.classList.add(...INACTIVE);
                 b.setAttribute('aria-selected', 'false');
             });
-            btn.classList.remove('text-slate-300', 'hover:bg-slate-900', 'hover:text-white');
-            btn.classList.add('bg-brand-500', 'text-white');
+            btn.classList.remove(...INACTIVE);
+            btn.classList.add(...ACTIVE);
             btn.setAttribute('aria-selected', 'true');
             closeMobileSidebar();
+            window.scrollTo({ top: 0 });
         });
     });
 }
@@ -162,7 +224,10 @@ function setupSidebar() {
     });
 
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') closeMobileSidebar();
+        if (event.key === 'Escape' && menuButton?.getAttribute('aria-expanded') === 'true') {
+            closeMobileSidebar();
+            menuButton.focus();
+        }
     });
 }
 
@@ -176,6 +241,7 @@ function setMobileSidebarOpen(isOpen) {
     backdrop.classList.toggle('hidden', !isOpen);
     menuButton.setAttribute('aria-expanded', String(isOpen));
     menuButton.setAttribute('aria-label', isOpen ? 'Chiudi menu' : 'Apri menu');
+    if (isOpen) sidebar.querySelector('.tab-btn[aria-selected="true"]')?.focus();
 }
 
 function closeMobileSidebar() {

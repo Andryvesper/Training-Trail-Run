@@ -17,3 +17,8 @@ test('rifiuta valori negativi o non validi', () => {
     assert.throws(() => calculateEquivalentDistance(-1, 100));
     assert.throws(() => calculateTrailAdjustedPace(0, 10, 100));
 });
+test('rifiuta distanza o dislivello mancanti invece di restituire NaN', () => {
+    assert.throws(() => calculateEquivalentDistance(10, undefined), /negativi/);
+    assert.throws(() => calculateEquivalentDistance(Number.NaN, 100), /negativi/);
+    assert.throws(() => calculateTrailAdjustedPace(undefined, 10, 100), /maggiori di zero/);
+});
