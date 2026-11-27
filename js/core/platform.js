@@ -5,7 +5,7 @@ export async function initializePlatform(supabaseClient, user) {
 
     try {
         // Recuperiamo il profilo dal database Supabase
-        let { data: profile, error } = await supabaseClient
+        const { data: existingProfile, error } = await supabaseClient
             .from('profiles')
             .select('id, email, role')
             .eq('id', user.id)
@@ -13,6 +13,7 @@ export async function initializePlatform(supabaseClient, user) {
 
         // Solo un profilo davvero assente va creato; altri errori non vanno mascherati.
         if (error) throw error;
+        let profile = existingProfile;
         if (!profile) {
             // Il ruolo non è mai scelto dal client: ogni nuovo profilo è "athlete".
             // La promozione ad admin va fatta lato database da un amministratore.

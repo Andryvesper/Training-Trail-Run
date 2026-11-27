@@ -1,0 +1,8 @@
+node_modules/
+vendor/
+css/app.css
+package-lock.json
+*.md
+*.html
+*.sql
+supabase/

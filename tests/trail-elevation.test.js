@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { calculateEquivalentDistance, calculateTrailAdjustedPace } from '../js/modules/trail-elevation.js';
 
-let dummy = '';
 
 test('calcola la distanza equivalente in base a distanza e dislivello', () => {
     assert.equal(calculateEquivalentDistance(10, 500, 200), 16);
