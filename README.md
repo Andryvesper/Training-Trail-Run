@@ -1,5 +1,6 @@
 # Training-Trail-Run
-Web App per la schedulazione del programma di allenamento 
+
+Web App per la schedulazione del programma di allenamento
 
 ## Pianificazione degli allenamenti
 
@@ -25,7 +26,12 @@ oggettivi vanno definiti prima di automatizzarlo.
 Per visualizzare metriche e attività reali, inserisci l’Athlete ID e la API Key
 di Intervals.icu nella scheda **Intervals.icu**, quindi usa **Salva e
 sincronizza**. Se il collegamento non è configurato, i dati mancanti vengono
-indicati senza sostituirli con valori di esempio.
+indicati senza sostituirli con valori di esempio. La API Key salvata non torna
+più nel browser: le letture passano dalla Edge Function `intervals-proxy`
+(vedi [Collegamento sicuro a Intervals.icu](#collegamento-sicuro-a-intervalsicu)).
+Lo storico delle attività resta in cache nel browser (IndexedDB): dopo il
+primo accesso si scaricano solo le ultime settimane. La cache si cancella
+all'uscita.
 
 I manuali PDF da analizzare in locale possono essere copiati in
 `docs/manuali/`. I PDF in questa cartella sono esclusi da Git e Vercel. Il
@@ -83,8 +89,28 @@ L'app è una PWA: si installa dal browser, senza store.
 - **Android (Chrome):** apri il sito e tocca "Installa app" nel menu, oppure accetta la proposta di installazione.
 
 L'app installata si aggiorna da sola a ogni deploy e ha bisogno della rete:
-senza connessione mostra solo la struttura salvata. File: `manifest.webmanifest`,
+senza connessione mostra solo la struttura salvata (HTML, CSS e libreria
+Supabase sono già in cache dall'installazione). File: `manifest.webmanifest`,
 `sw.js` e la cartella `icons/` (generata dal logo in `docs/`).
+
+## Collegamento sicuro a Intervals.icu
+
+La Edge Function [`supabase/functions/intervals-proxy`](./supabase/functions/intervals-proxy/index.ts)
+legge la API Key dal profilo lato server e inoltra a Intervals.icu solo le
+letture usate dall'app (attività, wellness, stream e giri). Il browser invia
+solo la sessione Supabase.
+
+L'ordine dei passaggi conta:
+
+1. Distribuisci la funzione (serve un token di accesso Supabase):
+   `npx supabase functions deploy intervals-proxy --project-ref sjsttftadxmutrhmagep --no-verify-jwt`.
+   `--no-verify-jwt` è voluto: la funzione verifica la sessione da sola.
+2. Applica le migrazioni (sotto). Solo dopo il passo 1:
+   `20261128100000_protect_intervals_credentials.sql` rende la chiave
+   illeggibile dal browser, quindi senza funzione Intervals.icu non funziona.
+
+Finché la funzione non è distribuita, l'app chiama Intervals.icu direttamente
+come prima (la chiave è ancora leggibile).
 
 ## Backup locale
 
@@ -144,7 +170,30 @@ scheda Gare:
 - [`20261113121000_allow_generated_training_plan_drafts.sql`](./supabase/migrations/20261113121000_allow_generated_training_plan_drafts.sql), per salvare bozze generate e segnarle come confermate.
 - [`20261114090000_secure_profiles_role.sql`](./supabase/migrations/20261114090000_secure_profiles_role.sql), per impedire che un utente scelga o modifichi il proprio ruolo.
 - [`20261114100000_consistent_shared_plan_import.sql`](./supabase/migrations/20261114100000_consistent_shared_plan_import.sql), per mantenere coerenti durata e passo dei programmi importati.
+- [`20261114110000_add_profile_personal_data.sql`](./supabase/migrations/20261114110000_add_profile_personal_data.sql), per i dati anagrafici della scheda Profilo.
+- [`20261114120000_add_training_race_elevation_loss.sql`](./supabase/migrations/20261114120000_add_training_race_elevation_loss.sql), per il dislivello negativo delle gare.
+- [`20261127100000_create_performance_analyses.sql`](./supabase/migrations/20261127100000_create_performance_analyses.sql), per le analisi della prestazione e le revisioni delle soglie.
+- [`20261128090000_add_profiles_legacy_intervals_columns.sql`](./supabase/migrations/20261128090000_add_profiles_legacy_intervals_columns.sql), per le colonne `intervals_athlete_id` e `intervals_api_key` usate dall'app.
+- [`20261128091000_harden_schema.sql`](./supabase/migrations/20261128091000_harden_schema.sql), per limiti di dimensione, policy solo per utenti autenticati, indici, una revisione delle soglie al giorno e pulizia delle condivisioni scadute.
+- [`20261128100000_protect_intervals_credentials.sql`](./supabase/migrations/20261128100000_protect_intervals_credentials.sql), per nascondere la API Key al browser. **Solo dopo aver distribuito `intervals-proxy`.**
+- [`20261128110000_record_confirmed_draft_choices.sql`](./supabase/migrations/20261128110000_record_confirmed_draft_choices.sql), per salvare nella bozza confermata le scelte fatte (gare intermedie, sedute extra).
 
-## Test
+## Sviluppo
 
-Esegui i test automatici con `npm test` (richiede Node.js).
+Richiede Node.js 22 o successivo. Dopo `npm install`:
+
+| Comando | Cosa fa |
+| --- | --- |
+| `npm run build:css` | Genera `css/app.css` da `css/tailwind.input.css` (da rilanciare quando cambiano le classi Tailwind; il file generato va committato). |
+| `npm run lint` | ESLint su codice, test e service worker. |
+| `npm run format` / `npm run format:check` | Prettier. Trascrizioni e regole metodologiche sono escluse. |
+| `npm test` | Test unitari. |
+| `npm run test:e2e` | Test dell'interfaccia con Edge (Playwright), senza rete esterna. |
+| `npm run check` | Lint, formattazione e test unitari insieme. |
+
+GitHub Actions ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml))
+esegue tutti i controlli a ogni push e pull request.
+
+La pagina non carica script di terze parti: `supabase-js` è in `vendor/` e
+Tailwind è compilato. La Content Security Policy in `index.html` e gli
+header di sicurezza in `vercel.json` presuppongono questa scelta.
