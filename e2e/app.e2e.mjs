@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 
 // Date locali (come fa l'app), sempre relative a oggi.
 const key = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -144,8 +144,9 @@ test.after(async () => {
     await new Promise(resolve => server?.close(resolve));
 });
 
-async function openApp({ intervals = false } = {}) {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+// Il service worker resta bloccato nei test dell'app: le route finte devono vedere ogni richiesta.
+async function openApp({ intervals = false, serviceWorkers = 'block' } = {}) {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true, serviceWorkers });
     const page = await context.newPage();
     const consoleErrors = [];
     page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
@@ -292,4 +293,27 @@ test('dashboard: analisi prestazione dagli stream Intervals (GAP, deriva, GCT, p
         assert.ok(await page.locator('#dashboard-performance-charts svg').count() >= 1);
         assert.deepEqual(consoleErrors, []);
     } finally { await context.close(); }
+});
+
+test('PWA: manifest, icone e service worker attivo', async () => {
+    const { context, page, consoleErrors } = await openApp({ serviceWorkers: 'allow' });
+    try {
+        const href = await page.locator('link[rel="manifest"]').getAttribute('href');
+        const manifest = await (await page.request.get(`${baseUrl}/${href}`)).json();
+        assert.equal(manifest.display, 'standalone');
+        assert.equal(manifest.start_url, '/');
+        const sizes = manifest.icons.map(icon => `${icon.sizes}:${icon.purpose}`);
+        for (const needed of ['192x192:any', '512x512:any', '512x512:maskable']) assert.ok(sizes.includes(needed), needed);
+        const icons = [...manifest.icons.map(icon => icon.src), 'icons/apple-touch-icon.png'];
+        for (const src of icons) {
+            const response = await page.request.get(`${baseUrl}/${src}`);
+            assert.equal(response.status(), 200, src);
+            assert.equal(response.headers()['content-type'], 'image/png', src);
+        }
+        const scope = await page.evaluate(async () => (await navigator.serviceWorker.ready).scope);
+        assert.equal(scope, `${baseUrl}/`);
+        assert.deepEqual(consoleErrors, []);
+    } finally {
+        await context.close();
+    }
 });

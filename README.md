@@ -75,6 +75,17 @@ carichi individuali. Verifica le sedute con un allenatore prima di seguirle.
 Questa funzione copia le sedute già pianificate: non genera automaticamente
 un nuovo piano né i dettagli strutturati di ripetute e recuperi.
 
+## App sullo smartphone
+
+L'app è una PWA: si installa dal browser, senza store.
+
+- **iPhone (Safari):** apri il sito, tocca Condividi e poi "Aggiungi alla schermata Home".
+- **Android (Chrome):** apri il sito e tocca "Installa app" nel menu, oppure accetta la proposta di installazione.
+
+L'app installata si aggiorna da sola a ogni deploy e ha bisogno della rete:
+senza connessione mostra solo la struttura salvata. File: `manifest.webmanifest`,
+`sw.js` e la cartella `icons/` (generata dal logo in `docs/`).
+
 ## Backup locale
 
 Gli script in `scripts/backup/` preparano un backup cifrato age con dump

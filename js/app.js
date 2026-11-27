@@ -11,6 +11,13 @@ const supabase = window.supabase.createClient(
     window.SUPABASE_CONFIG.KEY
 );
 
+// App installabile: registra il service worker (solo su HTTPS o localhost).
+if ('serviceWorker' in navigator && window.isSecureContext) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker non registrato:', err));
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     setupTabNavigation();
     setupSidebar();
