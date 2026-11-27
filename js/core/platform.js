@@ -41,14 +41,11 @@ export async function initializePlatform(supabaseClient, user) {
 
 function setupUserInterfaceByRole(profile) {
     const roleBadge = document.getElementById('user-role-badge');
-    const adminTabBtn = document.querySelector('[data-tab="admin"]');
 
     if (profile.role === 'admin') {
         if (roleBadge) roleBadge.textContent = "Ruolo: Amministratore";
-        if (adminTabBtn) adminTabBtn.classList.remove('hidden');
     } else {
         if (roleBadge) roleBadge.textContent = "Ruolo: Atleta";
-        if (adminTabBtn) adminTabBtn.classList.add('hidden');
     }
 
     const emailDisplay = document.getElementById('logged-user-email');

@@ -179,33 +179,67 @@ function showAppError(message) {
 }
 
 /**
- * Gestione centralizzata della navigazione a schede
+ * Navigazione a schede (pattern WAI-ARIA "tabs" verticale): clic, frecce,
+ * Home/Fine; ogni scheda è collegata al suo pannello.
  */
 function setupTabNavigation() {
-    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabButtons = [...document.querySelectorAll('.tab-btn')];
     const ACTIVE = ['bg-brand-500', 'text-white', 'font-semibold'];
     const INACTIVE = ['text-slate-300', 'font-medium', 'hover:bg-slate-900', 'hover:text-white'];
+
+    tabButtons.forEach(btn => {
+        const panel = document.getElementById(btn.dataset.target);
+        btn.id = `tab-${btn.dataset.target}`;
+        btn.setAttribute('aria-controls', btn.dataset.target);
+        btn.tabIndex = btn.getAttribute('aria-selected') === 'true' ? 0 : -1;
+        if (panel && !panel.hasAttribute('aria-labelledby')) panel.setAttribute('aria-labelledby', btn.id);
+    });
+
+    const activate = btn => {
+        document.querySelectorAll('#module-container > [role="tabpanel"]')
+            .forEach(panel => panel.classList.add('hidden'));
+        document.getElementById(btn.dataset.target)?.classList.remove('hidden');
+
+        tabButtons.forEach(b => {
+            b.classList.remove(...ACTIVE);
+            b.classList.add(...INACTIVE);
+            b.setAttribute('aria-selected', 'false');
+            b.tabIndex = -1;
+        });
+        btn.classList.remove(...INACTIVE);
+        btn.classList.add(...ACTIVE);
+        btn.setAttribute('aria-selected', 'true');
+        btn.tabIndex = 0;
+    };
+
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            const targetId = btn.getAttribute('data-target');
-
-            document.querySelectorAll('#module-container > [role="tabpanel"]')
-                .forEach(panel => panel.classList.add('hidden'));
-            document.getElementById(targetId)?.classList.remove('hidden');
-
-            tabButtons.forEach(b => {
-                b.classList.remove(...ACTIVE);
-                b.classList.add(...INACTIVE);
-                b.setAttribute('aria-selected', 'false');
-            });
-            btn.classList.remove(...INACTIVE);
-            btn.classList.add(...ACTIVE);
-            btn.setAttribute('aria-selected', 'true');
+            activate(btn);
             closeMobileSidebar();
             window.scrollTo({ top: 0 });
         });
     });
+
+    document.querySelector('[role="tablist"]')?.addEventListener('keydown', event => {
+        const visible = tabButtons.filter(btn => !btn.classList.contains('hidden'));
+        const index = visible.indexOf(document.activeElement);
+        if (index < 0) return;
+        const next = {
+            ArrowDown: visible[(index + 1) % visible.length],
+            ArrowRight: visible[(index + 1) % visible.length],
+            ArrowUp: visible[(index - 1 + visible.length) % visible.length],
+            ArrowLeft: visible[(index - 1 + visible.length) % visible.length],
+            Home: visible[0],
+            End: visible[visible.length - 1]
+        }[event.key];
+        if (!next) return;
+        event.preventDefault();
+        activate(next);
+        next.focus();
+    });
 }
+
+const DESKTOP = window.matchMedia('(min-width: 1024px)');
 
 function setupSidebar() {
     const sidebar = document.getElementById('app-sidebar');
@@ -218,7 +252,10 @@ function setupSidebar() {
         const isOpen = !sidebar.classList.contains('-translate-x-full');
         setMobileSidebarOpen(!isOpen);
     });
-    closeButton?.addEventListener('click', closeMobileSidebar);
+    closeButton?.addEventListener('click', () => {
+        closeMobileSidebar();
+        menuButton?.focus();
+    });
     backdrop?.addEventListener('click', closeMobileSidebar);
 
     collapseButton?.addEventListener('click', () => {
@@ -235,6 +272,20 @@ function setupSidebar() {
             menuButton.focus();
         }
     });
+
+    DESKTOP.addEventListener('change', syncSidebarInert);
+    syncSidebarInert();
+}
+
+// Da telefono il menu chiuso è fuori schermo: non deve ricevere il focus.
+// Aperto, è il resto della pagina a diventare inerte (focus nel menu).
+function syncSidebarInert() {
+    const sidebar = document.getElementById('app-sidebar');
+    const shell = document.getElementById('app-shell');
+    const isOpen = document.getElementById('btn-menu-toggle')?.getAttribute('aria-expanded') === 'true';
+    const mobile = !DESKTOP.matches;
+    sidebar.inert = mobile && !isOpen;
+    if (shell) shell.inert = mobile && isOpen;
 }
 
 function setMobileSidebarOpen(isOpen) {
@@ -247,6 +298,7 @@ function setMobileSidebarOpen(isOpen) {
     backdrop.classList.toggle('hidden', !isOpen);
     menuButton.setAttribute('aria-expanded', String(isOpen));
     menuButton.setAttribute('aria-label', isOpen ? 'Chiudi menu' : 'Apri menu');
+    syncSidebarInert();
     if (isOpen) sidebar.querySelector('.tab-btn[aria-selected="true"]')?.focus();
 }
 

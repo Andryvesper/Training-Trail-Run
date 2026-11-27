@@ -154,8 +154,8 @@ test.after(async () => {
 });
 
 // Il service worker resta bloccato nei test dell'app: le route finte devono vedere ogni richiesta.
-async function openApp({ intervals = false, serviceWorkers = 'block' } = {}) {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true, serviceWorkers });
+async function openApp({ intervals = false, serviceWorkers = 'block', viewport = { width: 1280, height: 900 } } = {}) {
+    const context = await browser.newContext({ viewport, acceptDownloads: true, serviceWorkers });
     const page = await context.newPage();
     const consoleErrors = [];
     page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
@@ -219,6 +219,42 @@ test('la sidebar si riduce e si espande', async () => {
         await button.click();
         assert.equal(await button.getAttribute('aria-expanded'), 'true');
         assert.equal(await sidebar.evaluate(el => el.classList.contains('is-collapsed')), false);
+    } finally { await context.close(); }
+});
+
+test('schede da tastiera: frecce, Home e Fine con pannello collegato', async () => {
+    const { context, page, consoleErrors } = await openApp();
+    try {
+        const calendarTab = page.locator('#tab-section-calendar');
+        assert.equal(await calendarTab.getAttribute('aria-controls'), 'section-calendar');
+        assert.equal(await page.locator('#section-calendar').getAttribute('aria-labelledby'), 'tab-section-calendar');
+        await calendarTab.focus();
+        await page.keyboard.press('ArrowDown');
+        assert.equal(await page.locator('#tab-section-races').getAttribute('aria-selected'), 'true');
+        assert.equal(await page.locator('#section-races').isVisible(), true);
+        assert.equal(await page.evaluate(() => document.activeElement.id), 'tab-section-races');
+        await page.keyboard.press('End');
+        assert.equal(await page.locator('#section-profile').isVisible(), true);
+        await page.keyboard.press('Home');
+        assert.equal(await page.locator('#section-calendar').isVisible(), true);
+        // Una sola scheda raggiungibile con Tab (roving tabindex).
+        assert.equal(await page.locator('.tab-btn[tabindex="0"]').count(), 1);
+        assert.deepEqual(consoleErrors, []);
+    } finally { await context.close(); }
+});
+
+test('telefono: il menu chiuso non riceve il focus, aperto blocca il resto', async () => {
+    const { context, page } = await openApp({ viewport: { width: 390, height: 844 } });
+    try {
+        const sidebar = page.locator('#app-sidebar');
+        assert.equal(await sidebar.evaluate(el => el.inert), true);
+        await page.locator('#btn-menu-toggle').click();
+        assert.equal(await sidebar.evaluate(el => el.inert), false);
+        assert.equal(await page.locator('#app-shell').evaluate(el => el.inert), true);
+        assert.equal(await page.evaluate(() => document.activeElement.id), 'tab-section-calendar');
+        await page.keyboard.press('Escape');
+        assert.equal(await sidebar.evaluate(el => el.inert), true);
+        assert.equal(await page.evaluate(() => document.activeElement.id), 'btn-menu-toggle');
     } finally { await context.close(); }
 });
 
