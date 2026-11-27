@@ -37,6 +37,8 @@ test('uno snapshot salva solo i dati dell’attività necessari alla scheda', ()
         distance: 12500,
         moving_time: 4800,
         elapsed_time: 5100,
+        total_elevation_gain: 640,
+        average_speed: 2.6,
         description: 'informazione non necessaria'
     }), {
         id: '42',
@@ -45,6 +47,14 @@ test('uno snapshot salva solo i dati dell’attività necessari alla scheda', ()
         start_date_local: '2026-11-05T08:30:00',
         distance: 12500,
         moving_time: 4800,
-        elapsed_time: 5100
+        elapsed_time: 5100,
+        total_elevation_gain: 640,
+        average_speed: 2.6
     });
+});
+
+test('lo snapshot senza D+ o velocità salva null', () => {
+    const snapshot = createActivitySnapshot({ id: 7, type: 'Run', distance: 5000 });
+    assert.equal(snapshot.total_elevation_gain, null);
+    assert.equal(snapshot.average_speed, null);
 });

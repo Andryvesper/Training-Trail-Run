@@ -88,10 +88,15 @@ test('la regola ultra è approvata e si applica solo a gare trail tra 75 e 125 k
         reference_test_date: '2026-11-01',
         reference_vr_seconds_per_km: 285
     };
-    const ultra = assessTrainingMethodology(profile, { distance_km: 102, event_date: '2027-06-04' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    // Con anche la tabella 11 applicabile serve la scelta del metodo.
+    const undecided = assessTrainingMethodology(profile, { distance_km: 102, event_date: '2027-06-04' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
+    assert.equal(undecided.generation_enabled, false);
+    const ultra = assessTrainingMethodology({ ...profile, preferred_cycle_method: 'distance_time' }, { distance_km: 102, event_date: '2027-06-04' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
     assert.deepEqual(ultra.generation_pattern_ids, ['ultra_100km_evoluto']);
+    // Su sola strada vale solo la tabella 11.
     const roadOnly = assessTrainingMethodology({ ...profile, preferred_terrains: ['road'] }, { distance_km: 102, event_date: '2027-06-04' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
-    assert.equal(roadOnly.generation_enabled, false);
+    assert.ok(!roadOnly.approved_pattern_ids.includes('ultra_100km_evoluto'));
+    assert.deepEqual(roadOnly.generation_pattern_ids, ['ultra_100km_passatore']);
     const tooShort = assessTrainingMethodology(profile, { distance_km: 73, event_date: '2027-03-20' }, TRAINING_METHOD_RULES, { asOfDate: '2026-11-14' });
     assert.ok(!tooShort.approved_pattern_ids.includes('ultra_100km_evoluto'));
 });

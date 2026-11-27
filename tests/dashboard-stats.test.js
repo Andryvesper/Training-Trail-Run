@@ -45,6 +45,8 @@ test('aggrega i volumi per settimana da lunedì', () => {
     assert.equal(weeks[0].swimCount, 1);
     assert.equal(weeks[1].runCount, 2);
     assert.equal(weeks[1].runKm, 40.1);
+    assert.equal(weeks[0].runElevationM, 600);
+    assert.equal(weeks[1].runElevationM, 0);
 });
 
 test('i record usano solo attività o gare sull’intera distanza, senza estrapolare', () => {

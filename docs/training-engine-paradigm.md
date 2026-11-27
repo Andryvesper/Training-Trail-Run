@@ -399,6 +399,57 @@ revisione in [`trail-transcriptions-review.md`](./trail-transcriptions-review.md
   sale in metà del tempo stimato alla velocità ascensionale del libro per
   l'ultratrail (amatore 500 m/h, evoluto 800 m/h; p. 266). Le sedute
   infrasettimanali e di qualità restano su percorsi pianeggianti o ondulati.
+  La nota riporta anche il D-: se la gara non ha il dato si assume uguale al
+  D+ e lo si scrive ("D- stimato uguale al D+ (percorso ad anello)").
+- **Passo in salita:** in salita si va a sforzo, non a passo. Lunghi con
+  dislivello e ripetute in salita ("in salita", SB, "6 km in salita") riportano
+  un tempo verticale indicativo per 100 m D+ dalla velocità ascensionale
+  (amatore 500 m/h = 12' ogni 100 m; evoluto 800 m/h = 7'30"; pp. 266-268).
+  Le fasce di passo restano solo per i tratti pianeggianti.
+- **Sedute serali:** le sedute "da fare la sera dopo le 21" hanno la nota
+  "Seduta serale dopo le 21: lampada frontale, abbigliamento riflettente,
+  percorso conosciuto". È un consiglio generale di sicurezza, non del libro
+  (il libro chiede solo di abituarsi alla poca luce, pp. 215 e 266).
+
+## Tabelle 11 e 13 per amatori (14 novembre 2026)
+
+Approvate dall'atleta il 14 novembre 2026; la tabella 12 (Pistoia-Abetone)
+resta in attesa di revisione. Dettagli in
+[`trail-transcriptions-review.md`](./trail-transcriptions-review.md).
+
+- **Tabella 11 (100 km del Passatore):** ultra 75-125 km su strada o trail,
+  chilometri e ritmo respiratorio senza passo al km (p. 211), quindi nessun
+  test VR richiesto; il test Conconi della settimana 1 è suggerito. Maratona
+  (sett. 8) e mezza a CRF (sett. 10) sono gare di allenamento. Base 4 corse;
+  3 corse con la riduzione ultra approvata (tetto del lungo +25%, mai oltre
+  65 km), 5 corse con le due varianti approvate.
+- **Tabella 13 (trail 15-50 km):** terreno trail richiesto, blocco di 4
+  settimane in km e respiro; base 5 corse, riduzione a 3-4 con la regola ultra
+  approvata.
+- **Scelta tra tabella 10 evoluti e tabella 11** (ultra ~100 km trail): resta
+  la scelta del metodo nel questionario (`preferred_cycle_method`:
+  distanza-tempo = tabella 10, respiratorio = tabella 11); il motore propone
+  un suggerimento senza applicarlo.
+
+### Regole derivate dal motore
+
+Non sono stampate nel libro. Quelle non ancora approvate sono etichettate
+"regola derivata, da confermare dall'atleta" nel codice e nelle note della bozza;
+quelle approvate riportano data e approvazione.
+
+| Regola | Dove | Contenuto | Applicazione |
+|---|---|---|---|
+| `trail_block_repetition` | `BLOCK_REPETITION_RULE`, training-cycle-engine.js | Tabella 13 ripetuta a ritroso dalla gara (massimo 12 settimane, non prima di oggi); ultima settimana sulla settimana 1 "Gara 30 km" se la gara è di almeno 26 km, altrimenti sulla settimana 3 "Gara 22 km"; le gare dei blocchi precedenti diventano "Gara o lungo su sterrato di X km a CRF", salvo gare reali in calendario. | Approvata dall'atleta il 27 novembre 2026, segnalata nelle note della bozza. |
+| `ultra_table_recommendation` | `ULTRA_METHOD_RECOMMENDATION_RULE`, training-methodology-rules.js | Esperienza evoluta (`structured_experienced`) → tabella 10 evoluti, altrimenti tabella 11. | Solo proposta: la scelta resta all'atleta. |
+| Tempo verticale per 100 m D+ | `elevationGuidance` | Conversione della velocità ascensionale di p. 266 (valore prudente della fascia) in minuti per 100 m. | Nota indicativa. |
+| D- stimato uguale al D+ | `elevationGuidance` | Se la gara non indica il D-, si assume un percorso ad anello. | Nota esplicita nella seduta. |
+| Nota per le sedute serali | `NIGHT_SESSION_NOTE` | Frontale, abbigliamento riflettente, percorso conosciuto. | Consiglio generale di sicurezza, non dal libro. |
+| `intermediate_race_adjustment` | `INTERMEDIATE_RACE_RULE`, training-plan-adjustments.js | Ogni gara secondaria nel periodo della bozza prende il posto della gara della tabella in quella settimana (altrimenti della seduta di quel giorno o del lungo); il giorno prima riposo o corsa facile fino a 5 km, il giorno dopo corsa facile/DAU o riposo. Una gara intermedia già applicata non viene sostituita da un'altra. | Solo proposta; si applica gara per gara dopo la conferma dell'atleta. |
+| `missed_week_adjustment` | `MISSED_WEEK_RULE`, training-plan-adjustments.js | Settimana saltata: i km non si recuperano; il lungo non di qualità della settimana successiva cresce al massimo del 25% sull'ultimo lungo completato (titolo, km e note aggiornati); la qualità resta; a meno di 3 settimane dalla gara lo scarico resta invariato. Le sedute già svolte non vengono toccate. | Anteprima; il calendario cambia solo dopo conferma esplicita. |
+| Test VR: riscaldamento e defaticamento | `proposeReferenceTest`, training-plan-adjustments.js | Proposta di test VR con 2 km di riscaldamento e 1 km di defaticamento (stessi km della variante a 3 corse), indicazione generale e non del libro; la VR resta valida 6 settimane (approvato). | Proposta in calendario solo su scelta dell'atleta. |
+| Avviso di carico settimanale (+10%) | `LOAD_INCREASE_THRESHOLD`, training-load.js | Avviso se km, D+ o tempo pianificati crescono di oltre il 10% sulla settimana precedente: regola generale di prudenza, non dal libro. | Solo avviso nel calendario, il piano non cambia. |
+| Estensione delle varianti a 5 corse ai cicli respiratori (tabelle 11 e 13) | `FREQUENCY_ADAPTATION_RULES.five_sessions_*` (`breathingKmExtension`), training-cycle-engine.js | L'approvazione del 13 novembre riguarda le tabelle a distanza/tempo; l'estensione a `breathing_km` (compresa la quinta corsa "X km CRF", assente nelle tabelle) è derivata. | Approvata dall'atleta il 27 novembre 2026. |
+| Modello a passo dalla VR per la tabella 11 | `TRAIL_TABLE_OPTIONS.ultra_100km_passatore.vrPaceModel`, `paceBandsForBreathing` (training-pace-zones.js) | Con test VR valido: CRMF VR+60-90", CRF VR+40-50", CRLI VR+15-25", CRI VR+5-10" (pp. 174-177); maratona di allenamento a ritmo maratona, mezza senza codice a ritmo mezza (p. 192); CRMI senza passo. Senza VR valida resta a respiro. | Chiesto e approvato dall'atleta il 27 novembre 2026. |
 
 ## Paradigma operativo
 

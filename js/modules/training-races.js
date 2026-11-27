@@ -1,5 +1,5 @@
 const TABLE_NAME = 'training_races';
-const RACE_FIELDS = 'id, user_id, name, event_date, target_period, distance_km, elevation_gain_m, priority, goal, status, official_time_seconds, chip_time_seconds, overall_position, gender_position, category_position, category, bib_number, result_source_url';
+const RACE_FIELDS = 'id, user_id, name, event_date, target_period, distance_km, elevation_gain_m, elevation_loss_m, priority, goal, status, official_time_seconds, chip_time_seconds, overall_position, gender_position, category_position, category, bib_number, result_source_url';
 
 export class TrainingRacesService {
     constructor(supabaseClient) {
@@ -64,6 +64,9 @@ function validateRace(race) {
     const elevation = race.elevation_gain_m === '' || race.elevation_gain_m == null
         ? null
         : Number(race.elevation_gain_m);
+    const elevationLoss = race.elevation_loss_m === '' || race.elevation_loss_m == null
+        ? null
+        : Number(race.elevation_loss_m);
     const priority = race.priority === '' || race.priority == null ? 2 : Number(race.priority);
     const eventDate = String(race.event_date ?? '').trim() || null;
     const status = race.status;
@@ -94,6 +97,12 @@ function validateRace(race) {
     if (elevation !== null && elevation > 100000) {
         throw new Error('Il dislivello non può superare 100000 m.');
     }
+    if (elevationLoss !== null && (!Number.isInteger(elevationLoss) || elevationLoss < 0)) {
+        throw new Error('Il dislivello negativo deve essere un numero intero non negativo.');
+    }
+    if (elevationLoss !== null && elevationLoss > 100000) {
+        throw new Error('Il dislivello negativo non può superare 100000 m.');
+    }
     if (!Number.isInteger(priority) || priority < 1 || priority > 3) {
         throw new Error('La priorità deve essere 1, 2 o 3.');
     }
@@ -116,6 +125,7 @@ function validateRace(race) {
         target_period: period,
         distance_km: distance,
         elevation_gain_m: elevation,
+        elevation_loss_m: elevationLoss,
         priority,
         goal,
         status,

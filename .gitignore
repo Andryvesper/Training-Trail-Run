@@ -4,3 +4,4 @@
 /docs/manuali/*.docx
 /docs/manuali/~$*
 /supabase/.temp/
+node_modules/

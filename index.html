@@ -204,6 +204,22 @@
                             <p class="col-span-full text-sm text-slate-400">In attesa dei dati Intervals.icu.</p>
                         </div>
                     </section>
+                    <section class="bg-slate-900/70 border border-slate-800 p-4 sm:p-5 rounded-2xl space-y-5" aria-labelledby="dashboard-load-title">
+                        <div>
+                            <h3 id="dashboard-load-title" class="text-base font-bold text-white">Aderenza al piano e carico</h3>
+                            <p class="text-xs text-slate-400 mt-1">Sedute, km e D+ svolti rispetto al pianificato (sedute fino a oggi, svolto = sedute associate a un'attività Intervals).</p>
+                        </div>
+                        <div id="dashboard-adherence" aria-live="polite">
+                            <p class="text-sm text-slate-400">In attesa dei dati Intervals.icu.</p>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-200">Carico settimanale di corsa e trail</h4>
+                            <p class="text-xs text-slate-400 mt-1">Avviso quando km, D+ o tempo superano del 10% la settimana precedente: regola generale di prudenza, non dal libro.</p>
+                        </div>
+                        <div id="dashboard-load" aria-live="polite">
+                            <p class="text-sm text-slate-400">In attesa dei dati Intervals.icu.</p>
+                        </div>
+                    </section>
                     <section class="space-y-4" aria-labelledby="dashboard-charts-title">
                         <div class="flex flex-wrap items-end justify-between gap-3">
                             <div>
@@ -267,6 +283,10 @@
                             <label class="space-y-1 text-xs font-medium text-slate-400">
                                 <span>Dislivello positivo (m, facoltativo)</span>
                                 <input name="elevation_gain_m" type="number" min="0" step="1" inputmode="numeric" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                            </label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400">
+                                <span>Dislivello negativo (m)</span>
+                                <input name="elevation_loss_m" type="number" min="0" max="100000" step="1" inputmode="numeric" placeholder="Facoltativo: se vuoto si considera uguale al D+" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
                             </label>
                             <label class="space-y-1 text-xs font-medium text-slate-400">
                                 <span>Priorità</span>
@@ -511,9 +531,10 @@
                                         <span>Metodo del ciclo per la gara</span>
                                         <select name="preferred_cycle_method" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
                                             <option value="">Seleziona</option>
-                                            <option value="distance_time">Distanza-tempo (km; 3, 4 o 5 corse)</option>
-                                            <option value="breathing">Respiratorio (minuti; solo 10 km, 4 corse)</option>
+                                            <option value="distance_time">Distanza-tempo (km e passi dalla VR; ultra: tabella 10 evoluti)</option>
+                                            <option value="breathing">Respiratorio (10 km in minuti; ultra e trail: tabelle 11 e 13 in km, senza VR)</option>
                                         </select>
+                                        <span class="block text-[11px] font-normal text-slate-500">Per ultra ~100 km valgono sia la tabella 10 evoluti (distanza-tempo) sia la tabella 11 (respiratorio); per trail 15-50 km la tabella 13 è a ritmo respiratorio.</span>
                                     </label>
                                     <label class="space-y-1 text-xs font-medium text-slate-400">
                                         <span>Variante con 5 corse (cicli distanza-tempo)</span>
@@ -610,6 +631,7 @@
                                     <p class="font-semibold text-white">Stato delle regole metodologiche</p>
                                     <p class="text-slate-400">Seleziona un obiettivo per vedere i riferimenti pertinenti. Nessun esempio viene usato come prescrizione automatica.</p>
                                 </div>
+                                <div id="planner-reference-test" class="hidden space-y-2 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 text-sm text-slate-300" aria-live="polite"></div>
                                 <div class="flex flex-col gap-2 sm:flex-row">
                                     <button type="submit" name="action" value="save" class="min-h-11 rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800">Salva questionario</button>
                                     <button id="planner-create-draft" type="submit" name="action" value="draft" disabled class="min-h-11 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 enabled:hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40">Prepara richiesta di bozza</button>

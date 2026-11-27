@@ -438,10 +438,12 @@ test('crea una richiesta di bozza non attiva con snapshot della gara selezionata
         target_period: null,
         distance_km: 25,
         elevation_gain_m: 1200,
+        elevation_loss_m: null,
         priority: 1,
         goal: 'Obiettivo principale'
     });
-    assert.equal(insert.profile_snapshot.methodology_assessment.status, 'awaiting_approved_rules');
+    // Tabella 13 (trail 15-50 km) approvata: mancano solo input (2 corse non ammesse).
+    assert.equal(insert.profile_snapshot.methodology_assessment.status, 'awaiting_required_inputs');
     assert.equal(insert.profile_snapshot.methodology_assessment.generation_enabled, false);
     assert.equal(insert.profile_snapshot.target_running_sessions_per_week, 2);
     assert.equal(insert.profile_snapshot.peak_week_proposal_mode, 'suggest_with_reason');
@@ -466,6 +468,7 @@ test('crea una richiesta di bozza non attiva con snapshot della gara selezionata
         target_period: null,
         distance_km: 10,
         elevation_gain_m: 100,
+        elevation_loss_m: null,
         priority: 1,
         goal: 'Gara secondaria'
     }]);

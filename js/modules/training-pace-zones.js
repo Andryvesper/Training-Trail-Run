@@ -35,6 +35,53 @@ export const PACE_ZONE_SOURCE = Object.freeze({
     ])
 });
 
+// Ritmi respiratori (pp. 174-177): le tabelle 11-13 sono a sensazione, in km
+// e respirazione, quindi si descrivono a parole e senza passo al km.
+export const BREATHING_RHYTHMS = Object.freeze({
+    CRMF: Object.freeze({ label: 'respirazione molto facile', effort: 'sforzo 1, circa 60-70% di PMAX', page: '174' }),
+    CRF: Object.freeze({ label: 'respirazione facile', effort: 'sforzo 2-3, circa 71-77% di PMAX', page: '176-177' }),
+    CRLI: Object.freeze({ label: 'respirazione leggermente impegnata', effort: 'sforzo 4-6, circa 78-84% di PMAX', page: '177' }),
+    CRI: Object.freeze({ label: 'respirazione impegnata', effort: 'sforzo 7-8, circa 85-90% di PMAX', page: '177' }),
+    CRMI: Object.freeze({ label: 'respirazione molto impegnata', effort: 'più impegnata della CRI, solo nei tratti brevi indicati', page: '177' })
+});
+
+export function describeBreathing(codes = []) {
+    return [...new Set(codes)]
+        .filter(code => BREATHING_RHYTHMS[code])
+        .map(code => `${code} = ${BREATHING_RHYTHMS[code].label} (${BREATHING_RHYTHMS[code].effort}; p. ${BREATHING_RHYTHMS[code].page})`)
+        .join('; ');
+}
+
+// Modello a passo per la tabella 11 (approvato dall'atleta il 27 novembre 2026):
+// ogni ritmo respiratorio diventa la fascia di passo che il libro gli associa
+// (pp. 174-177). CRMI non ha un passo nel libro: resta a sensazione.
+const BREATHING_PACE = Object.freeze({ CRMF: 'CRMF', CRF: 'CRF', CRLI: 'CRLI', CRI: 'CRI' });
+
+export function paceBandsForBreathing(session, vrSecondsPerKm) {
+    if (!Number.isInteger(vrSecondsPerKm) || vrSecondsPerKm <= 0) return [];
+    const codes = [...new Set(session?.breathing || [])];
+    const bands = [];
+    const push = (key, rule) => bands.push({
+        key,
+        label: BREATHING_RHYTHMS[key] ? `${key} (${BREATHING_RHYTHMS[key].label})` : rule.label,
+        fastestSecondsPerKm: vrSecondsPerKm + rule.min,
+        slowestSecondsPerKm: vrSecondsPerKm + rule.max,
+        page: rule.page
+    });
+    codes.forEach(code => {
+        if (BREATHING_PACE[code]) push(code, RULES[BREATHING_PACE[code]]);
+        else if (code === 'CRMI') {
+            bands.push({ key: 'CRMI', label: 'CRMI', fastestSecondsPerKm: null, slowestSecondsPerKm: null, page: '177', note: 'Nessun passo nel libro: tratti brevi a sensazione.' });
+        }
+    });
+    if (!codes.length && session?.type === 'race_training') {
+        const km = Number(session.raceDistanceKm);
+        if (km > 40) push('RMA', RULES.RMA);
+        else if (km > 20) push('RME', RULES.RME);
+    }
+    return bands;
+}
+
 export function paceBandsForCell(raw, vrSecondsPerKm, goalDistanceKm) {
     if (!Number.isInteger(vrSecondsPerKm) || vrSecondsPerKm <= 0) return [];
     const text = String(raw ?? '').split('/').join(' ').replace(/\s+/g, ' ');

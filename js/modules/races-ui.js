@@ -54,6 +54,7 @@ export async function initRacesModule(supabaseClient, userId) {
         form.elements.namedItem('target_period').value = race.target_period || '';
         form.elements.namedItem('distance_km').value = race.distance_km;
         form.elements.namedItem('elevation_gain_m').value = race.elevation_gain_m ?? '';
+        form.elements.namedItem('elevation_loss_m').value = race.elevation_loss_m ?? '';
         form.elements.namedItem('priority').value = race.priority ?? 2;
         form.elements.namedItem('goal').value = race.goal || '';
         raceStatus.value = race.status;
@@ -154,6 +155,7 @@ function renderRace(race) {
 
     const details = [];
     if (race.elevation_gain_m !== null && race.elevation_gain_m !== '') details.push(`D+ ${race.elevation_gain_m} m`);
+    if (race.elevation_loss_m !== null && race.elevation_loss_m !== undefined && race.elevation_loss_m !== '') details.push(`D- ${race.elevation_loss_m} m`);
     if (race.status === 'completed') {
         if (race.chip_time_seconds) details.push(`Real time ${formatDuration(race.chip_time_seconds)}`);
         if (race.official_time_seconds) details.push(`Tempo ufficiale ${formatDuration(race.official_time_seconds)}`);

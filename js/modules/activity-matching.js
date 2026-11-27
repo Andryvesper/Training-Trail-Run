@@ -25,7 +25,9 @@ export function createActivitySnapshot(activity) {
         start_date_local: readText(activity.start_date_local),
         distance: readFiniteNumber(activity.distance),
         moving_time: readFiniteNumber(activity.moving_time),
-        elapsed_time: readFiniteNumber(activity.elapsed_time)
+        elapsed_time: readFiniteNumber(activity.elapsed_time),
+        total_elevation_gain: readFiniteNumber(activity.total_elevation_gain),
+        average_speed: readFiniteNumber(activity.average_speed)
     };
 }
 

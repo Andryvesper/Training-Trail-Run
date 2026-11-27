@@ -1,10 +1,27 @@
 # Revisione delle tabelle trail e ultra trascritte
 
-**Stato:** la tabella 10 evoluti è approvata dall'atleta (14 novembre 2026) per ultra trail tra 75 e 125 km; le tabelle 11-13 restano in attesa di revisione e non sono usate dal generatore.
+**Stato (14 novembre 2026), approvazioni dell'atleta (Andrea Baron):**
 
-Due trascrizioni indipendenti (parte 2.pdf); le 12 differenze su 273 celle sono state risolte sulla scansione. `/` indica un a capo nella cella; ⚠ una lettura incerta.
+| Tabella | Stato | Uso nel generatore |
+|---|---|---|
+| 10 evoluti | approvata il 14 novembre 2026 | ultra trail 75-125 km, ritmi dalla VR |
+| 11 (100 km del Passatore) | approvata il 14 novembre 2026 | ultra 75-125 km su strada o trail, km e ritmo respiratorio; con un test VR valido anche i passi (modello VR approvato il 27 novembre 2026); test VR non richiesto |
+| 12 (Pistoia-Abetone) | **in attesa di revisione** | non usata |
+| 13 (trail 15-50 km) | approvata il 14 novembre 2026 | gare trail 15-50 km, blocco ripetuto a ritroso (regola derivata, approvata dall'atleta il 27 novembre 2026) |
 
-**Attenzione:** il libro non contiene una tabella per un ultra trail di montagna oltre i 100 km come la Top Dolomites 102K. La più vicina è la tabella 10 della sezione evoluti ("100 km su strada, adattabile poi anche a un'ultratrail, con le opportune modifiche"), che prevede 5 giorni di corsa più 1 di forza. Le tabelle 11-13 usano chilometri e ritmo respiratorio, non la VR.
+Due trascrizioni indipendenti (parte 2.pdf, scansioni pp. 32-34 e 60-61); le 12 differenze su 273 celle sono state risolte sulla scansione. `/` indica un a capo nella cella; ⚠ una lettura incerta.
+
+Celle incerte riviste: tabella 11, settimana 3, giorno 4 ("6 x 1 km CRLI rec. 1 x 1 km CRF") letta CRLI per analogia con le settimane 1 e 10: confermata dall'atleta il 27 novembre 2026. Restano incerte: tabella 13, settimana 1, giorno 7 ("Gara 30 km", cifra poco leggibile) e tabella 12, settimana 6, giorni 6-7.
+
+## Come il motore legge le tabelle 11 e 13
+
+- Ritmo respiratorio (p. 211): CRMF molto facile (sforzo 1), CRF facile (sforzo 2-3), CRLI leggermente impegnata (sforzo 4-6), CRI impegnata (sforzo 7-8), CRMI molto impegnata (pp. 174-177).
+- Modello a passo per la tabella 11 (chiesto e approvato dall'atleta il 27 novembre 2026): con un test VR valido (6 settimane) ogni ritmo respiratorio diventa la fascia di passo che il libro gli associa: CRMF VR+60-90", CRF VR+40-50", CRLI VR+15-25", CRI VR+5-10" (pp. 174-177); "Gara maratona" a ritmo maratona VR+30-40" e mezza senza codice a ritmo mezza VR+5-10" (p. 192). CRMI non ha passo nel libro e resta a sensazione. Il respiro resta il controllo; in salita si va a sforzo. Senza VR valida la tabella resta solo a respiro. La tabella 13 resta a respiro (la VR serve solo al tetto del D+).
+- `p` = pianeggiante, `ss` = saliscendi: terreno indicato in ogni seduta.
+- Tabella 11: settimana 1 "Test Conconi" = test di riferimento suggerito, non richiesto; settimana 8 "Gara maratona" e settimana 10 "Mezza maratona CRF" = gare di allenamento. Base 4 corse; 3 o 5 corse con le regole di frequenza approvate; lungo con tetto +25% e mai oltre 65 km.
+- Tabella 13: blocco di 4 settimane ripetuto a ritroso dalla gara obiettivo (massimo 12 settimane, non prima di oggi). Ultima settimana allineata sulla settimana del blocco con la gara più vicina alla distanza obiettivo: settimana 1 "Gara 30 km" se la gara è di almeno 26 km, altrimenti settimana 3 "Gara 22 km". Nei blocchi precedenti le gare della tabella diventano "Gara o lungo su sterrato di X km a CRF", salvo gare reali in calendario. **Regola derivata, approvata dall'atleta il 27 novembre 2026.**
+
+**Attenzione:** il libro non contiene una tabella per un ultra trail di montagna oltre i 100 km come la Top Dolomites 102K. La più vicina è la tabella 10 della sezione evoluti ("100 km su strada, adattabile poi anche a un'ultratrail, con le opportune modifiche"), che prevede 5 giorni di corsa più 1 di forza. Le tabelle 11-13 usano chilometri e ritmo respiratorio; per la tabella 11 il motore aggiunge i passi dalla VR quando c'è un test valido.
 
 ## Tabella 11 (amatore) — 100 km del Passatore
 
@@ -20,7 +37,7 @@ Pagine stampate 211-212. 15 settimane.
 |---|---|---|---|---|---|---|---|
 | 1 | Test<br>Conconi | 12 CRF<br>p | Riposo o<br>esercizi | 5x 1 km<br>CRLI rec.<br>1 x 1 km<br>CRF | Riposo o<br>esercizi | 12 km<br>CRF p | 24 km<br>CRF ss |
 | 2 | Riposo o<br>esercizi | 14 CRF<br>p | Riposo o<br>esercizio | 6 x 1 km<br>CRI rec.<br>1 x 1 km<br>CRF | Riposo o<br>esercizi | 12 km<br>CRF p | 28 CRF<br>ss |
-| 3 | Riposo o<br>esercizi | 14 km<br>CRF p | Riposo o<br>esercizi | 6 x 1 km<br>CRLI rec<br>1 x 1 km<br>CRF ⚠ | Riposo o<br>esercizi | 10 km<br>CRF | 30 km<br>CRF |
+| 3 | Riposo o<br>esercizi | 14 km<br>CRF p | Riposo o<br>esercizi | 6 x 1 km<br>CRLI rec<br>1 x 1 km<br>CRF | Riposo o<br>esercizi | 10 km<br>CRF | 30 km<br>CRF |
 | 4 | Riposo<br>o<br>esercizi | 8 km<br>CRF p | Riposo | 10 x 400<br>CRI rec<br>2' CRF | Riposo | 8 km<br>CRF p | 6 km in<br>salita<br>correndo<br>più forte<br>possibile<br>tornando<br>al punto<br>di<br>partenza<br>a CRF |
 | 5 | Riposo o<br>esercizi | 15 km<br>CRMF<br>p | Riposo o<br>esercizio | 14 x 100<br>in salita<br>CRI rec.<br>100<br>CRMI +<br>rec. 3'<br>+ 10 km<br>CRF | Riposo o<br>esercizi | 20 km<br>CRMF p | 34 km<br>CRMF<br>ss |
 | 6 | Riposo o<br>esercizi | 16 km<br>CRMF<br>p | Riposo o<br>esercizio | 5 x 1 km<br>in salita<br>CRI rec.<br>tornando<br>alla<br>partenza<br>CRF | Riposo o<br>esercizi | 20 km<br>CRMF<br>ss | 38 km<br>CRMF<br>ss |

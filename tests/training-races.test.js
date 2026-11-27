@@ -46,7 +46,7 @@ test('carica le gare del solo utente in ordine cronologico', async () => {
     assert.equal(races, expected);
     assert.deepEqual(mock.calls, [
         ['from', 'training_races'],
-        ['select', 'id, user_id, name, event_date, target_period, distance_km, elevation_gain_m, priority, goal, status, official_time_seconds, chip_time_seconds, overall_position, gender_position, category_position, category, bib_number, result_source_url'],
+        ['select', 'id, user_id, name, event_date, target_period, distance_km, elevation_gain_m, elevation_loss_m, priority, goal, status, official_time_seconds, chip_time_seconds, overall_position, gender_position, category_position, category, bib_number, result_source_url'],
         ['eq', 'user_id', 'user-1'],
         ['order', 'event_date', { ascending: true, nullsFirst: false }],
         ['order', 'created_at']
@@ -169,4 +169,27 @@ test('rifiuta date incoerenti, tempi non validi e posizioni negative senza scriv
         /1000000/
     );
     assert.deepEqual(mock.calls, []);
+});
+
+test('valida il dislivello negativo facoltativo della gara', async () => {
+    const mock = createSupabaseMock({ data: { id: 'race-3' }, error: null });
+    const service = new TrainingRacesService(mock.client);
+
+    await service.saveRace('user-1', { name: 'Trail', event_date: '2027-06-01', distance_km: '30', elevation_gain_m: '1500', elevation_loss_m: '1400', status: 'planned' });
+    assert.equal(mock.calls.find(call => call[0] === 'insert')[1].elevation_loss_m, 1400);
+
+    const empty = createSupabaseMock({ data: { id: 'race-4' }, error: null });
+    await new TrainingRacesService(empty.client)
+        .saveRace('user-1', { name: 'Trail', event_date: '2027-06-01', distance_km: '30', elevation_loss_m: '', status: 'planned' });
+    assert.equal(empty.calls.find(call => call[0] === 'insert')[1].elevation_loss_m, null);
+
+    const invalid = createSupabaseMock({ data: null, error: null });
+    const invalidService = new TrainingRacesService(invalid.client);
+    for (const value of ['-1', '10.5', '100001']) {
+        await assert.rejects(
+            invalidService.saveRace('user-1', { name: 'Trail', event_date: '2027-06-01', distance_km: '30', elevation_loss_m: value, status: 'planned' }),
+            /dislivello negativo/
+        );
+    }
+    assert.deepEqual(invalid.calls, []);
 });

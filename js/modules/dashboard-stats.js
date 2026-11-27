@@ -93,6 +93,7 @@ export function weeklyVolumes(activities, weeks, today) {
         weekStart: addDays(currentWeekStart, -7 * (weeks - 1 - index)),
         runKm: 0,
         runCount: 0,
+        runElevationM: 0,
         swimMeters: 0,
         swimCount: 0,
         hours: 0
@@ -104,6 +105,7 @@ export function weeklyVolumes(activities, weeks, today) {
         bucket.hours += (activity.movingS || activity.elapsedS || 0) / 3600;
         if (activity.sport === 'run') {
             bucket.runKm += (activity.distanceM || 0) / 1000;
+            bucket.runElevationM += activity.elevationM || 0;
             bucket.runCount += 1;
         } else if (activity.sport === 'swim') {
             bucket.swimMeters += activity.distanceM || 0;
@@ -113,6 +115,7 @@ export function weeklyVolumes(activities, weeks, today) {
     return buckets.map(bucket => ({
         ...bucket,
         runKm: round1(bucket.runKm),
+        runElevationM: Math.round(bucket.runElevationM),
         hours: round1(bucket.hours)
     }));
 }

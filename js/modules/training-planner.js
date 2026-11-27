@@ -15,6 +15,21 @@ import {
     formatTestDuration,
     parseTestDuration
 } from './training-reference-pace.js';
+import {
+    applyIntermediateRaces,
+    isPlanSessionTitle,
+    previewMissedWeek,
+    proposeIntermediateRaces,
+    proposeReferenceTest,
+    referenceTestNeeded
+} from './training-plan-adjustments.js';
+
+export {
+    applyIntermediateRaces,
+    previewMissedWeek,
+    proposeIntermediateRaces,
+    proposeReferenceTest
+};
 
 const PROFILE_TABLE = 'training_planning_profiles';
 const DRAFTS_TABLE = 'training_plan_drafts';
@@ -269,7 +284,8 @@ export function getPlanningReadiness(input, races = [], { today = localDateKey()
         if (validity.status === 'future') missing.push('La data del test VR non può essere nel futuro.');
         if (validity.status === 'expired') warnings.push(validity.message);
     }
-    if (profile.goal_mode === 'race' && profile.target_running_sessions_per_week === 5 && !profile.five_session_option) {
+    if (profile.goal_mode === 'race' && profile.target_running_sessions_per_week === 5 && !profile.five_session_option
+        && fiveSessionOptionNeeded(profile, races, today)) {
         warnings.push('Con 5 corse settimanali scegli la variante del ciclo: +10% km oppure seduta di qualità o palestra.');
     }
 
@@ -335,6 +351,88 @@ export function getTenKmPrototypeReadiness(input, races = [], { today = localDat
     };
 }
 
+// Famiglia di metodo del questionario (come in training-methodology-rules.js).
+function methodFamily(method) {
+    return method === 'breathing' || method === 'breathing_km' ? 'breathing' : 'distance_time';
+}
+
+function findPlannedRace(profile, races) {
+    return races.find(item => item.id === profile.primary_race_id && item.status === 'planned') || null;
+}
+
+// Tabelle approvate e applicabili, filtrate per il metodo scelto.
+function relevantApprovedRules(profile, race, { today, rules = TRAINING_METHOD_RULES } = {}) {
+    if (profile.goal_mode !== 'race' || !race) return { assessment: null, rules: [] };
+    const assessment = assessTrainingMethodology(profile, race, rules, { asOfDate: today });
+    const approved = rules.filter(rule => assessment.approved_pattern_ids.includes(rule.id));
+    const filtered = profile.preferred_cycle_method
+        ? approved.filter(rule => methodFamily(rule.sessionPattern?.method) === methodFamily(profile.preferred_cycle_method))
+        : approved;
+    return { assessment, rules: filtered };
+}
+
+// La variante a 5 corse serve solo se la tabella ha meno di 5 corse di base.
+function fiveSessionOptionNeeded(profile, races, today) {
+    const race = findPlannedRace(profile, races);
+    if (!race) return true;
+    try {
+        const { rules } = relevantApprovedRules(profile, race, { today });
+        return !rules.length || rules.some(rule => (rule.baseRunningSessionsPerWeek ?? 4) < 5);
+    } catch {
+        return true;
+    }
+}
+
+// Test VR proposto quando il metodo scelto lo richiede e non c'è un test
+// valido (6 settimane). Restituisce null se non serve.
+export function getReferenceTestProposal(input, races = [], { today = localDateKey(), protocol = null, rules = TRAINING_METHOD_RULES } = {}) {
+    const profile = normalizePlanningProfile(input);
+    const race = findPlannedRace(profile, races);
+    let relevant;
+    try {
+        relevant = relevantApprovedRules(profile, race, { today, rules }).rules;
+    } catch {
+        return null;
+    }
+    const validity = profile.reference_test_date
+        ? assessReferenceTestValidity(profile.reference_test_date, today).status
+        : 'missing';
+    if (!referenceTestNeeded(relevant, validity, profile.reference_vr_seconds_per_km)) return null;
+    return {
+        ...proposeReferenceTest(profile, { today, protocol }),
+        reason: validity === 'expired'
+            ? 'Il test VR registrato è scaduto (validità 6 settimane): ripetilo.'
+            : 'Il metodo scelto usa i passi dalla VR e non c\'è un test valido delle ultime 6 settimane.',
+        rule_ids: relevant.map(rule => rule.id)
+    };
+}
+
+// Motivi leggibili per cui una richiesta non ha prodotto un programma.
+export function explainMissingProgram(snapshot = {}, rules = TRAINING_METHOD_RULES) {
+    const reasons = [];
+    const race = snapshot.primary_race;
+    const assessment = snapshot.methodology_assessment || {};
+    const approvedIds = assessment.approved_pattern_ids || [];
+    if (snapshot.goal_mode !== 'race') {
+        reasons.push('Il generatore crea programmi solo per una gara obiettivo: per mantenimento o miglioramento non ci sono ancora tabelle approvate.');
+    } else if (race && !approvedIds.length) {
+        const distance = Number(race.distance_km);
+        reasons.push(`Nessuna tabella approvata per la gara "${race.name}" (${distance} km): sono coperti 10 km, mezza e maratona su strada, trail 15-50 km (tabella 13, con terreno trail selezionato) e ultra 75-125 km (tabella 11 su strada o trail; tabella 10 evoluti con terreno trail).`);
+    }
+    (assessment.blockers || [])
+        .filter(blocker => !/non sono ancora attive|Nessuna regola applicabile/.test(blocker))
+        .slice(0, 4)
+        .forEach(blocker => reasons.push(blocker.replace(/^Regola "[^"]+": /, '')));
+    const approved = rules.filter(rule => approvedIds.includes(rule.id));
+    const relevant = snapshot.preferred_cycle_method
+        ? approved.filter(rule => methodFamily(rule.sessionPattern?.method) === methodFamily(snapshot.preferred_cycle_method))
+        : approved;
+    if (relevant.length && relevant.every(rule => rule.requiresValidReferenceTest) && !snapshot.reference_vr_seconds_per_km) {
+        reasons.push('Manca un test VR (3 km + 10% o 10 km) delle ultime 6 settimane: serve per calcolare i passi.');
+    }
+    return reasons.length ? reasons : ['La richiesta è salvata ma nessuna regola è pronta per generare il programma.'];
+}
+
 export class TrainingPlannerService {
     constructor(supabaseClient) {
         this.supabaseClient = supabaseClient;
@@ -382,7 +480,7 @@ export class TrainingPlannerService {
             .filter(Boolean);
         const assessment = assessTrainingMethodology(readiness.profile, race, rules, { asOfDate: today });
         const generatedDraft = assessment.generation_enabled
-            ? generateCycleDraft(readiness.profile, race, rules.find(rule => rule.id === assessment.generation_pattern_ids[0]), { today })
+            ? generateCycleDraft(readiness.profile, race, rules.find(rule => rule.id === assessment.generation_pattern_ids[0]), { today, secondaryRaces })
             : null;
         const { data, error } = await this.supabaseClient
             .from(DRAFTS_TABLE)
@@ -439,16 +537,24 @@ export class TrainingPlannerService {
             .update({ status: 'draft_generated' })
             .eq('id', draft.id)
             .eq('user_id', userId);
+        try {
+            return await this.insertCalendarSessions(userId, sessions, generated.startDate, generated.endDate);
+        } catch (error) {
+            await releaseClaim();
+            throw error;
+        }
+    }
+
+    // Inserisce sedute dopo quelle già presenti nello stesso giorno, senza
+    // modificarle.
+    async insertCalendarSessions(userId, sessions, fromDate, toDate) {
         const { data: existing, error: existingError } = await this.supabaseClient
             .from(SESSIONS_TABLE)
             .select('scheduled_date, session_order')
             .eq('user_id', userId)
-            .gte('scheduled_date', generated.startDate)
-            .lte('scheduled_date', generated.endDate);
-        if (existingError) {
-            await releaseClaim();
-            throw existingError;
-        }
+            .gte('scheduled_date', fromDate)
+            .lte('scheduled_date', toDate);
+        if (existingError) throw existingError;
 
         const nextOrder = new Map();
         (existing || []).forEach(session => {
@@ -463,11 +569,55 @@ export class TrainingPlannerService {
             .from(SESSIONS_TABLE)
             .insert(rows)
             .select('id');
-        if (error) {
-            await releaseClaim();
-            throw error;
-        }
+        if (error) throw error;
         return { session_count: data?.length ?? 0, overlapping_dates: [...new Set((existing || []).map(item => item.scheduled_date))] };
+    }
+
+    // Aggiunge al calendario la seduta del test VR proposta.
+    async addReferenceTestToCalendar(userId, proposal, { today = localDateKey() } = {}) {
+        const session = proposal?.calendarSession;
+        if (!session?.scheduled_date) {
+            throw new Error('Nessun giorno disponibile per il test nelle prossime due settimane: rivedi la disponibilità.');
+        }
+        if (session.scheduled_date < today) throw new Error('La data proposta per il test è già passata.');
+        return this.insertCalendarSessions(userId, [session], session.scheduled_date, session.scheduled_date);
+    }
+
+    // Sedute del calendario scritte da una bozza confermata (titolo "Tab. X · S").
+    async listPlanSessions(userId, generated) {
+        const { data, error } = await this.supabaseClient
+            .from(SESSIONS_TABLE)
+            .select('id, scheduled_date, title, sport_type, distance_km, notes, intervals_activity_id, completed_activity')
+            .eq('user_id', userId)
+            .gte('scheduled_date', generated.startDate)
+            .lte('scheduled_date', generated.endDate);
+        if (error) throw error;
+        return (data || []).filter(session => isPlanSessionTitle(session.title, generated.source.table));
+    }
+
+    // Anteprima della settimana saltata (nessuna scrittura).
+    async previewMissedWeek(userId, generated, weekNumber, { today = localDateKey() } = {}) {
+        const planSessions = await this.listPlanSessions(userId, generated);
+        return previewMissedWeek({ draft: generated, weekNumber, planSessions, today });
+    }
+
+    // Applica l'anteprima solo con conferma esplicita dell'atleta.
+    async applyMissedWeek(userId, preview, { confirmed = false, today = localDateKey() } = {}) {
+        if (confirmed !== true) {
+            throw new Error('Serve la conferma esplicita dell’atleta prima di modificare il calendario.');
+        }
+        const changes = (preview?.changes || []).filter(change => change.scheduled_date >= today);
+        for (const change of changes) {
+            const { error } = await this.supabaseClient
+                .from(SESSIONS_TABLE)
+                .update({ distance_km: change.to_km, notes: change.notes, ...(change.new_title ? { title: change.new_title } : {}) })
+                .eq('id', change.session_id)
+                .eq('user_id', userId)
+                .is('intervals_activity_id', null)
+                .select('id');
+            if (error) throw error;
+        }
+        return { updated_count: changes.length };
     }
 
     async listDraftRequests(userId) {
@@ -645,7 +795,7 @@ export function localDateKey(date = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
-export function generateCycleDraft(profile, race, rule, { today = localDateKey() } = {}) {
+export function generateCycleDraft(profile, race, rule, { today = localDateKey(), secondaryRaces = [] } = {}) {
     if (!rule?.sessionPattern || rule.sessionPattern.kind !== 'explicit_weekly_cycle') {
         throw new Error('La regola selezionata non contiene un ciclo trascritto.');
     }
@@ -655,24 +805,42 @@ export function generateCycleDraft(profile, race, rule, { today = localDateKey()
     const blockedDays = (profile.weekly_other_sports || [])
         .filter(session => session.schedule_type === 'fixed')
         .map(session => session.day);
+    // Le gare secondarie non passano al motore: diventano proposte che
+    // l'atleta applica una per una (regola derivata, da confermare).
+    const draft = scheduleCycleDraft({
+        pattern: rule.sessionPattern,
+        raceDate: race.event_date,
+        availableDays,
+        blockedDays,
+        targetSessions: profile.target_running_sessions_per_week,
+        fiveSessionOption: profile.five_session_option,
+        today,
+        // Solo una VR da test valido (6 settimane): per la tabella 11 attiva il
+        // modello a passo approvato dall'atleta, per la 13 serve solo al tetto del D+.
+        vrSecondsPerKm: profile.reference_test_date
+            && assessReferenceTestValidity(profile.reference_test_date, today).status === 'valid'
+            ? profile.reference_vr_seconds_per_km
+            : null,
+        goalDistanceKm: Number(race.distance_km),
+        raceElevationM: optionalMeters(race.elevation_gain_m),
+        raceElevationLossM: optionalMeters(race.elevation_loss_m),
+        experience: profile.self_profile === 'structured_experienced' ? 'evoluto' : 'amatore',
+        secondaryRaces: []
+    });
+    const datedSecondary = (secondaryRaces || [])
+        .filter(item => item && item.id !== race.id && item.event_date)
+        .map(item => ({ id: item.id, name: item.name, event_date: item.event_date, distance_km: item.distance_km }));
     return {
         rule_id: rule.id,
         rule_version: rule.version,
         approval: rule.approval,
-        ...scheduleCycleDraft({
-            pattern: rule.sessionPattern,
-            raceDate: race.event_date,
-            availableDays,
-            blockedDays,
-            targetSessions: profile.target_running_sessions_per_week,
-            fiveSessionOption: profile.five_session_option,
-            today,
-            vrSecondsPerKm: profile.reference_vr_seconds_per_km,
-            goalDistanceKm: Number(race.distance_km),
-            raceElevationM: race.elevation_gain_m == null ? null : Number(race.elevation_gain_m),
-            experience: profile.self_profile === 'structured_experienced' ? 'evoluto' : 'amatore'
-        })
+        ...draft,
+        intermediateRaceProposals: proposeIntermediateRaces(draft, datedSecondary)
     };
+}
+
+function optionalMeters(value) {
+    return value === null || value === undefined || value === '' ? null : Number(value);
 }
 
 function isTrailRace(race) {
@@ -688,6 +856,7 @@ function snapshotRace(race) {
         target_period: race.target_period,
         distance_km: race.distance_km,
         elevation_gain_m: race.elevation_gain_m,
+        elevation_loss_m: race.elevation_loss_m ?? null,
         priority: race.priority,
         goal: race.goal
     };

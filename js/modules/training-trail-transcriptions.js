@@ -1,13 +1,21 @@
 // Trascrizione delle tabelle trail e ultra di "Tipi che corrono" (parte 2.pdf).
 // Due letture indipendenti; le 12 differenze su 273 celle sono state risolte
 // sulla scansione (14 novembre 2026). Testo come stampato.
-// Stato: candidate, in attesa di revisione e approvazione dell'atleta.
+// Stato (14 novembre 2026): tabelle 10 evoluti, 11 e 13 approvate dall'atleta;
+// tabella 12 ancora in attesa di revisione. Scansioni: parte 2.pdf pp. 32-34, 60-61.
 // Nessuna tabella è specifica per un ultra trail di montagna oltre i 100 km.
 
 export const TRAIL_TRANSCRIPTION_STATUS = Object.freeze({
     method: 'double_blind_reconciled',
     transcribedAt: '2026-11-14',
-    reviewStatus: 'awaiting_athlete_review'
+    // Stato complessivo: resta in revisione finché la tabella 12 non è approvata.
+    reviewStatus: 'awaiting_athlete_review',
+    tableReviewStatus: Object.freeze({
+        ultra_100km_evoluto: 'approved',
+        ultra_100km_passatore: 'approved',
+        trail_15_50km: 'approved',
+        ultra_pistoia_abetone: 'awaiting_athlete_review'
+    })
 });
 
 export const TRAIL_CYCLE_TRANSCRIPTIONS = deepFreeze({
@@ -17,7 +25,7 @@ export const TRAIL_CYCLE_TRANSCRIPTIONS = deepFreeze({
         race: "100 km del Passatore (ultramaratona su strada)",
         goalDistanceKm: 100,
         intensity: "breathing",
-        source: { title: 'Tipi che corrono', scan: 'parte 2.pdf', printedPages: "211-212", scanPages: "232-33" },
+        source: { title: 'Tipi che corrono', scan: 'parte 2.pdf', printedPages: "211-212", scanPages: "32-33" },
         durationWeeks: 15,
         introRules: [
             "Nelle prossime tabelle troverai il programma di allenamento per la 100 km del Passatore (11) e per la Pistoia-Abetone (12).",
@@ -49,7 +57,8 @@ export const TRAIL_CYCLE_TRANSCRIPTIONS = deepFreeze({
                 { day: 1, raw: "Riposo o / esercizi" },
                 { day: 2, raw: "14 km / CRF p" },
                 { day: 3, raw: "Riposo o / esercizi" },
-                { day: 4, raw: "6 x 1 km / CRLI rec / 1 x 1 km / CRF", uncertain: true },
+                // CRLI confermato dall'atleta il 27 novembre 2026 (stessa struttura delle settimane 1 e 10).
+                { day: 4, raw: "6 x 1 km / CRLI rec / 1 x 1 km / CRF", confirmedByAthlete: "2026-11-27" },
                 { day: 5, raw: "Riposo o / esercizi" },
                 { day: 6, raw: "10 km / CRF" },
                 { day: 7, raw: "30 km / CRF" }
@@ -170,7 +179,7 @@ export const TRAIL_CYCLE_TRANSCRIPTIONS = deepFreeze({
         race: "Pistoia-Abetone (ultramaratona, distanza non indicata nel testo)",
         goalDistanceKm: null,
         intensity: "breathing",
-        source: { title: 'Tipi che corrono', scan: 'parte 2.pdf', printedPages: "213-214", scanPages: "233-34" },
+        source: { title: 'Tipi che corrono', scan: 'parte 2.pdf', printedPages: "213-214", scanPages: "33-34" },
         durationWeeks: 8,
         introRules: [
             "Nella Tabella 12 troverai uno schema di allenamento di 8 settimane fatto per affrontare un'altra delle più importati ultra d'Europa, la Pistoia-Abetone.",
@@ -257,7 +266,7 @@ export const TRAIL_CYCLE_TRANSCRIPTIONS = deepFreeze({
         race: "Gare trail da 15 a 50 km",
         goalDistanceKm: null,
         intensity: "breathing",
-        source: { title: 'Tipi che corrono', scan: 'parte 2.pdf', printedPages: "215", scanPages: "234" },
+        source: { title: 'Tipi che corrono', scan: 'parte 2.pdf', printedPages: "215", scanPages: "34" },
         durationWeeks: 4,
         introRules: [
             "Programmi di allenamento per il trail. La voglia di contatto con la natura, senza essere assillati dal cronometro, sta portando sempre più runner verso questa disciplina.",
@@ -275,6 +284,7 @@ export const TRAIL_CYCLE_TRANSCRIPTIONS = deepFreeze({
                 { day: 4, raw: "6 km / CRF" },
                 { day: 5, raw: "Riposo" },
                 { day: 6, raw: "Riposo" },
+                // Cifra poco leggibile nella scansione: resta incerta (30 è coerente con 15-50 km).
                 { day: 7, raw: "Gara 30 / km", uncertain: true }
             ] },
             { weekNumber: 2, days: [
@@ -312,7 +322,7 @@ export const TRAIL_CYCLE_TRANSCRIPTIONS = deepFreeze({
         race: "100 km su strada, adattabile a un ultratrail",
         goalDistanceKm: 100,
         intensity: "vr_based",
-        source: { title: 'Tipi che corrono', scan: 'parte 2.pdf', printedPages: "267-268", scanPages: "260-61" },
+        source: { title: 'Tipi che corrono', scan: 'parte 2.pdf', printedPages: "267-268", scanPages: "60-61" },
         durationWeeks: 12,
         introRules: [
             "Ecco, nella tabella 10, un esempio di programma di allenamento per preparare una 100 km su strada, adattabile poi anche a un'ultratrail, con le opportune modifiche e adattamenti al tipo di tracciato.",

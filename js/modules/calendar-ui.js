@@ -4,6 +4,20 @@ import { TrainingPlanService } from './training-plan.js';
 import { formatPace, parsePace } from './training-plan-sharing.js';
 import { initTrainingPlanSharingModule } from './training-plan-sharing-ui.js';
 import { createActivitySnapshot, getMatchingSessions, normalizeActivityId } from './activity-matching.js';
+import {
+    comparePlannedVsDone,
+    describeIncreases,
+    formatDeltaElevation,
+    formatDeltaKm,
+    formatDeltaMinutes,
+    formatDeltaPace,
+    LOAD_RULE_LABEL,
+    loadIncreaseWarnings,
+    plannedLoadEntries,
+    STATUS_LABELS,
+    weeklyLoad
+} from './training-load.js';
+import { buildIcsCalendar, downloadIcs, EXPORT_RANGES, exportFileName, selectSessionsForExport } from './calendar-export.js';
 
 const PAST_WEEKS = 26;
 const VISIBLE_FUTURE_WEEKS = 3;
@@ -17,6 +31,8 @@ const SESSION_TYPES = [
     ['recovery', 'Recupero'],
     ['other', 'Altro']
 ];
+
+let exportToolbar = null;
 
 export async function initCalendarModule(supabaseClient, userId) {
     const container = document.getElementById('calendar-multi-container');
@@ -33,6 +49,9 @@ export async function initCalendarModule(supabaseClient, userId) {
     let sessions = [];
     let editingSession = null;
     let pendingAssociation = null;
+    exportToolbar?.remove();
+    exportToolbar = createExportToolbar(() => sessions, status);
+    status.before(exportToolbar);
 
     try {
         sessions = await planService.listSessions(userId, weeks[0].startDate, weeks[weeks.length - 1].endDate);
@@ -160,6 +179,7 @@ export async function initCalendarModule(supabaseClient, userId) {
                     : session);
                 showStatus(status, 'Associazione rimossa. L’attività resta in Intervals.icu.', 'success');
                 render();
+                notifySessionsUpdated();
             } catch (error) {
                 console.error('Errore durante la rimozione dell’associazione:', error);
                 showStatus(status, `Impossibile rimuovere l’associazione: ${error.message}`, 'error');
@@ -173,6 +193,7 @@ export async function initCalendarModule(supabaseClient, userId) {
                 sessions = sessions.filter(session => session.id !== sessionId);
                 showStatus(status, 'Seduta eliminata.', 'success');
                 render();
+                notifySessionsUpdated();
             } catch (error) {
                 console.error('Errore durante l’eliminazione della seduta:', error);
                 showStatus(status, `Impossibile eliminare la seduta: ${error.message}`, 'error');
@@ -217,6 +238,7 @@ export async function initCalendarModule(supabaseClient, userId) {
                 pendingAssociation = null;
                 showStatus(status, 'Attività associata e valutazione salvate.', 'success');
                 render();
+                notifySessionsUpdated();
             } catch (error) {
                 console.error('Errore durante il salvataggio dell’attività svolta:', error);
                 showStatus(status, `Impossibile salvare l’attività: ${error.message}`, 'error');
@@ -268,6 +290,7 @@ export async function initCalendarModule(supabaseClient, userId) {
             editingSession = null;
             showStatus(status, 'Seduta salvata nel piano.', 'success');
             render();
+            notifySessionsUpdated();
         } catch (error) {
             console.error('Errore durante il salvataggio della seduta:', error);
             showStatus(status, `Impossibile salvare la seduta: ${error.message}`, 'error');
@@ -276,13 +299,61 @@ export async function initCalendarModule(supabaseClient, userId) {
     });
 }
 
+// Pulsante di esportazione .ics delle sedute future.
+function createExportToolbar(getSessions, status) {
+    const toolbar = createElement('div', 'flex flex-wrap items-center gap-2');
+    const select = createElement('select', 'min-h-10 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200');
+    select.setAttribute('aria-label', 'Periodo da esportare');
+    Object.entries(EXPORT_RANGES).forEach(([value, { label }]) => {
+        const option = createElement('option', '', label);
+        option.value = value;
+        select.append(option);
+    });
+    const button = createButton('Esporta calendario (.ics)', null, {}, 'min-h-10 rounded-xl border border-emerald-500/40 px-4 text-sm font-medium text-emerald-300 hover:bg-emerald-500/10');
+    button.addEventListener('click', () => {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const selected = selectSessionsForExport(getSessions(), { today, range: select.value });
+        if (!selected.length) {
+            showStatus(status, 'Nessuna seduta futura da esportare nel periodo scelto.', 'info');
+            return;
+        }
+        try {
+            downloadIcs(buildIcsCalendar(selected, { now }), exportFileName(today, select.value));
+            showStatus(status, `Esportate ${selected.length} sedute in formato .ics.`, 'success');
+        } catch (error) {
+            console.error('Errore nell\'esportazione del calendario:', error);
+            showStatus(status, `Esportazione non riuscita: ${error.message}`, 'error');
+        }
+    });
+    toolbar.append(select, button);
+    return toolbar;
+}
+
+// Avvisa la dashboard (aderenza) senza far ricaricare il calendario.
+function notifySessionsUpdated() {
+    document.dispatchEvent(new CustomEvent('training-sessions:updated'));
+}
+
 function renderCalendar(container, weeks, sessions, editingSession, pendingAssociation, openGroups) {
     container.replaceChildren();
     const currentIndex = weeks.findIndex(week => week.isCurrent);
     const past = weeks.slice(0, currentIndex);
     const visible = weeks.slice(currentIndex, currentIndex + 1 + VISIBLE_FUTURE_WEEKS);
     const later = weeks.slice(currentIndex + 1 + VISIBLE_FUTURE_WEEKS);
-    const context = { sessions, editingSession, pendingAssociation, openGroups };
+    // Carico pianificato per settimana, con avviso oltre +10% (non dal libro).
+    const plannedLoad = loadIncreaseWarnings(weeklyLoad(plannedLoadEntries(sessions), {
+        fromWeek: weeks[0].startDate,
+        toWeek: weeks[weeks.length - 1].startDate
+    }));
+    const context = {
+        sessions,
+        editingSession,
+        pendingAssociation,
+        openGroups,
+        currentWeekStart: weeks[currentIndex]?.startDate,
+        loadByWeek: new Map(plannedLoad.map(week => [week.weekStart, week]))
+    };
 
     visible.forEach((week, offset) => container.append(renderWeek(week, offset, context)));
     if (later.length) {
@@ -298,8 +369,10 @@ function renderWeek(week, offset, context) {
     const relative = offset === 0
         ? 'Questa settimana'
         : offset === 1 ? 'Prossima settimana' : offset > 1 ? `Tra ${offset} settimane` : '';
-    const heading = createElement('h3', 'text-sm font-semibold text-slate-200',
-        `${formatDateIt(week.startDate)} – ${formatDateIt(week.endDate)}${relative ? ` · ${relative}` : ''}`);
+    const heading = createElement('div', 'flex flex-wrap items-center gap-x-3 gap-y-1');
+    heading.append(createElement('h3', 'text-sm font-semibold text-slate-200',
+        `${formatDateIt(week.startDate)} – ${formatDateIt(week.endDate)}${relative ? ` · ${relative}` : ''}`));
+    appendPlannedLoad(heading, context.loadByWeek?.get(week.startDate), week.startDate >= (context.currentWeekStart || ''));
     const daysGrid = createElement('div', 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7');
     week.days.forEach(day => {
         day.plannedSessions = context.sessions.filter(session => session.scheduled_date === day.date);
@@ -307,6 +380,21 @@ function renderWeek(week, offset, context) {
     });
     section.append(heading, daysGrid);
     return section;
+}
+
+// Totali pianificati di corsa/trail e, per le settimane future, l'avviso
+// di aumento oltre il 10% sulla settimana precedente.
+function appendPlannedLoad(heading, load, isFuture) {
+    if (!load || !load.count) return;
+    const parts = [`${formatKmIt(load.km)} km`];
+    if (load.elevationM > 0) parts.push(`${load.elevationM} m D+`);
+    if (load.seconds > 0) parts.push(formatDurationIt(load.seconds));
+    heading.append(createElement('span', 'text-xs text-slate-400', `Pianificato: ${parts.join(' · ')}`));
+    if (!isFuture || !load.warning) return;
+    const badge = createElement('span', 'rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[11px] font-semibold text-amber-200',
+        `Carico in aumento: ${describeIncreases(load.increases)}`);
+    badge.title = `Aumento oltre il 10% rispetto alla settimana precedente pianificata (${LOAD_RULE_LABEL}).`;
+    heading.append(badge, createElement('span', 'text-[11px] text-slate-500', LOAD_RULE_LABEL));
 }
 
 // Menù a tendina per anno e mese; lo stato aperto/chiuso sopravvive ai
@@ -399,7 +487,7 @@ function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
     const sessionsSection = createElement('div', 'space-y-2');
     if (day.plannedSessions.length) {
         sessionsSection.append(createElement('p', 'text-xs font-semibold uppercase tracking-wide text-slate-400', 'Allenamenti pianificati'));
-        day.plannedSessions.forEach(session => sessionsSection.append(renderSession(session)));
+        day.plannedSessions.forEach(session => sessionsSection.append(renderSession(session, day.intervalsActivities)));
     } else if (!day.intervalsActivities.length) {
         sessionsSection.append(createElement('p', 'text-sm text-slate-500', 'Nessuna seduta pianificata.'));
     }
@@ -547,7 +635,7 @@ function renderAssociationForm(activity, session, currentScore, isEditing) {
     form.append(createElement(
         'p',
         'text-xs text-slate-400',
-        'Il voto è personale: il confronto automatico con ritmi e ripetute non è ancora attivo.'
+        'Il voto è personale. Dopo il salvataggio la seduta mostra il confronto con km, D+, tempo e passo pianificati.'
     ));
 
     const actions = createElement('div', 'grid grid-cols-2 gap-2');
@@ -568,7 +656,7 @@ function renderAssociationForm(activity, session, currentScore, isEditing) {
     return form;
 }
 
-function renderSession(session) {
+function renderSession(session, dayActivities = []) {
     const section = createElement('div', 'rounded-xl border border-slate-800 bg-slate-950/70 p-3 space-y-2');
     // Titolo sopra, azioni sotto: nelle colonne strette i pulsanti non schiacciano il titolo.
     const heading = createElement('div', 'flex flex-col gap-1');
@@ -597,21 +685,71 @@ function renderSession(session) {
             'text-xs font-medium text-emerald-300',
             `Completata · aderenza personale ${session.adherence_score}/5`
         ));
-        const completedDetails = [];
-        if (session.completed_activity.distance !== null) {
-            completedDetails.push(`${(session.completed_activity.distance / 1000).toFixed(1)} km effettivi`);
-        }
-        const completedDuration = session.completed_activity.moving_time
-            ?? session.completed_activity.elapsed_time;
-        if (completedDuration !== null) completedDetails.push(`${Math.round(completedDuration / 60)} min effettivi`);
-        if (completedDetails.length) {
-            section.append(createElement('p', 'text-xs text-slate-400', completedDetails.join(' · ')));
-        }
+        // Lo snapshot salvato prima del D+ viene completato con l'attività del giorno.
+        const liveActivity = dayActivities.find(activity =>
+            normalizeActivityId(activity.id) === session.intervals_activity_id) || null;
+        section.append(renderComparison(comparePlannedVsDone(session, session.completed_activity, liveActivity)));
         if (session.completed_activity.name) {
             section.append(createElement('p', 'text-xs text-slate-400', session.completed_activity.name));
         }
     }
     return section;
+}
+
+const STATUS_CLASSES = {
+    in_linea: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200',
+    sotto: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
+    sopra: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
+    piu_lento: 'border-slate-600 bg-slate-800 text-slate-200',
+    piu_veloce: 'border-slate-600 bg-slate-800 text-slate-200'
+};
+
+// Pianificato vs svolto: km, D+, tempo e passo con delta e stato (±10%).
+function renderComparison(comparison) {
+    const box = createElement('div', 'space-y-1 rounded-lg border border-slate-800 bg-slate-900/60 p-2');
+    const title = createElement('div', 'flex flex-wrap items-center justify-between gap-2');
+    title.append(createElement('p', 'text-[11px] font-semibold uppercase tracking-wide text-slate-400', 'Pianificato → svolto'));
+    if (comparison.status) title.append(statusChip(comparison.status));
+    box.append(title);
+    const rows = [
+        ['Km', comparison.km, value => `${formatKmIt(value)} km`, formatDeltaKm],
+        ['D+', comparison.elevationM, value => `${Math.round(value)} m`, formatDeltaElevation],
+        ['Tempo', comparison.seconds, formatDurationIt, formatDeltaMinutes],
+        ['Passo', comparison.paceSecondsPerKm, value => `${formatPace(Math.round(value))} /km`, formatDeltaPace]
+    ];
+    const list = createElement('dl', 'grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-xs');
+    rows.forEach(([label, metric, format, formatDelta]) => {
+        if (metric.done === null) return;
+        list.append(createElement('dt', 'text-slate-500', label));
+        const value = createElement('dd', 'flex flex-wrap items-center gap-x-1.5 tabular-nums text-slate-200');
+        value.append(document.createTextNode(metric.planned === null
+            ? `${format(metric.done)} svolti`
+            : `${format(metric.planned)} → ${format(metric.done)}`));
+        if (metric.delta !== null) value.append(createElement('span', 'text-slate-400', `(${formatDelta(metric.delta)})`));
+        if (metric.status) value.append(statusChip(metric.status, true));
+        list.append(value);
+    });
+    if (!list.children.length) {
+        box.append(createElement('p', 'text-xs text-slate-500', 'Dati dell’attività non disponibili.'));
+        return box;
+    }
+    box.append(list);
+    return box;
+}
+
+function statusChip(status, small = false) {
+    return createElement('span',
+        `rounded-full border px-2 ${small ? 'py-0 text-[10px]' : 'py-0.5 text-[11px] font-semibold'} ${STATUS_CLASSES[status] || ''}`,
+        STATUS_LABELS[status] || status);
+}
+
+function formatKmIt(value) {
+    return (Math.round(value * 10) / 10).toFixed(1).replace('.', ',');
+}
+
+function formatDurationIt(seconds) {
+    const minutes = Math.round(seconds / 60);
+    return minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')} min` : `${minutes} min`;
 }
 
 function renderSessionForm(session) {

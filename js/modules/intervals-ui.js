@@ -10,6 +10,17 @@ import {
 } from './dashboard-stats.js';
 import { CHART_COLORS, renderBarChart, renderLineChart } from './dashboard-charts.js';
 import { TrainingRacesService } from './training-races.js';
+import { TrainingPlanService } from './training-plan.js';
+import {
+    describeIncreases,
+    LOAD_RULE_LABEL,
+    recentDoneLoad,
+    recentWeekStarts,
+    weeklyAdherence
+} from './training-load.js';
+
+const LOAD_WEEKS = 8;
+const ADHERENCE_WEEKS = 4;
 
 // Lo storico completo serve ai record personali; i grafici ne usano una parte.
 const ACTIVITY_HISTORY_START = '2000-01-01';
@@ -19,6 +30,7 @@ const dashboardState = {
     activities: [],
     wellness: [],
     races: [],
+    sessions: null,
     today: null,
     summaryPeriod: '7',
     chartWeeks: 26
@@ -31,9 +43,25 @@ const METRICS = [
     ['load', 'metric-load']
 ];
 
+let adherenceHandler = null;
+
 export async function initIntervalsModule(supabaseClient, userId) {
     const syncDashboard = (athleteId, apiKey) => syncDashboardData(supabaseClient, userId, athleteId, apiKey);
     bindDashboardControls();
+    // Le sedute cambiano da pianificatore o condivisione: si aggiorna l'aderenza.
+    const refreshAdherence = async () => {
+        if (!dashboardState.today) return;
+        dashboardState.sessions = await loadAdherenceSessions(supabaseClient, userId, dashboardState.today);
+        renderLoadAndAdherence();
+    };
+    // Un solo gestore anche se il modulo viene inizializzato più volte.
+    if (adherenceHandler) {
+        document.removeEventListener('training-sessions:changed', adherenceHandler);
+        document.removeEventListener('training-sessions:updated', adherenceHandler);
+    }
+    adherenceHandler = refreshAdherence;
+    document.addEventListener('training-sessions:changed', adherenceHandler);
+    document.addEventListener('training-sessions:updated', adherenceHandler);
     const athleteInput = document.getElementById('intervals-athlete-id');
     const apiKeyInput = document.getElementById('intervals-api-key');
     const btnSave = document.getElementById('btn-save-intervals');
@@ -150,13 +178,14 @@ async function syncDashboardData(supabaseClient, userId, athleteId, apiKey) {
     const newest = formatDateKey(today);
     const oldestWellness = formatDateKey(addDays(today, -WELLNESS_HISTORY_DAYS));
     const service = new IntervalsService(athleteId, apiKey);
-    const [wellness, activities, races] = await Promise.all([
+    const [wellness, activities, races, sessions] = await Promise.all([
         service.getWellness(oldestWellness, newest),
         service.getActivities(ACTIVITY_HISTORY_START, newest),
         new TrainingRacesService(supabaseClient).listRaces(userId).catch(error => {
             console.error('Gare non disponibili per i record personali:', error);
             return [];
-        })
+        }),
+        loadAdherenceSessions(supabaseClient, userId, newest)
     ]);
 
     const summary = summarizeIntervalsData(wellness, []);
@@ -164,9 +193,11 @@ async function syncDashboardData(supabaseClient, userId, athleteId, apiKey) {
     dashboardState.activities = normalizeActivities(activities);
     dashboardState.wellness = wellness;
     dashboardState.races = Array.isArray(races) ? races : [];
+    dashboardState.sessions = sessions;
     dashboardState.today = newest;
     renderRecords();
     renderSummary();
+    renderLoadAndAdherence();
     renderCharts();
 
     const lastWeek = summarizePeriod(dashboardState.activities, addDateKeyDays(newest, -6), newest);
@@ -334,6 +365,16 @@ function renderCharts() {
         extraTooltip: index => [['Corse', String(volumes[index].runCount)]]
     });
     renderBarChart(container, {
+        title: 'Dislivello positivo a settimana',
+        description: 'D+ reale registrato da Intervals.icu per corsa e trail (lunedì–domenica).',
+        labels: weekLabels,
+        values: volumes.map(week => week.runElevationM),
+        color: CHART_COLORS.orange,
+        valueFormat: value => `${formatThousands(value)} m`,
+        tooltipLabel: weekTitle,
+        extraTooltip: index => [['Km', `${formatMetric(round1(volumes[index].runKm))} km`]]
+    });
+    renderBarChart(container, {
         title: 'Corse a settimana',
         description: 'Numero di uscite di corsa e trail.',
         labels: weekLabels,
@@ -373,6 +414,129 @@ function renderCharts() {
         });
 }
 
+// Sedute delle ultime settimane per l'aderenza; null se non leggibili.
+async function loadAdherenceSessions(supabaseClient, userId, today) {
+    const [from] = recentWeekStarts(today, ADHERENCE_WEEKS);
+    try {
+        return await new TrainingPlanService(supabaseClient).listSessions(userId, from, today);
+    } catch (error) {
+        console.error('Sedute non disponibili per l’aderenza al piano:', error);
+        return null;
+    }
+}
+
+function renderLoadAndAdherence() {
+    renderAdherence();
+    renderDoneLoad();
+}
+
+// Aderenza al piano: sedute, km e D+ svolti rispetto al pianificato,
+// contando solo le sedute fino a oggi.
+function renderAdherence() {
+    const container = document.getElementById('dashboard-adherence');
+    if (!container) return;
+    container.replaceChildren();
+    if (!Array.isArray(dashboardState.sessions)) {
+        container.append(createElement('p', 'text-sm text-slate-500', 'Sedute pianificate non disponibili.'));
+        return;
+    }
+    const today = dashboardState.today;
+    const sessions = dashboardState.sessions.filter(session => session.scheduled_date <= today);
+    const activityById = new Map(dashboardState.activities
+        .filter(activity => activity.id !== null)
+        .map(activity => [String(activity.id), {
+            distance: activity.distanceM,
+            moving_time: activity.movingS,
+            elapsed_time: activity.elapsedS,
+            total_elevation_gain: activity.elevationM
+        }]));
+    const rows = weeklyAdherence(sessions, recentWeekStarts(today, ADHERENCE_WEEKS), activityById);
+    if (!rows.some(row => row.plannedCount)) {
+        container.append(createElement('p', 'text-sm text-slate-500', 'Nessuna seduta pianificata nelle ultime 4 settimane.'));
+        return;
+    }
+    container.append(dashboardTable(
+        ['Settimana', 'Sedute', 'Km', 'D+'],
+        rows.map(row => [
+            weekCell(row.weekStart),
+            ratioCell(row.doneCount, row.plannedCount, String),
+            ratioCell(row.doneKm, row.plannedKm, value => formatMetric(round1(value))),
+            row.elevationPlannedSessions
+                ? ratioCell(row.doneElevationM, row.plannedElevationM, formatThousands)
+                : `${formatThousands(row.doneElevationM)} m svolti`
+        ]),
+        'Aderenza al piano nelle ultime 4 settimane'
+    ));
+}
+
+// Carico svolto (corsa e trail) con avviso oltre +10% sulla settimana prima.
+function renderDoneLoad() {
+    const container = document.getElementById('dashboard-load');
+    if (!container) return;
+    container.replaceChildren();
+    const weeks = recentDoneLoad(dashboardState.activities, dashboardState.today, LOAD_WEEKS);
+    if (!weeks.some(week => week.count)) {
+        container.append(createElement('p', 'text-sm text-slate-500', 'Nessuna corsa nelle ultime settimane.'));
+        return;
+    }
+    container.append(dashboardTable(
+        ['Settimana', 'Km', 'D+', 'Tempo', 'Avviso'],
+        weeks.map(week => {
+            const warning = week.warning
+                ? createElement('span', 'rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[11px] font-semibold text-amber-200', describeIncreases(week.increases))
+                : '—';
+            if (week.warning) warning.title = `Aumento oltre il 10% sulla settimana precedente (${LOAD_RULE_LABEL}).`;
+            return [
+                weekCell(week.weekStart),
+                `${formatMetric(round1(week.km))} km`,
+                `${formatThousands(week.elevationM)} m`,
+                formatDuration(week.seconds),
+                warning
+            ];
+        }),
+        'Carico settimanale di corsa e trail'
+    ));
+}
+
+function weekCell(weekStart) {
+    const current = weekStart === recentWeekStarts(dashboardState.today, 1)[0];
+    return `${formatDisplayDate(weekStart)}${current ? ' (in corso)' : ''}`;
+}
+
+function ratioCell(done, planned, format) {
+    const percent = planned > 0 ? ` (${Math.round(done / planned * 100)}%)` : '';
+    return `${format(done)} / ${format(planned)}${percent}`;
+}
+
+function dashboardTable(headers, rows, caption) {
+    const wrapper = createElement('div', 'overflow-x-auto');
+    const table = createElement('table', 'w-full min-w-[28rem] text-left text-xs');
+    table.append(createElement('caption', 'sr-only', caption));
+    const head = createElement('tr', 'border-b border-slate-800 text-slate-400');
+    headers.forEach(header => {
+        const cell = createElement('th', 'px-2 py-2 font-medium', header);
+        cell.scope = 'col';
+        head.append(cell);
+    });
+    const thead = document.createElement('thead');
+    thead.append(head);
+    const tbody = document.createElement('tbody');
+    rows.forEach(values => {
+        const row = createElement('tr', 'border-b border-slate-800/60 last:border-0');
+        values.forEach((value, index) => {
+            const cell = createElement(index === 0 ? 'th' : 'td', `px-2 py-2 tabular-nums ${index === 0 ? 'font-medium text-slate-300' : 'text-slate-200'}`);
+            if (index === 0) cell.scope = 'row';
+            if (value instanceof Node) cell.append(value);
+            else cell.textContent = value;
+            row.append(cell);
+        });
+        tbody.append(row);
+    });
+    table.append(thead, tbody);
+    wrapper.append(table);
+    return wrapper;
+}
+
 function renderMetrics(metrics) {
     METRICS.forEach(([key, elementId]) => {
         const element = document.getElementById(elementId);
@@ -391,7 +555,7 @@ function clearDashboardData() {
         const element = document.getElementById(elementId);
         if (element) element.textContent = '—';
     });
-    ['intervals-activity-summary', 'dashboard-records', 'dashboard-charts'].forEach(id => {
+    ['intervals-activity-summary', 'dashboard-records', 'dashboard-charts', 'dashboard-adherence', 'dashboard-load'].forEach(id => {
         document.getElementById(id)?.replaceChildren(createElement(
             'p',
             'col-span-full text-sm text-slate-400',

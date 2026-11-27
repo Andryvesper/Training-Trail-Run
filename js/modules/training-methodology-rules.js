@@ -13,7 +13,29 @@ export const CYCLE_RULE_APPROVALS = Object.freeze({
     ten_km_distance_time_cycle: ATHLETE_APPROVAL,
     half_marathon_distance_time_cycle: ATHLETE_APPROVAL,
     marathon_distance_time_cycle: ATHLETE_APPROVAL,
-    ultra_100km_evoluto: ATHLETE_APPROVAL
+    ultra_100km_evoluto: ATHLETE_APPROVAL,
+    ultra_100km_passatore: ATHLETE_APPROVAL,
+    trail_15_50km: ATHLETE_APPROVAL
+    // ultra_pistoia_abetone (tabella 12): non approvata.
+});
+
+// Famiglie di metodo per la scelta del questionario (preferred_cycle_method).
+const METHOD_FAMILIES = Object.freeze({
+    breathing: 'breathing',
+    breathing_km: 'breathing',
+    distance_time: 'distance_time',
+    ultra_distance: 'distance_time'
+});
+
+// Suggerimento tra tabella 10 evoluti e tabella 11 quando entrambe valgono
+// (ultra ~100 km). Regola derivata, da confermare dall'atleta: viene solo
+// proposta, la scelta resta nel questionario.
+export const ULTRA_METHOD_RECOMMENDATION_RULE = Object.freeze({
+    id: 'ultra_table_recommendation',
+    ruleStatus: 'derived_pending_athlete_confirmation',
+    label: 'Regola derivata, da confermare dall\'atleta',
+    candidates: Object.freeze(['ultra_100km_evoluto', 'ultra_100km_passatore']),
+    explanation: 'Con esperienza evoluta (corridore strutturato ed esperto) si suggerisce la tabella 10 evoluti, a ritmi dalla VR; altrimenti la tabella 11 per amatori, a ritmo respiratorio.'
 });
 
 export const TRAINING_METHOD_RULES = Object.freeze([
@@ -124,7 +146,38 @@ export const TRAINING_METHOD_RULES = Object.freeze([
         supportedRunningSessionsPerWeek: [3, 4, 5],
         requiredTerrains: ['trail'],
         exclusions: ['Gare sotto i 75 km o sopra i 125 km'],
-        explanation: 'Tabella 10 della sezione evoluti (100 km adattabile a ultratrail): lunghi a ritmo ultra (VR + 1\'30"), weekend su percorsi simili alla gara con dislivello consigliato, riduzione a 3-4 corse con la regola approvata.'
+        explanation: 'Tabella 10 della sezione evoluti (100 km adattabile a ultratrail): lunghi a ritmo ultra (VR + 1\'30"), weekend su percorsi simili alla gara con dislivello consigliato, riduzione a 3-4 corse con la regola approvata.',
+        baseRunningSessionsPerWeek: 5
+    }),
+    createCycleRule({
+        id: 'ultra_100km_passatore',
+        label: 'Ultra 100 km per amatori, km e ritmo respiratorio (tabella 11, 100 km del Passatore)',
+        table: '11',
+        sourcePages: '210-212',
+        scanPages: '32-33',
+        raceDistanceKm: 100,
+        raceDistanceKmTolerance: 25,
+        supportedRunningSessionsPerWeek: [3, 4, 5],
+        requiredTerrains: [],
+        exclusions: ['Gare sotto i 75 km o sopra i 125 km'],
+        requiresReferenceTest: false,
+        baseRunningSessionsPerWeek: 4,
+        explanation: 'Tabella 11 per amatori (100 km del Passatore, strada o trail): chilometri e ritmo respiratorio (CRMF, CRF, CRLI, CRI, CRMI), senza passo al km; p = pianeggiante, ss = saliscendi. Settimana 1 con test Conconi suggerito, maratona (sett. 8) e mezza a CRF (sett. 10) come gare di allenamento. 3 o 5 corse con le regole approvate.'
+    }),
+    createCycleRule({
+        id: 'trail_15_50km',
+        label: 'Trail 15-50 km per amatori che gareggiano spesso (tabella 13)',
+        table: '13',
+        sourcePages: '214-215',
+        scanPages: '34',
+        raceDistanceKm: 32.5,
+        raceDistanceKmTolerance: 17.5,
+        supportedRunningSessionsPerWeek: [3, 4, 5],
+        requiredTerrains: ['trail'],
+        exclusions: ['Gare sotto i 15 km o sopra i 50 km', 'Gare non trail'],
+        requiresReferenceTest: false,
+        baseRunningSessionsPerWeek: 5,
+        explanation: 'Tabella 13 per amatori (trail 15-50 km): blocco di 4 settimane in km e ritmo respiratorio, senza passo al km. Il blocco si ripete a ritroso dalla gara obiettivo (regola derivata, da confermare dall\'atleta) fino a 12 settimane.'
     })
 ]);
 
@@ -314,8 +367,9 @@ export function assessTrainingMethodology(
         .filter(({ rule }) => rule.sessionPattern?.kind === 'explicit_weekly_cycle');
     const preferredMethod = profile?.preferred_cycle_method;
     const matchingCycles = preferredMethod
-        ? readyCycles.filter(({ rule }) => rule.sessionPattern.method === preferredMethod)
+        ? readyCycles.filter(({ rule }) => methodFamily(rule.sessionPattern.method) === methodFamily(preferredMethod))
         : readyCycles;
+    const methodRecommendation = recommendUltraTable(profile, approvedRules.map(({ rule }) => rule));
     const methodChoiceNeeded = !preferredMethod && matchingCycles.length > 1;
     const generationRules = methodChoiceNeeded ? [] : matchingCycles;
     const applicableRuleIds = new Set(applicableRules.map(rule => rule.id));
@@ -338,8 +392,13 @@ export function assessTrainingMethodology(
     ));
     if (methodChoiceNeeded) {
         blockers.push('Più cicli sono applicabili: scegli il metodo (respiratorio o distanza-tempo) nel questionario.');
+        if (methodRecommendation) blockers.push(methodRecommendation.message);
     } else if (preferredMethod && readyCycles.length && !matchingCycles.length) {
         blockers.push('Nessun ciclo pronto usa il metodo scelto per questa gara e frequenza.');
+    }
+    if (methodRecommendation && !preferredMethod && !methodChoiceNeeded
+        && !generationRules.some(({ rule }) => rule.id === methodRecommendation.pattern_id)) {
+        blockers.push(`${methodRecommendation.message} La tabella consigliata non è pronta (controlla i dati richiesti, ad esempio il test VR valido).`);
     }
     if (!generationRules.length) {
         blockers.push('La generazione delle sedute e la loro conferma non sono ancora attive.');
@@ -364,7 +423,38 @@ export function assessTrainingMethodology(
         source_example_ids: sourceExampleIds,
         rule_pipeline_ready: readyRules.length > 0,
         generation_enabled: generationRules.length > 0,
+        method_recommendation: methodRecommendation,
         blockers
+    };
+}
+
+function methodFamily(method) {
+    return METHOD_FAMILIES[method] ?? method;
+}
+
+function isExperiencedProfile(profile) {
+    return profile?.self_profile === 'structured_experienced'
+        || profile?.experience_level === 'evoluto'
+        || profile?.experience === 'evoluto';
+}
+
+// Proposta (non applicata) quando tabella 10 evoluti e tabella 11 sono
+// entrambe approvate e applicabili alla gara.
+export function recommendUltraTable(profile, applicableRules) {
+    const ids = new Set(applicableRules.map(rule => rule.id));
+    if (!ULTRA_METHOD_RECOMMENDATION_RULE.candidates.every(id => ids.has(id))) return null;
+    const experienced = isExperiencedProfile(profile);
+    const patternId = experienced ? 'ultra_100km_evoluto' : 'ultra_100km_passatore';
+    const rule = applicableRules.find(item => item.id === patternId);
+    return {
+        rule_id: ULTRA_METHOD_RECOMMENDATION_RULE.id,
+        rule_status: ULTRA_METHOD_RECOMMENDATION_RULE.ruleStatus,
+        pattern_id: patternId,
+        preferred_cycle_method: methodFamily(rule.sessionPattern.method),
+        reason: experienced ? 'experienced' : 'amateur',
+        message: experienced
+            ? 'Suggerimento (regola derivata, da confermare dall\'atleta): con esperienza evoluta usa la tabella 10 evoluti (metodo distanza-tempo, ritmi dalla VR).'
+            : 'Suggerimento (regola derivata, da confermare dall\'atleta): da amatore usa la tabella 11 (metodo respiratorio, km e sensazioni).'
     };
 }
 
@@ -432,7 +522,8 @@ function getApprovedRuleIssues(rule, profile, race, asOfDate) {
     if (Array.isArray(rule.supportedRunningSessionsPerWeek) && Number.isInteger(frequency)) {
         if (!rule.supportedRunningSessionsPerWeek.includes(frequency)) {
             input(`${frequency} corse settimanali non sono supportate da questa regola (ammesse: ${rule.supportedRunningSessionsPerWeek.join(', ')}).`);
-        } else if (frequency === 5 && !FIVE_SESSION_OPTIONS.includes(profile?.five_session_option)) {
+        } else if (frequency === 5 && frequency > (rule.baseRunningSessionsPerWeek ?? 4)
+            && !FIVE_SESSION_OPTIONS.includes(profile?.five_session_option)) {
             input('per 5 corse settimanali scegli la variante: +10% km oppure seduta di qualità o palestra.');
         }
     }
@@ -504,7 +595,10 @@ function createCycleRule({
     supportedRunningSessionsPerWeek,
     requiredTerrains = ['road'],
     exclusions = ['Trail o percorsi con dislivello significativo'],
-    explanation = null
+    explanation = null,
+    // Le tabelle in km e respiro (11-13) non usano la VR: test non richiesto.
+    requiresReferenceTest = true,
+    baseRunningSessionsPerWeek = 4
 }) {
     const approval = CYCLE_RULE_APPROVALS[id];
     const rule = createRule({
@@ -524,8 +618,7 @@ function createCycleRule({
         requiredProfileFields: [
             'consistency_status',
             'target_running_sessions_per_week',
-            'reference_test_date',
-            'reference_vr_seconds_per_km'
+            ...(requiresReferenceTest ? ['reference_test_date', 'reference_vr_seconds_per_km'] : [])
         ],
         requiredRaceFields: ['distance_km', 'event_date'],
         exclusions,
@@ -534,7 +627,8 @@ function createCycleRule({
     });
     return Object.freeze({
         ...rule,
-        requiresValidReferenceTest: true,
+        requiresValidReferenceTest: requiresReferenceTest,
+        baseRunningSessionsPerWeek,
         supportedRunningSessionsPerWeek: Object.freeze([...supportedRunningSessionsPerWeek])
     });
 }
