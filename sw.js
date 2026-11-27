@@ -1,10 +1,25 @@
-// Service worker minimo: rende l'app installabile.
+// Service worker: rende l'app installabile e mostra la struttura senza rete.
 // Strategia "prima la rete": ogni deploy arriva subito. La cache serve solo
-// quando la rete manca, per mostrare almeno la struttura dell'app.
-// Le richieste verso altri domini (Supabase, Intervals.icu, CDN) non passano di qui.
-const CACHE = 'ttr-shell-v1';
+// quando la rete manca. Le richieste verso altri domini (Supabase,
+// Intervals.icu) non passano di qui.
+const CACHE = 'ttr-shell-v2';
+const SHELL = [
+    './',
+    'index.html',
+    'css/app.css',
+    'config.js',
+    'vendor/supabase-js-2.119.0.js',
+    'manifest.webmanifest',
+    'icons/icon-192.png',
+    'icons/favicon-64.png'
+];
 
-self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('install', event => {
+    // Un file mancante non deve impedire l'installazione.
+    event.waitUntil(caches.open(CACHE)
+        .then(cache => Promise.allSettled(SHELL.map(url => cache.add(url))))
+        .then(() => self.skipWaiting()));
+});
 
 self.addEventListener('activate', event => {
     event.waitUntil((async () => {

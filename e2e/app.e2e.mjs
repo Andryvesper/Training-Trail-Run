@@ -127,14 +127,6 @@ function fakeIntervals(url) {
     return [];
 }
 
-// Tailwind finto: solo le regole necessarie a rendere significativa la visibilita'.
-const FAKE_TAILWIND = [
-    'window.tailwind = {};',
-    'const s = document.createElement("style");',
-    's.textContent = ".hidden{display:none}@media(min-width:1024px){.lg\\\\:flex{display:flex!important}.lg\\\\:hidden{display:none!important}}";',
-    'document.head.append(s);'
-].join('\n');
-
 let server, baseUrl, browser;
 const blockedExternal = [];
 const proxiedIntervals = [];
@@ -170,9 +162,8 @@ async function openApp({ intervals = false, serviceWorkers = 'block' } = {}) {
     page.on('pageerror', err => consoleErrors.push(`pageerror: ${err.message}`));
     await page.route('**/*', route => {
         const url = route.request().url();
+        if (url.includes('/vendor/supabase-js-')) return route.fulfill({ contentType: 'text/javascript', body: intervals ? fakeSupabaseJs(INTERVALS_DB) : FAKE_SUPABASE_JS });
         if (url.startsWith(baseUrl)) return route.continue();
-        if (url.includes('cdn.tailwindcss.com')) return route.fulfill({ contentType: 'text/javascript', body: FAKE_TAILWIND });
-        if (url.includes('@supabase/supabase-js')) return route.fulfill({ contentType: 'text/javascript', body: intervals ? fakeSupabaseJs(INTERVALS_DB) : FAKE_SUPABASE_JS });
         // Proxy Supabase "intervals-proxy": la chiave resta lato server.
         if (intervals && url.includes('/functions/v1/intervals-proxy/')) {
             const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey', 'access-control-expose-headers': 'x-intervals-proxy' };

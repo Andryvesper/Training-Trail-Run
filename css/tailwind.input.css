@@ -1,0 +1,67 @@
+/* Sorgente di css/app.css: modificare qui e lanciare `npm run build:css`. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    /* L'app si mostra a tutta larghezza solo quando non è nascosta
+       (con "hidden lg:flex" il flex vinceva e l'app compariva dietro il login). */
+    @media (min-width: 1024px) {
+        .app-layout:not(.hidden) {
+            display: flex;
+        }
+    }
+}
+
+@media (min-width: 1024px) {
+    #app-sidebar.is-collapsed {
+        width: 5rem;
+    }
+
+    #app-sidebar.is-collapsed .nav-label {
+        display: none;
+    }
+
+    #app-sidebar.is-collapsed nav button {
+        justify-content: center;
+    }
+
+    /* Menu ridotto: logo e pulsante in colonna, senza sovrapporsi. */
+    #app-sidebar.is-collapsed > div:first-child {
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 0;
+    }
+}
+
+[data-summary-period][aria-pressed="true"],
+[data-chart-weeks][aria-pressed="true"],
+[data-performance-days][aria-pressed="true"] {
+    background-color: #a040f0;
+    border-color: #a040f0;
+    color: #ffffff;
+}
+
+.noscript-message {
+    padding: 1rem;
+    text-align: center;
+    color: #f1f5f9;
+}
+
+/* Scheletro di caricamento condiviso dai moduli. */
+.skeleton {
+    border-radius: 0.75rem;
+    background: linear-gradient(90deg, rgb(30 41 59 / 0.6) 25%, rgb(51 65 85 / 0.6) 50%, rgb(30 41 59 / 0.6) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton { animation: none; }
+}

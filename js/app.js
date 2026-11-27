@@ -165,6 +165,10 @@ function hideAuthError() {
     document.getElementById('auth-error').classList.add('hidden');
 }
 
+document.addEventListener('click', event => {
+    if (event.target.closest('[data-app-error-close]')) document.getElementById('app-error')?.classList.add('hidden');
+});
+
 function showAppError(message) {
     const banner = document.getElementById('app-error');
     if (!banner) return;
