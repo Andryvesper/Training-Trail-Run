@@ -29,6 +29,16 @@ export class IntervalsService {
         );
     }
 
+    // Stream di un'attività (time, distance, altitude, heartrate, ...).
+    // Risposta: array di { type, data }.
+    async getActivityStreams(activityId, types = []) {
+        const query = types.length ? `?types=${types.map(encodeURIComponent).join(',')}` : '';
+        return this.fetchCollection(
+            `${this.baseUrl}/activity/${encodeURIComponent(activityId)}/streams.json${query}`,
+            "stream dell'attività"
+        );
+    }
+
     async fetchCollection(url, resourceName) {
         const response = await fetch(url, { headers: this.getAuthHeaders() });
         if (!response.ok) {

@@ -43,8 +43,8 @@ const FAKE_DB = {
 };
 
 // Sostituisce supabase-js: sessione finta e query builder in memoria.
-const FAKE_SUPABASE_JS = `(() => {
-  const DB = ${JSON.stringify(FAKE_DB)};
+const fakeSupabaseJs = db => `(() => {
+  const DB = ${JSON.stringify(db)};
   const USER = ${JSON.stringify(USER)};
   function builder(table) {
     let rows = (DB[table] || []).slice();
@@ -77,6 +77,39 @@ const FAKE_SUPABASE_JS = `(() => {
     rpc: async () => ({ data: [], error: null })
   }; } };
 })();`;
+const FAKE_SUPABASE_JS = fakeSupabaseJs(FAKE_DB);
+
+// Intervals.icu finto: una corsa trail di ieri con stream e dinamiche di corsa.
+const INTERVALS_DB = { ...FAKE_DB, profiles: [{ ...FAKE_DB.profiles[0], intervals_id: 'i0', intervals_key: 'chiave-finta' }] };
+function fakeIntervals(url) {
+    if (url.includes('/wellness')) {
+        return Array.from({ length: 40 }, (_, i) => ({ id: inDays(-i), hrv: 60 + ((i % 5) - 2), restingHR: 48, ctl: 40, atl: 45 }));
+    }
+    if (url.includes('/streams')) {
+        const n = 4200;
+        const time = [], distance = [], altitude = [], heartrate = [], stance = [];
+        for (let t = 0; t <= n; t += 1) {
+            const d = t * 3;
+            time.push(t); distance.push(d);
+            altitude.push(400 + 80 * Math.sin(d / 4000 * 2 * Math.PI));
+            heartrate.push(140 + 10 * t / n);
+            stance.push(245 + 15 * t / n);
+        }
+        return [
+            { type: 'time', data: time }, { type: 'distance', data: distance }, { type: 'fixed_altitude', data: altitude },
+            { type: 'heartrate', data: heartrate }, { type: 'stance_time', data: stance }, { type: 'latlng', data: [] }
+        ];
+    }
+    if (url.includes('/activities')) {
+        return [{
+            id: 'i9001', name: 'Trail e2e', type: 'TrailRun', start_date_local: `${inDays(-1)}T08:00:00`,
+            distance: 12600, moving_time: 4200, elapsed_time: 4300, total_elevation_gain: 300, total_elevation_loss: 300,
+            average_heartrate: 145, icu_training_load: 80,
+            stream_types: ['time', 'distance', 'fixed_altitude', 'heartrate', 'stance_time', 'latlng']
+        }];
+    }
+    return [];
+}
 
 // Tailwind finto: solo le regole necessarie a rendere significativa la visibilita'.
 const FAKE_TAILWIND = [
@@ -111,7 +144,7 @@ test.after(async () => {
     await new Promise(resolve => server?.close(resolve));
 });
 
-async function openApp() {
+async function openApp({ intervals = false } = {}) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
     const page = await context.newPage();
     const consoleErrors = [];
@@ -121,7 +154,8 @@ async function openApp() {
         const url = route.request().url();
         if (url.startsWith(baseUrl)) return route.continue();
         if (url.includes('cdn.tailwindcss.com')) return route.fulfill({ contentType: 'text/javascript', body: FAKE_TAILWIND });
-        if (url.includes('@supabase/supabase-js')) return route.fulfill({ contentType: 'text/javascript', body: FAKE_SUPABASE_JS });
+        if (url.includes('@supabase/supabase-js')) return route.fulfill({ contentType: 'text/javascript', body: intervals ? fakeSupabaseJs(INTERVALS_DB) : FAKE_SUPABASE_JS });
+        if (intervals && url.startsWith('https://intervals.icu/api/v1/')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(fakeIntervals(url)) });
         blockedExternal.push(url);
         return route.abort();
     });
@@ -231,6 +265,31 @@ test('calendario: esportazione .ics scarica un file valido', async () => {
         assert.equal((content.match(/BEGIN:VEVENT/g) || []).length, 12);
         assert.match(content, /Seduta e2e 1/);
         await page.getByText('Esportate 12 sedute in formato .ics.').waitFor({ timeout: 5000 });
+        assert.deepEqual(consoleErrors, []);
+    } finally { await context.close(); }
+});
+
+test('dashboard: analisi prestazione dagli stream Intervals (GAP, deriva, GCT, prontezza)', async () => {
+    const { context, page, consoleErrors } = await openApp({ intervals: true });
+    try {
+        await page.getByRole('tab', { name: 'Dashboard e metriche', exact: true }).click();
+        const status = page.locator('#dashboard-performance-status');
+        await status.getByText(/corse analizzate/).waitFor({ timeout: 15000 });
+        assert.match(await status.textContent(), /1 corse analizzate/);
+        const readiness = page.locator('#dashboard-readiness [data-readiness-level]');
+        assert.ok(['green', 'amber', 'red'].includes(await readiness.getAttribute('data-readiness-level')));
+        const row = page.locator('#dashboard-performance-table tbody tr').first();
+        const cells = await row.locator('th, td').allTextContents();
+        assert.equal(cells[1], 'Trail e2e');
+        assert.match(cells[3], /^\d:\d{2}\/km$/, 'GAP');
+        assert.match(cells[7], /%/, 'deriva cardiaca');
+        assert.match(cells[8], /^\+\d/, 'GCT in aumento');
+        assert.match(await page.locator('#dashboard-performance-streams').textContent(), /stance_time/);
+        assert.match(await page.locator('#dashboard-threshold-review').textContent(), /rivalutate ogni 15 giorni/);
+        // Una sola corsa: le linee chiedono almeno 2 punti, il carico giornaliero si disegna.
+        const charts = await page.locator('#dashboard-performance-charts h4').allTextContents();
+        assert.deepEqual(charts, ['Efficiency Factor (GAP / FC)', 'Deriva cardiaca (Pa:Hr su GAP)', 'Variazione del GCT nel finale', 'Mechanical Load Score giornaliero']);
+        assert.ok(await page.locator('#dashboard-performance-charts svg').count() >= 1);
         assert.deepEqual(consoleErrors, []);
     } finally { await context.close(); }
 });

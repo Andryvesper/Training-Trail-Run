@@ -10,6 +10,7 @@ import {
 } from './dashboard-stats.js';
 import { CHART_COLORS, renderBarChart, renderLineChart } from './dashboard-charts.js';
 import { TrainingRacesService } from './training-races.js';
+import { resetPerformanceSection, runPerformanceAnalysis } from './performance-analysis-ui.js';
 import { TrainingPlanService } from './training-plan.js';
 import {
     describeIncreases,
@@ -199,6 +200,15 @@ async function syncDashboardData(supabaseClient, userId, athleteId, apiKey) {
     renderSummary();
     renderLoadAndAdherence();
     renderCharts();
+    // Analisi avanzata in background: scarica gli stream senza bloccare la dashboard.
+    runPerformanceAnalysis({
+        supabaseClient,
+        userId,
+        intervalsService: service,
+        activities,
+        wellness,
+        today: newest
+    }).catch(error => console.error('Analisi prestazioni non completata:', error));
 
     const lastWeek = summarizePeriod(dashboardState.activities, addDateKeyDays(newest, -6), newest);
     setDashboardStatus(
@@ -551,6 +561,7 @@ function renderMetrics(metrics) {
 }
 
 function clearDashboardData() {
+    resetPerformanceSection();
     METRICS.forEach(([, elementId]) => {
         const element = document.getElementById(elementId);
         if (element) element.textContent = '—';

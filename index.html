@@ -220,6 +220,26 @@
                             <p class="text-sm text-slate-400">In attesa dei dati Intervals.icu.</p>
                         </div>
                     </section>
+                    <section class="bg-slate-900/70 border border-slate-800 p-4 sm:p-5 rounded-2xl space-y-4" aria-labelledby="dashboard-performance-title">
+                        <div class="flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                                <h3 id="dashboard-performance-title" class="text-base font-bold text-white">Analisi prestazione</h3>
+                                <p class="text-xs text-slate-400 mt-1">GAP, efficienza, deriva cardiaca, dinamiche di corsa e carico eccentrico calcolati dagli stream delle tue corse (ultimi 90 giorni). Soglie di letteratura e derivate, rivalutate ogni 15 giorni: non vengono dal libro.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-1" role="group" aria-label="Periodo del trend di efficienza">
+                                <button type="button" data-performance-days="60" class="min-h-11 rounded-xl border border-slate-700 px-3 text-xs font-medium text-slate-300" aria-pressed="false">60 giorni</button>
+                                <button type="button" data-performance-days="90" class="min-h-11 rounded-xl border border-slate-700 px-3 text-xs font-medium text-slate-300" aria-pressed="true">90 giorni</button>
+                            </div>
+                        </div>
+                        <div id="dashboard-performance-status" role="status" aria-live="polite">
+                            <p class="text-sm text-slate-400">In attesa dei dati Intervals.icu.</p>
+                        </div>
+                        <div id="dashboard-readiness" aria-live="polite"></div>
+                        <div id="dashboard-threshold-review"></div>
+                        <div id="dashboard-performance-charts" class="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4"></div>
+                        <div id="dashboard-performance-table"></div>
+                        <div id="dashboard-performance-streams"></div>
+                    </section>
                     <section class="space-y-4" aria-labelledby="dashboard-charts-title">
                         <div class="flex flex-wrap items-end justify-between gap-3">
                             <div>
