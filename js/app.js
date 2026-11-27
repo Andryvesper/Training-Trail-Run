@@ -126,13 +126,13 @@ function setupTabNavigation() {
             document.getElementById(targetId)?.classList.remove('hidden');
             
             tabButtons.forEach(b => {
-                b.classList.remove('bg-emerald-500', 'text-slate-950');
+                b.classList.remove('bg-brand-500', 'text-white');
                 b.classList.remove('bg-slate-900', 'text-slate-400');
                 b.classList.add('text-slate-300');
                 b.setAttribute('aria-selected', 'false');
             });
             btn.classList.remove('text-slate-300', 'hover:bg-slate-900', 'hover:text-white');
-            btn.classList.add('bg-emerald-500', 'text-slate-950');
+            btn.classList.add('bg-brand-500', 'text-white');
             btn.setAttribute('aria-selected', 'true');
             closeMobileSidebar();
         });

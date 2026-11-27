@@ -302,12 +302,12 @@ function renderSharePreview(container, result, hasReferencePace, newStartDate, t
     wrapper.append(list);
 
     const confirmation = createElement('label', 'flex items-start gap-2 text-xs text-slate-300');
-    const checkbox = createElement('input', 'mt-0.5 h-4 w-4 accent-emerald-500');
+    const checkbox = createElement('input', 'mt-0.5 h-4 w-4 accent-brand-500');
     checkbox.type = 'checkbox';
     checkbox.name = 'confirm-import';
     confirmation.append(checkbox, document.createTextNode('Ho verificato le sedute e desidero aggiungerne una copia al mio calendario.'));
     wrapper.append(confirmation);
-    const button = createElement('button', 'min-h-11 w-full rounded-xl bg-emerald-500 px-3 text-sm font-bold text-slate-950', 'Conferma importazione');
+    const button = createElement('button', 'min-h-11 w-full rounded-xl bg-brand-500 px-3 text-sm font-bold text-white', 'Conferma importazione');
     button.type = 'button';
     button.dataset.action = 'import-share';
     wrapper.append(button);

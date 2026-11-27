@@ -619,7 +619,7 @@ function showConnectionButton(container = document.getElementById('intervals-das
     if (!container) return;
     const button = createElement(
         'button',
-        'mt-3 min-h-11 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-emerald-400',
+        'mt-3 min-h-11 rounded-xl bg-brand-500 px-4 py-2 text-sm font-bold text-white hover:bg-brand-600',
         'Collega Intervals.icu'
     );
     button.type = 'button';

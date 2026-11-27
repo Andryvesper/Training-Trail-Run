@@ -309,7 +309,7 @@ function createExportToolbar(getSessions, status) {
         option.value = value;
         select.append(option);
     });
-    const button = createButton('Esporta calendario (.ics)', null, {}, 'min-h-10 rounded-xl border border-emerald-500/40 px-4 text-sm font-medium text-emerald-300 hover:bg-emerald-500/10');
+    const button = createButton('Esporta calendario (.ics)', null, {}, 'min-h-10 rounded-xl border border-brand-500/40 px-4 text-sm font-medium text-brand-300 hover:bg-brand-500/10');
     button.addEventListener('click', () => {
         const now = new Date();
         const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -461,7 +461,7 @@ function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
     const isToday = day.date === formatDateKey(new Date());
     const card = createElement(
         'article',
-        `day-card border ${isToday ? 'border-emerald-500/60 bg-emerald-950/10' : 'border-slate-800 bg-slate-900/70'} rounded-2xl p-3 flex flex-col gap-3`
+        `day-card border ${isToday ? 'border-brand-500/60 bg-brand-950/10' : 'border-slate-800 bg-slate-900/70'} rounded-2xl p-3 flex flex-col gap-3`
     );
     const dayLabel = new Date(`${day.date}T12:00:00`).toLocaleDateString('it-IT', {
         weekday: 'long',
@@ -470,7 +470,7 @@ function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
     });
     const heading = createElement('div', 'flex items-center justify-between gap-2');
     heading.append(createElement('h3', 'text-sm font-bold text-white capitalize', dayLabel));
-    if (isToday) heading.append(createElement('span', 'shrink-0 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-300', 'Oggi'));
+    if (isToday) heading.append(createElement('span', 'shrink-0 rounded-full bg-brand-500/10 px-2.5 py-1 text-[10px] font-semibold text-brand-300', 'Oggi'));
     card.append(heading);
 
     if (day.intervalsActivities.length) {
@@ -499,7 +499,7 @@ function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
             day.plannedSessions.length ? 'Aggiungi seduta' : 'Pianifica allenamento',
             'add-session',
             { date: day.date },
-            'min-h-11 w-full rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20'
+            'min-h-11 w-full rounded-xl border border-brand-500/30 bg-brand-500/10 px-3 py-2 text-sm font-semibold text-brand-300 hover:bg-brand-500/20'
         ));
     }
     card.append(sessionsSection);
@@ -541,7 +541,7 @@ function renderActivity(activity, daySessions, allSessions, pendingAssociation) 
             'Modifica valutazione',
             'assess-activity',
             { activityId, sessionId: linkedSession.id },
-            'min-h-10 text-xs font-medium text-emerald-300'
+            'min-h-10 text-xs font-medium text-brand-300'
         ));
         actions.append(createButton(
             'Rimuovi associazione',
@@ -603,7 +603,7 @@ function renderAssociationForm(activity, session, currentScore, isEditing) {
 
     if (!isEditing) {
         const confirmationLabel = createElement('label', 'flex min-h-11 items-center gap-3 text-sm text-slate-200');
-        const confirmation = createElement('input', 'h-5 w-5 accent-emerald-400');
+        const confirmation = createElement('input', 'h-5 w-5 accent-brand-400');
         confirmation.type = 'checkbox';
         confirmation.name = 'confirm-association';
         confirmation.required = true;
@@ -619,9 +619,9 @@ function renderAssociationForm(activity, session, currentScore, isEditing) {
         const score = index + 1;
         const choice = createElement(
             'label',
-            'flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-slate-700 px-1 text-center text-[10px] text-slate-300 has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-400/10'
+            'flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-slate-700 px-1 text-center text-[10px] text-slate-300 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-400/10'
         );
-        const radio = createElement('input', 'h-4 w-4 accent-emerald-400');
+        const radio = createElement('input', 'h-4 w-4 accent-brand-400');
         radio.type = 'radio';
         radio.name = 'adherence_score';
         radio.value = String(score);
@@ -649,7 +649,7 @@ function renderAssociationForm(activity, session, currentScore, isEditing) {
         'Conferma e salva',
         null,
         {},
-        'min-h-11 rounded-xl bg-emerald-500 px-3 text-sm font-bold text-slate-950',
+        'min-h-11 rounded-xl bg-brand-500 px-3 text-sm font-bold text-white',
         'submit'
     ));
     form.append(actions);
@@ -666,7 +666,7 @@ function renderSession(session, dayActivities = []) {
     heading.append(details);
 
     const actions = createElement('div', 'flex shrink-0 gap-3');
-    actions.append(createButton('Modifica', 'edit-session', { sessionId: session.id }, 'min-h-10 text-xs font-medium text-emerald-300'));
+    actions.append(createButton('Modifica', 'edit-session', { sessionId: session.id }, 'min-h-10 text-xs font-medium text-brand-300'));
     actions.append(createButton('Elimina', 'delete-session', { sessionId: session.id }, 'min-h-10 text-xs font-medium text-rose-300'));
     heading.append(actions);
     section.append(heading);
@@ -753,7 +753,7 @@ function formatDurationIt(seconds) {
 }
 
 function renderSessionForm(session) {
-    const form = createElement('form', 'space-y-3 rounded-xl border border-emerald-500/30 bg-slate-950 p-3');
+    const form = createElement('form', 'space-y-3 rounded-xl border border-brand-500/30 bg-slate-950 p-3');
     form.dataset.sessionForm = 'true';
     form.dataset.date = session.scheduled_date;
 
@@ -808,7 +808,7 @@ function renderSessionForm(session) {
 
     const actions = createElement('div', 'grid grid-cols-2 gap-2');
     actions.append(createButton('Annulla', 'cancel-edit', {}, 'min-h-11 rounded-xl border border-slate-700 px-3 text-sm text-slate-300'));
-    actions.append(createButton(session.id ? 'Salva modifiche' : 'Salva seduta', null, {}, 'min-h-11 rounded-xl bg-emerald-500 px-3 text-sm font-bold text-slate-950', 'submit'));
+    actions.append(createButton(session.id ? 'Salva modifiche' : 'Salva seduta', null, {}, 'min-h-11 rounded-xl bg-brand-500 px-3 text-sm font-bold text-white', 'submit'));
     form.append(actions);
     return form;
 }

@@ -148,7 +148,7 @@ function renderRace(race) {
     heading.append(information);
 
     const actions = makeElement('div', 'flex shrink-0 gap-4');
-    actions.append(actionButton('Modifica', 'edit', race.id, 'text-sm font-semibold text-emerald-300'));
+    actions.append(actionButton('Modifica', 'edit', race.id, 'text-sm font-semibold text-brand-300'));
     actions.append(actionButton('Elimina', 'delete', race.id, 'text-sm font-semibold text-rose-300'));
     heading.append(actions);
     card.append(heading);
@@ -167,7 +167,7 @@ function renderRace(race) {
     if (details.length) card.append(makeElement('p', 'text-sm text-slate-300', details.join(' · ')));
     if (race.goal) card.append(makeElement('p', 'whitespace-pre-wrap text-sm text-slate-400', race.goal));
     if (race.result_source_url) {
-        const source = makeElement('a', 'text-sm text-emerald-300 underline underline-offset-2', 'Fonte del risultato');
+        const source = makeElement('a', 'text-sm text-brand-300 underline underline-offset-2', 'Fonte del risultato');
         source.href = race.result_source_url;
         source.target = '_blank';
         source.rel = 'noopener noreferrer';

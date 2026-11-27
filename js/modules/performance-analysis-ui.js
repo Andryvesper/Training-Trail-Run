@@ -253,7 +253,7 @@ function renderReview() {
         });
         card.append(list, observationsDetails(pending.proposal?.observations));
         const actions = el('div', 'flex flex-wrap gap-2');
-        const approve = el('button', 'min-h-11 rounded-xl bg-emerald-500 px-4 text-sm font-bold text-slate-950 hover:bg-emerald-400', 'Approva le nuove soglie');
+        const approve = el('button', 'min-h-11 rounded-xl bg-brand-500 px-4 text-sm font-bold text-white hover:bg-brand-600', 'Approva le nuove soglie');
         const reject = el('button', 'min-h-11 rounded-xl border border-slate-600 px-4 text-sm font-medium text-slate-200 hover:bg-slate-800', 'Mantieni le soglie attuali');
         approve.type = 'button';
         reject.type = 'button';

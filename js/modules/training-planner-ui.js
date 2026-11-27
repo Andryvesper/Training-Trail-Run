@@ -731,7 +731,7 @@ function renderSecondaryRaceOptions(container, races, selectedRaceIds = [], sele
     const selected = new Set(selectedRaceIds);
     options.forEach(race => {
         const label = makeElement('label', 'flex min-h-11 items-center gap-2 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-300');
-        const checkbox = makeElement('input', 'h-4 w-4 accent-emerald-500');
+        const checkbox = makeElement('input', 'h-4 w-4 accent-brand-500');
         checkbox.type = 'checkbox';
         checkbox.name = 'secondary_race_ids';
         checkbox.value = race.id;
@@ -936,7 +936,7 @@ function renderGeneratedDraft(card, generated) {
     checkbox.type = 'checkbox';
     checkbox.name = 'confirm_draft';
     confirmLabel.append(checkbox, makeElement('span', '', 'Ho rivisto la bozza e voglio scrivere queste sedute nel mio calendario. Le sedute già presenti non vengono modificate.'));
-    const button = makeElement('button', 'min-h-11 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white', 'Conferma e scrivi nel calendario');
+    const button = makeElement('button', 'min-h-11 rounded-xl bg-brand-600 px-3 text-sm font-semibold text-white', 'Conferma e scrivi nel calendario');
     button.type = 'button';
     button.dataset.action = 'apply-draft';
     card.append(confirmLabel, button);

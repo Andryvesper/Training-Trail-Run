@@ -23,7 +23,8 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { 500: '#10b981', 600: '#059669' }
+                        // Viola del logo (#A040F0).
+                        brand: { 50: '#faf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 300: '#d8b4fe', 400: '#c084fc', 500: '#a040f0', 600: '#8b2fd6', 700: '#7322b8', 800: '#5b1a91', 900: '#4a1577', 950: '#2e0a4f' }
                     }
                 }
             }
@@ -53,20 +54,21 @@
         }
 
         [data-summary-period][aria-pressed="true"],
-        [data-chart-weeks][aria-pressed="true"] {
-            background-color: #10b981;
-            border-color: #10b981;
-            color: #020617;
+        [data-chart-weeks][aria-pressed="true"],
+        [data-performance-days][aria-pressed="true"] {
+            background-color: #a040f0;
+            border-color: #a040f0;
+            color: #ffffff;
         }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500 selection:text-slate-950">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-brand-500 selection:text-white">
 
     <!-- Schermata di Autenticazione -->
     <div id="auth-screen" class="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl w-full max-w-md shadow-2xl space-y-6">
             <div class="text-center space-y-2">
-                <img src="icons/icon-192.png" alt="Logo Training Trail Run" width="96" height="96" class="mx-auto mb-2 h-24 w-24 rounded-2xl ring-1 ring-violet-500/30">
+                <img src="icons/icon-192.png" alt="Logo Training Trail Run" width="96" height="96" class="mx-auto mb-2 h-24 w-24 rounded-2xl ring-1 ring-brand-500/30">
                 <h1 class="text-xl font-bold tracking-tight text-white">Training Trail Run</h1>
                 <p class="text-xs text-slate-400">Piattaforma di Programmazione Atletica</p>
             </div>
@@ -74,13 +76,13 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
-                    <input type="email" id="auth-email" placeholder="nome@esempio.it" class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all">
+                    <input type="email" id="auth-email" placeholder="nome@esempio.it" class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all">
+                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all">
                 </div>
-                <button id="btn-login" class="w-full bg-emerald-500 text-slate-950 font-bold py-3.5 rounded-xl text-sm hover:bg-emerald-400 active:scale-[0.98] transition-all shadow-lg shadow-emerald-500/20">Accedi alla Piattaforma</button>
+                <button id="btn-login" class="w-full bg-brand-500 text-white font-bold py-3.5 rounded-xl text-sm hover:bg-brand-600 active:scale-[0.98] transition-all shadow-lg shadow-brand-500/20">Accedi alla Piattaforma</button>
             </div>
             <p id="auth-error" class="text-xs text-rose-400 text-center hidden bg-rose-500/10 p-3 rounded-xl border border-rose-500/20"></p>
         </div>
@@ -99,7 +101,7 @@
                 <button id="btn-sidebar-collapse" type="button" class="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white lg:flex" aria-label="Riduci menu" aria-expanded="true">⇤</button>
             </div>
             <nav class="flex-1 space-y-2 overflow-y-auto p-3" role="tablist" aria-label="Sezioni dell'app">
-                <button role="tab" aria-selected="true" data-target="section-calendar" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl bg-emerald-500 px-3 text-left text-sm font-semibold text-slate-950" aria-label="Calendario">
+                <button role="tab" aria-selected="true" data-target="section-calendar" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl bg-brand-500 px-3 text-left text-sm font-semibold text-white" aria-label="Calendario">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span class="nav-label">Calendario</span>
                 </button>
@@ -157,7 +159,7 @@
                 <!-- Modulo Dashboard Metriche -->
                 <div id="section-dashboard" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
                     <div class="space-y-2">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">La tua attività</p>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-brand-400">La tua attività</p>
                         <h2 class="text-2xl sm:text-3xl font-bold text-white">Riepilogo</h2>
                         <p class="text-sm text-slate-400">Metriche e attività sincronizzate dal tuo account Intervals.icu.</p>
                     </div>
@@ -270,7 +272,7 @@
                 <div id="section-calendar" role="tabpanel" class="space-y-5 sm:space-y-6">
                     <div class="space-y-4 bg-slate-900/70 border border-slate-800 p-4 sm:p-5 rounded-2xl">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Il tuo programma</p>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-brand-400">Il tuo programma</p>
                             <h2 class="text-2xl font-bold text-white mt-1">Calendario</h2>
                             <p class="text-sm text-slate-400 mt-1">Pianifica e aggiorna le tue sedute.</p>
                         </div>
@@ -283,7 +285,7 @@
 
                 <div id="section-races" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
                     <div class="space-y-2">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Obiettivi e risultati</p>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-brand-400">Obiettivi e risultati</p>
                         <h2 class="text-2xl sm:text-3xl font-bold text-white">Gare</h2>
                         <p class="text-sm text-slate-400">Registra le gare future anche per mese/periodo, oppure archivia i risultati conclusi.</p>
                     </div>
@@ -374,7 +376,7 @@
                             </div>
                         </div>
                         <div class="flex flex-col gap-2 sm:flex-row">
-                            <button type="submit" class="min-h-11 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-400">Salva gara</button>
+                            <button type="submit" class="min-h-11 rounded-xl bg-brand-500 px-4 py-3 text-sm font-bold text-white hover:bg-brand-600">Salva gara</button>
                             <button id="race-cancel-edit" type="button" class="hidden min-h-11 rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-300 hover:bg-slate-800">Annulla modifica</button>
                         </div>
                     </form>
@@ -385,7 +387,7 @@
 
                 <section id="section-planner" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
                     <div class="space-y-2">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Profilo e obiettivi</p>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-brand-400">Profilo e obiettivi</p>
                         <h2 class="text-2xl sm:text-3xl font-bold text-white">Piani di allenamento</h2>
                         <p class="max-w-3xl text-sm text-slate-400">Completa il questionario e richiedi una bozza: il programma viene generato dalle tabelle approvate (10 km, mezza e maratona su strada; ultra trail tra 75 e 125 km) e scritto nel calendario solo dopo la tua conferma. Qui puoi anche condividere o importare un programma.</p>
                     </div>
@@ -486,43 +488,43 @@
                                 <p class="text-xs text-slate-500">Seleziona i giorni possibili e il tempo massimo realistico per ciascuno.</p>
                                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
-                                        <input type="checkbox" name="available_days" value="mon" class="h-5 w-5 accent-emerald-500">
+                                        <input type="checkbox" name="available_days" value="mon" class="h-5 w-5 accent-brand-500">
                                         <span class="w-24 shrink-0">Lunedì</span>
                                         <input type="number" data-day-minutes="mon" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi lunedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
-                                        <input type="checkbox" name="available_days" value="tue" class="h-5 w-5 accent-emerald-500">
+                                        <input type="checkbox" name="available_days" value="tue" class="h-5 w-5 accent-brand-500">
                                         <span class="w-24 shrink-0">Martedì</span>
                                         <input type="number" data-day-minutes="tue" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi martedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
-                                        <input type="checkbox" name="available_days" value="wed" class="h-5 w-5 accent-emerald-500">
+                                        <input type="checkbox" name="available_days" value="wed" class="h-5 w-5 accent-brand-500">
                                         <span class="w-24 shrink-0">Mercoledì</span>
                                         <input type="number" data-day-minutes="wed" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi mercoledì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
-                                        <input type="checkbox" name="available_days" value="thu" class="h-5 w-5 accent-emerald-500">
+                                        <input type="checkbox" name="available_days" value="thu" class="h-5 w-5 accent-brand-500">
                                         <span class="w-24 shrink-0">Giovedì</span>
                                         <input type="number" data-day-minutes="thu" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi giovedì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
-                                        <input type="checkbox" name="available_days" value="fri" class="h-5 w-5 accent-emerald-500">
+                                        <input type="checkbox" name="available_days" value="fri" class="h-5 w-5 accent-brand-500">
                                         <span class="w-24 shrink-0">Venerdì</span>
                                         <input type="number" data-day-minutes="fri" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi venerdì" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
-                                        <input type="checkbox" name="available_days" value="sat" class="h-5 w-5 accent-emerald-500">
+                                        <input type="checkbox" name="available_days" value="sat" class="h-5 w-5 accent-brand-500">
                                         <span class="w-24 shrink-0">Sabato</span>
                                         <input type="number" data-day-minutes="sat" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi sabato" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
                                     </label>
                                     <label class="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-200">
-                                        <input type="checkbox" name="available_days" value="sun" class="h-5 w-5 accent-emerald-500">
+                                        <input type="checkbox" name="available_days" value="sun" class="h-5 w-5 accent-brand-500">
                                         <span class="w-24 shrink-0">Domenica</span>
                                         <input type="number" data-day-minutes="sun" min="10" max="1440" step="5" inputmode="numeric" disabled aria-label="Minuti massimi domenica" class="min-h-10 min-w-0 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 text-sm disabled:opacity-40">
                                         <span class="text-xs text-slate-500">min</span>
@@ -601,11 +603,11 @@
                                     <div class="space-y-2 text-sm text-slate-300">
                                         <p>Terreni preferiti o disponibili</p>
                                         <div class="flex flex-wrap gap-3">
-                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="road" class="h-4 w-4 accent-emerald-500"> Strada</label>
-                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="trail" class="h-4 w-4 accent-emerald-500"> Trail/sterrato</label>
-                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="mixed" class="h-4 w-4 accent-emerald-500"> Misto</label>
-                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="treadmill" class="h-4 w-4 accent-emerald-500"> Tapis roulant</label>
-                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="other" class="h-4 w-4 accent-emerald-500"> Altro</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="road" class="h-4 w-4 accent-brand-500"> Strada</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="trail" class="h-4 w-4 accent-brand-500"> Trail/sterrato</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="mixed" class="h-4 w-4 accent-brand-500"> Misto</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="treadmill" class="h-4 w-4 accent-brand-500"> Tapis roulant</label>
+                                            <label class="flex items-center gap-2"><input type="checkbox" name="preferred_terrains" value="other" class="h-4 w-4 accent-brand-500"> Altro</label>
                                         </div>
                                     </div>
                                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -662,7 +664,7 @@
                                 <div id="planner-reference-test" class="hidden space-y-2 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 text-sm text-slate-300" aria-live="polite"></div>
                                 <div class="flex flex-col gap-2 sm:flex-row">
                                     <button type="submit" name="action" value="save" class="min-h-11 rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800">Salva questionario</button>
-                                    <button id="planner-create-draft" type="submit" name="action" value="draft" disabled class="min-h-11 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 enabled:hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40">Prepara richiesta di bozza</button>
+                                    <button id="planner-create-draft" type="submit" name="action" value="draft" disabled class="min-h-11 rounded-xl bg-brand-500 px-4 py-3 text-sm font-bold text-white enabled:hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40">Prepara richiesta di bozza</button>
                                 </div>
                             </div>
                         </form>
@@ -684,7 +686,7 @@
                     </div>
                     <section id="training-plan-sharing-container" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5" aria-labelledby="training-plan-sharing-title">
                         <div class="space-y-1">
-                            <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Condivisione consensuale</p>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-brand-400">Condivisione consensuale</p>
                             <h2 id="training-plan-sharing-title" class="text-xl font-bold text-white">Clona un programma</h2>
                             <p class="text-sm text-slate-400">Condividi sedute selezionate con un codice temporaneo oppure importa quelle di un altro atleta. L’importazione crea una copia senza modificare il piano originale.</p>
                         </div>
@@ -718,7 +720,7 @@
                                 </select>
                             </label>
                             <p class="text-xs text-amber-200">Il codice consente l’importazione a chiunque lo possieda. Non condividerlo pubblicamente; contiene solo le sedute nell’intervallo scelto, non i dati personali o le attività completate.</p>
-                            <button type="submit" class="min-h-11 w-full rounded-xl bg-emerald-500 px-3 text-sm font-bold text-slate-950">Crea codice di condivisione</button>
+                            <button type="submit" class="min-h-11 w-full rounded-xl bg-brand-500 px-3 text-sm font-bold text-white">Crea codice di condivisione</button>
                             <div id="training-plan-share-created" aria-live="polite"></div>
                         </form>
 
@@ -755,7 +757,7 @@
                 <!-- Modulo Intervals.icu -->
                 <section id="section-profile" role="tabpanel" class="hidden space-y-5 sm:space-y-6" aria-labelledby="athlete-profile-title">
                     <div class="space-y-2">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Area personale</p>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-brand-400">Area personale</p>
                         <h2 id="athlete-profile-title" class="text-2xl sm:text-3xl font-bold text-white">Profilo</h2>
                         <p id="athlete-profile-summary" class="text-sm text-slate-400">I tuoi dati anagrafici.</p>
                     </div>
@@ -772,7 +774,7 @@
                             <label class="space-y-1 text-xs font-medium text-slate-400"><span>Peso (kg)</span><input name="weight_kg" type="number" min="25" max="250" step="0.1" inputmode="decimal" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200"></label>
                         </div>
                         <p class="text-xs text-slate-500">Tutti i campi sono facoltativi e visibili solo a te. Non servono per generare il piano.</p>
-                        <button type="submit" class="min-h-11 rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-slate-950 hover:bg-emerald-400">Salva profilo</button>
+                        <button type="submit" class="min-h-11 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600">Salva profilo</button>
                     </form>
                 </section>
 
@@ -786,17 +788,17 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-medium text-slate-400 mb-1.5">Athlete ID</label>
-                                <input type="text" id="intervals-athlete-id" placeholder="es. i12345 o me" class="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
+                                <input type="text" id="intervals-athlete-id" placeholder="es. i12345 o me" class="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 outline-none">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-slate-400 mb-1.5">API Key</label>
-                                <input type="password" id="intervals-api-key" placeholder="Inserisci API Key" class="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-emerald-500 outline-none">
+                                <input type="password" id="intervals-api-key" placeholder="Inserisci API Key" class="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 outline-none">
                             </div>
                         </div>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800/60">
                             <button id="btn-test-intervals" class="min-h-11 bg-slate-800 text-slate-200 font-bold px-4 py-3 rounded-xl text-sm hover:bg-slate-700 transition-all border border-slate-700">Verifica e sincronizza</button>
-                            <button id="btn-save-intervals" class="min-h-11 bg-emerald-500 text-slate-950 font-bold px-4 py-3 rounded-xl text-sm hover:bg-emerald-400 transition-all">Salva e sincronizza</button>
+                            <button id="btn-save-intervals" class="min-h-11 bg-brand-500 text-white font-bold px-4 py-3 rounded-xl text-sm hover:bg-brand-600 transition-all">Salva e sincronizza</button>
                         </div>
                         <p id="intervals-status-msg" class="text-sm hidden p-3 rounded-xl" role="status" aria-live="polite"></p>
                     </div>
