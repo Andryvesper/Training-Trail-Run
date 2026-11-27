@@ -6,6 +6,8 @@
 // Funzioni pure: date come stringhe 'AAAA-MM-GG'.
 
 import { PERFORMANCE_CONFIG } from './performance-config.js';
+import { addDays } from '../core/date-utils.js';
+export { addDays };
 
 const ECCENTRIC_SPORTS = ['run', 'trail', 'hike', 'walk', 'snowshoe'];
 
@@ -245,12 +247,6 @@ function wellnessValues(wellness, key) {
         .filter(record => record && typeof record === 'object')
         .map(record => ({ date: String(record.date ?? record.id ?? '').slice(0, 10), value: Number(record[key]) }))
         .filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number.isFinite(item.value) && item.value > 0);
-}
-
-export function addDays(dateKey, days) {
-    const date = new Date(`${dateKey}T00:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + days);
-    return date.toISOString().slice(0, 10);
 }
 
 function average(values) {

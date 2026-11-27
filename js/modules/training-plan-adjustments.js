@@ -1,5 +1,6 @@
 // Proposte di modifica a bozze e piani applicati: gare intermedie, settimana
 // saltata e test VR. Funzioni pure; nulla viene applicato senza conferma.
+import { addDays, daysBetween, isIsoDate } from '../core/date-utils.js';
 
 const DAY_KEYS = Object.freeze(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
 const RUNNING_SPORTS = Object.freeze(['run', 'trail']);
@@ -371,18 +372,3 @@ function dayKey(dateKey) {
     return DAY_KEYS[(new Date(`${dateKey}T00:00:00Z`).getUTCDay() + 6) % 7];
 }
 
-function addDays(dateKey, days) {
-    const date = new Date(`${dateKey}T00:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + days);
-    return date.toISOString().slice(0, 10);
-}
-
-function daysBetween(from, to) {
-    return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000);
-}
-
-function isIsoDate(value) {
-    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-    const date = new Date(`${value}T00:00:00Z`);
-    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
-}

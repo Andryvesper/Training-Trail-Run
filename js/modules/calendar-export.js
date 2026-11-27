@@ -1,6 +1,8 @@
 // Esportazione del piano in iCalendar (RFC 5545). Funzioni pure + download nel browser.
 // Nota: non esiste un export GPX perché le sedute non hanno geometria del percorso.
 import { parsePlannedElevation } from './training-load.js';
+import { addDays } from '../core/date-utils.js';
+export { addDays };
 
 export const ICS_PRODID = '-//Training Trail Run//Calendario allenamenti//IT';
 export const UID_DOMAIN = 'training-trail-run';
@@ -47,12 +49,6 @@ export function formatIcsDate(isoDate) {
 
 export function formatIcsTimestamp(date) {
     return new Date(date).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-}
-
-export function addDays(isoDate, days) {
-    const [y, m, d] = isoDate.split('-').map(Number);
-    const date = new Date(Date.UTC(y, m - 1, d + days));
-    return date.toISOString().slice(0, 10);
 }
 
 function positive(value) {

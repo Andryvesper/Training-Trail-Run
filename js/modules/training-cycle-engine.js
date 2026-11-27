@@ -1,6 +1,7 @@
 import { CYCLE_TRANSCRIPTIONS } from './training-cycle-transcriptions.js';
 import { TRAIL_CYCLE_TRANSCRIPTIONS } from './training-trail-transcriptions.js';
 import { describeBands, describeBreathing, paceBandsForBreathing, paceBandsForCell, singleTargetPace } from './training-pace-zones.js';
+import { addDays, daysBetween, isIsoDate } from '../core/date-utils.js';
 
 const DAY_KEYS = Object.freeze(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
 const QUALITY_MEANS = Object.freeze(['B', 'T', 'P', 'MLSS', 'VAM', 'SB', 'SL', 'RMA', 'RME', 'LLM', 'RG']);
@@ -866,10 +867,6 @@ function pickDatesByBookDay(dates, sessions, weekStart) {
     return chosen;
 }
 
-function daysBetween(from, to) {
-    return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000);
-}
-
 function formatVr(seconds) {
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}/km`;
 }
@@ -891,18 +888,6 @@ function pickSpreadDates(dates, count) {
 function dayKey(dateKey) {
     const weekday = new Date(`${dateKey}T00:00:00Z`).getUTCDay();
     return DAY_KEYS[(weekday + 6) % 7];
-}
-
-function addDays(dateKey, days) {
-    const date = new Date(`${dateKey}T00:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + days);
-    return date.toISOString().slice(0, 10);
-}
-
-function isIsoDate(value) {
-    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-    const date = new Date(`${value}T00:00:00Z`);
-    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 function round1(value) {

@@ -2,6 +2,7 @@
 // Al primo accesso si scarica tutto lo storico; poi solo le ultime settimane,
 // che vengono sostituite per intero (attività caricate in ritardo, modificate
 // o cancellate). Se IndexedDB non è disponibile l'app funziona come prima.
+import { addDays } from '../core/date-utils.js';
 
 const DB_NAME = 'ttr-cache';
 const STORE = 'intervals-activities';
@@ -13,7 +14,7 @@ export const REFRESH_WINDOW_DAYS = 45;
 // ultime settimane prima dell'ultima sincronizzazione.
 export function refetchStart(entry, historyStart) {
     if (!isValidEntry(entry)) return historyStart;
-    const from = shiftDateKey(entry.syncedAt, -REFRESH_WINDOW_DAYS);
+    const from = addDays(entry.syncedAt, -REFRESH_WINDOW_DAYS);
     return from > historyStart ? from : historyStart;
 }
 
@@ -96,8 +97,3 @@ function activityDate(activity) {
     return String(activity?.start_date_local || '').slice(0, 10);
 }
 
-function shiftDateKey(dateKey, days) {
-    const date = new Date(`${dateKey}T00:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + days);
-    return date.toISOString().slice(0, 10);
-}

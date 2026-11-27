@@ -1,5 +1,6 @@
 import { buildWeeklyCyclePattern, FIVE_SESSION_OPTIONS } from './training-cycle-engine.js';
 import { assessReferenceTestValidity, REFERENCE_TEST_VALIDITY_RULE } from './training-reference-pace.js';
+import { localDateKey } from '../core/date-utils.js';
 
 const GOAL_MODES = Object.freeze(['race', 'maintain', 'improve', 'other']);
 const NON_EXECUTABLE_PATTERN_KINDS = Object.freeze(['distance_time_cycle_outline']);
@@ -658,12 +659,6 @@ function createCycleRule({
         baseRunningSessionsPerWeek,
         supportedRunningSessionsPerWeek: Object.freeze([...supportedRunningSessionsPerWeek])
     });
-}
-
-function localDateKey(date = new Date()) {
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function createRule({

@@ -1,6 +1,8 @@
 // Statistiche della dashboard calcolate dai dati Intervals.icu e dai
 // risultati di gara registrati nell'app. Funzioni pure: nessuna chiamata
 // di rete, nessun accesso al DOM.
+import { addDays, mondayOf } from '../core/date-utils.js';
+export { addDays, mondayOf };
 
 export const RECORD_DISTANCES = Object.freeze([
     Object.freeze({ key: '5k', label: '5 km', meters: 5000 }),
@@ -203,19 +205,6 @@ export function wellnessSeries(wellness, fromDate) {
     const available = Object.fromEntries(Object.entries(series)
         .map(([key, values]) => [key, values.filter(value => value !== null).length >= 2]));
     return { dates, series, available };
-}
-
-export function mondayOf(dateKey) {
-    const date = new Date(`${dateKey}T00:00:00Z`);
-    const offset = (date.getUTCDay() + 6) % 7;
-    date.setUTCDate(date.getUTCDate() - offset);
-    return date.toISOString().slice(0, 10);
-}
-
-export function addDays(dateKey, days) {
-    const date = new Date(`${dateKey}T00:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + days);
-    return date.toISOString().slice(0, 10);
 }
 
 function sum(items, pick) {

@@ -19,6 +19,7 @@ import {
 } from './training-load.js';
 import { openActivityDetail } from './activity-detail-ui.js';
 import { buildIcsCalendar, downloadIcs, EXPORT_RANGES, exportFileName, selectSessionsForExport } from './calendar-export.js';
+import { localDateKey } from '../core/date-utils.js';
 
 const PAST_WEEKS = 26;
 const VISIBLE_FUTURE_WEEKS = 3;
@@ -321,7 +322,7 @@ function createExportToolbar(getSessions, status, loadFutureSessions) {
     const button = createButton('Esporta calendario (.ics)', null, {}, 'min-h-10 rounded-xl border border-brand-500/40 px-4 text-sm font-medium text-brand-300 hover:bg-brand-500/10');
     button.addEventListener('click', async () => {
         const now = new Date();
-        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const today = localDateKey(now);
         button.disabled = true;
         try {
             const source = select.value === 'all' ? await loadFutureSessions(today) : getSessions();
@@ -471,7 +472,7 @@ function groupBy(items, keyOf) {
 }
 
 function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
-    const todayKey = formatDateKey(new Date());
+    const todayKey = localDateKey(new Date());
     const isToday = day.date === todayKey;
     const isPast = day.date < todayKey;
     const card = createElement(
@@ -898,9 +899,3 @@ function formatDateIt(dateStr) {
         .toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 }
 
-function formatDateKey(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}

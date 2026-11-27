@@ -2,7 +2,6 @@ import { IntervalsService, summarizeIntervalsData } from './intervals.js';
 import { createIntervalsService, isConnected, loadIntervalsConnection, saveIntervalsCredentials } from './intervals-connection.js';
 import { mergeActivities, readActivityCache, refetchStart, writeActivityCache } from './intervals-cache.js';
 import {
-    addDays as addDateKeyDays,
     computeRecords,
     normalizeActivities,
     summarizePeriod,
@@ -21,6 +20,7 @@ import {
     recentWeekStarts,
     weeklyAdherence
 } from './training-load.js';
+import { addDays, localDateKey } from '../core/date-utils.js';
 
 const LOAD_WEEKS = 8;
 const ADHERENCE_WEEKS = 4;
@@ -178,8 +178,8 @@ async function syncDashboardData(supabaseClient, userId, service) {
     setDashboardStatus('Caricamento dei dati reali da Intervals.icu…', 'loading');
 
     const today = new Date();
-    const newest = formatDateKey(today);
-    const oldestWellness = formatDateKey(addDays(today, -WELLNESS_HISTORY_DAYS));
+    const newest = localDateKey(today);
+    const oldestWellness = addDays(newest, -WELLNESS_HISTORY_DAYS);
     // Storico in cache: si scaricano solo le ultime settimane.
     const cacheKey = `${userId}:${service.athleteId}`;
     const cached = await readActivityCache(cacheKey);
@@ -218,7 +218,7 @@ async function syncDashboardData(supabaseClient, userId, service) {
         today: newest
     }).catch(error => console.error('Analisi prestazioni non completata:', error));
 
-    const lastWeek = summarizePeriod(dashboardState.activities, addDateKeyDays(newest, -6), newest);
+    const lastWeek = summarizePeriod(dashboardState.activities, addDays(newest, -6), newest);
     setDashboardStatus(
         `Collegato · dati aggiornati ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} · ${dashboardState.activities.length} attività nello storico, ${lastWeek.totalCount} negli ultimi 7 giorni.`,
         'success'
@@ -253,7 +253,7 @@ function summaryRange() {
     const period = dashboardState.summaryPeriod;
     if (period === 'ytd') return { from: `${today.slice(0, 4)}-01-01`, label: 'dall’inizio dell’anno' };
     const days = Number(period);
-    return { from: addDateKeyDays(today, -(days - 1)), label: days === 365 ? 'negli ultimi 12 mesi' : `negli ultimi ${days} giorni` };
+    return { from: addDays(today, -(days - 1)), label: days === 365 ? 'negli ultimi 12 mesi' : `negli ultimi ${days} giorni` };
 }
 
 function renderSummary() {
@@ -348,7 +348,7 @@ function renderCharts() {
     container.replaceChildren();
     const weeks = dashboardState.chartWeeks;
     const today = dashboardState.today;
-    const from = addDateKeyDays(today, -(weeks * 7 - 1));
+    const from = addDays(today, -(weeks * 7 - 1));
     const volumes = weeklyVolumes(dashboardState.activities, weeks, today);
     const weekLabels = volumes.map(week => week.weekStart);
     const weekTitle = weekStart => `Settimana dal ${formatDisplayDate(weekStart)}`;
@@ -660,19 +660,6 @@ function formatPace(secondsPerKm) {
     const minutes = Math.floor(roundedSeconds / 60);
     const seconds = String(roundedSeconds % 60).padStart(2, '0');
     return `${minutes}:${seconds} /km`;
-}
-
-function addDays(date, days) {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-}
-
-function formatDateKey(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
 }
 
 function createElement(tag, className, text) {

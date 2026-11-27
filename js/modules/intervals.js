@@ -5,6 +5,7 @@
 //   chiave API lato server, quindi la chiave non arriva mai al browser;
 // - diretto: il browser chiama Intervals.icu con la chiave. Resta come ripiego
 //   finché la funzione non è distribuita, e per verificare una chiave appena digitata.
+import { localDateKey } from '../core/date-utils.js';
 
 const API_BASE_URL = 'https://intervals.icu/api/v1';
 const REQUEST_TIMEOUT_MS = 30000;
@@ -162,8 +163,8 @@ export function getLastSevenDaysRange(referenceDate = new Date()) {
     oldest.setDate(oldest.getDate() - 6);
 
     return {
-        oldest: formatDateKey(oldest),
-        newest: formatDateKey(newest)
+        oldest: localDateKey(oldest),
+        newest: localDateKey(newest)
     };
 }
 
@@ -252,9 +253,3 @@ function isSwimActivity(activity) {
     return type.includes('swim') || type.includes('nuoto');
 }
 
-function formatDateKey(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}

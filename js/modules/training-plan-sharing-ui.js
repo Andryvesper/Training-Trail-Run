@@ -5,6 +5,7 @@ import {
     scaleSessionDuration,
     scaleTrainingPace
 } from './training-plan-sharing.js';
+import { localDateKey } from '../core/date-utils.js';
 
 export async function initTrainingPlanSharingModule(supabaseClient, userId) {
     const container = document.getElementById('training-plan-sharing-container');
@@ -31,11 +32,11 @@ export async function initTrainingPlanSharingModule(supabaseClient, userId) {
         }
     };
 
-    const today = formatDateKey(new Date());
+    const today = localDateKey(new Date());
     const inTwoWeeks = new Date();
     inTwoWeeks.setDate(inTwoWeeks.getDate() + 14);
     shareForm.elements.start_date.value = today;
-    shareForm.elements.end_date.value = formatDateKey(inTwoWeeks);
+    shareForm.elements.end_date.value = localDateKey(inTwoWeeks);
     importForm.elements.new_start_date.value = today;
 
     shareForm.addEventListener('submit', async event => {
@@ -355,9 +356,3 @@ function createElement(tag, className, text = '') {
     return element;
 }
 
-function formatDateKey(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
