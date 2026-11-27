@@ -39,6 +39,17 @@ export class IntervalsService {
         );
     }
 
+    // Giri e intervalli di un'attività: { icu_intervals: [...], icu_groups: [...] }.
+    async getActivityIntervals(activityId) {
+        const url = `${this.baseUrl}/activity/${encodeURIComponent(activityId)}/intervals`;
+        const response = await fetch(url, { headers: this.getAuthHeaders() });
+        if (!response.ok) {
+            throw new Error(`Intervals.icu (giri dell'attività): risposta HTTP ${response.status}.`);
+        }
+        const data = await response.json();
+        return data && typeof data === 'object' ? data : {};
+    }
+
     async fetchCollection(url, resourceName) {
         const response = await fetch(url, { headers: this.getAuthHeaders() });
         if (!response.ok) {

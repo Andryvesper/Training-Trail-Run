@@ -100,9 +100,17 @@ function fakeIntervals(url) {
             { type: 'heartrate', data: heartrate }, { type: 'stance_time', data: stance }, { type: 'latlng', data: [] }
         ];
     }
+    if (url.includes('/activity/i9001/intervals')) {
+        return { id: 'i9001', icu_intervals: [
+            { type: 'WARMUP', distance: 3000, moving_time: 1000, average_heartrate: 135, max_heartrate: 142 },
+            { type: 'WORK', label: 'Salita', distance: 6000, moving_time: 2000, average_heartrate: 152, max_heartrate: 165, total_elevation_gain: 300 },
+            { type: 'COOLDOWN', distance: 3600, moving_time: 1200, average_heartrate: 140 }
+        ] };
+    }
     if (url.includes('/activities')) {
         return [{
-            id: 'i9001', name: 'Trail e2e', type: 'TrailRun', start_date_local: `${inDays(-1)}T08:00:00`,
+            // Oggi: sempre nella settimana in vista del calendario.
+            id: 'i9001', name: 'Trail e2e', type: 'TrailRun', start_date_local: `${inDays(0)}T08:00:00`,
             distance: 12600, moving_time: 4200, elapsed_time: 4300, total_elevation_gain: 300, total_elevation_loss: 300,
             average_heartrate: 145, icu_training_load: 80,
             stream_types: ['time', 'distance', 'fixed_altitude', 'heartrate', 'stance_time', 'latlng']
@@ -316,4 +324,38 @@ test('PWA: manifest, icone e service worker attivo', async () => {
     } finally {
         await context.close();
     }
+});
+
+test("calendario: niente pianificazione nei giorni passati, dettaglio dell'attività", async () => {
+    const { context, page, consoleErrors } = await openApp({ intervals: true });
+    try {
+        const container = page.locator('#calendar-multi-container');
+        const today = inDays(0);
+        const cards = await container.locator('> .calendar-week .day-card').evaluateAll(nodes => nodes.map(node => ({
+            date: node.dataset.date,
+            add: node.querySelectorAll('[data-action="add-session"]').length
+        })));
+        assert.equal(cards.length, 28);
+        cards.forEach(card => assert.equal(card.add, card.date < today ? 0 : 1, card.date));
+
+        const open = container.getByRole('button', { name: 'Dettaglio attività: Trail e2e' });
+        await open.waitFor({ timeout: 15000 });
+        await open.click();
+        const dialog = page.getByRole('dialog', { name: 'Trail e2e' });
+        await dialog.waitFor();
+        assert.match(await dialog.textContent(), /12,6 km/);
+        assert.equal(await dialog.getByRole('link', { name: /Apri in Intervals.icu/ }).getAttribute('href'), 'https://intervals.icu/activities/i9001');
+        await dialog.getByRole('heading', { name: 'Giri e intervalli' }).waitFor({ timeout: 15000 });
+        const laps = await dialog.locator('table tbody tr').count();
+        assert.equal(laps, 3);
+        assert.match(await dialog.locator('table tbody').textContent(), /Riscaldamento.*Salita.*Defaticamento/s);
+        const charts = await dialog.locator('h4').allTextContents();
+        assert.deepEqual(charts, ['Altitudine', 'Frequenza cardiaca', 'Passo']);
+        assert.match(await dialog.textContent(), /Analisi prestazione/);
+        assert.match(await dialog.textContent(), /Deriva cardiaca/);
+
+        await page.keyboard.press('Escape');
+        await dialog.waitFor({ state: 'detached' });
+        assert.deepEqual(consoleErrors, []);
+    } finally { await context.close(); }
 });

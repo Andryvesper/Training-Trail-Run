@@ -17,6 +17,7 @@ import {
     STATUS_LABELS,
     weeklyLoad
 } from './training-load.js';
+import { openActivityDetail } from './activity-detail-ui.js';
 import { buildIcsCalendar, downloadIcs, EXPORT_RANGES, exportFileName, selectSessionsForExport } from './calendar-export.js';
 
 const PAST_WEEKS = 26;
@@ -66,6 +67,7 @@ export async function initCalendarModule(supabaseClient, userId) {
     };
 
     let activitiesRequestId = 0;
+    let intervalsService = null;
     const refreshActivities = async () => {
         const requestId = ++activitiesRequestId;
         try {
@@ -81,6 +83,7 @@ export async function initCalendarModule(supabaseClient, userId) {
 
             if (requestId !== activitiesRequestId) return;
             if (!athleteId || !apiKey) {
+                intervalsService = null;
                 weeks.forEach(week => week.days.forEach(day => {
                     day.intervalsActivities = [];
                 }));
@@ -89,7 +92,8 @@ export async function initCalendarModule(supabaseClient, userId) {
                 return;
             }
 
-            const activities = await new IntervalsService(athleteId, apiKey)
+            intervalsService = new IntervalsService(athleteId, apiKey);
+            const activities = await intervalsService
                 .getActivities(weeks[0].startDate, weeks[weeks.length - 1].endDate);
             if (requestId !== activitiesRequestId) return;
             const byDate = new Map();
@@ -134,7 +138,17 @@ export async function initCalendarModule(supabaseClient, userId) {
         if (!button) return;
 
         const { action, sessionId, date } = button.dataset;
-        if (action === 'add-session') {
+        if (action === 'activity-detail') {
+            const activity = weeks
+                .flatMap(week => week.days)
+                .flatMap(day => day.intervalsActivities || [])
+                .find(item => normalizeActivityId(item.id) === button.dataset.activityId);
+            if (!activity) {
+                showStatus(status, 'Attività non più disponibile. Aggiorna Intervals e riprova.', 'error');
+                return;
+            }
+            openActivityDetail({ activity, intervalsService, trigger: button });
+        } else if (action === 'add-session') {
             editingSession = { scheduled_date: date };
             render();
         } else if (action === 'edit-session') {
@@ -458,11 +472,14 @@ function groupBy(items, keyOf) {
 }
 
 function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
-    const isToday = day.date === formatDateKey(new Date());
+    const todayKey = formatDateKey(new Date());
+    const isToday = day.date === todayKey;
+    const isPast = day.date < todayKey;
     const card = createElement(
         'article',
         `day-card border ${isToday ? 'border-brand-500/60 bg-brand-950/10' : 'border-slate-800 bg-slate-900/70'} rounded-2xl p-3 flex flex-col gap-3`
     );
+    card.dataset.date = day.date;
     const dayLabel = new Date(`${day.date}T12:00:00`).toLocaleDateString('it-IT', {
         weekday: 'long',
         day: 'numeric',
@@ -494,13 +511,16 @@ function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
 
     if (editingSession?.scheduled_date === day.date) {
         sessionsSection.append(renderSessionForm(editingSession));
-    } else {
-        sessionsSection.append(createButton(
-            day.plannedSessions.length ? 'Aggiungi seduta' : 'Pianifica allenamento',
+    } else if (!isPast) {
+        // Nei giorni passati non si pianifica.
+        const addButton = createButton(
+            day.plannedSessions.length ? '+ Seduta' : '+ Pianifica',
             'add-session',
             { date: day.date },
-            'min-h-11 w-full rounded-xl border border-brand-500/30 bg-brand-500/10 px-3 py-2 text-sm font-semibold text-brand-300 hover:bg-brand-500/20'
-        ));
+            'inline-flex min-h-9 items-center rounded-lg border border-brand-500/30 bg-brand-500/10 px-2.5 text-xs font-semibold text-brand-300 hover:bg-brand-500/20'
+        );
+        addButton.setAttribute('aria-label', `${day.plannedSessions.length ? 'Aggiungi seduta' : 'Pianifica allenamento'}: ${dayLabel}`);
+        sessionsSection.append(addButton);
     }
     card.append(sessionsSection);
     return card;
@@ -508,7 +528,17 @@ function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
 
 function renderActivity(activity, daySessions, allSessions, pendingAssociation) {
     const section = createElement('div', 'rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-1');
-    section.append(createElement('p', 'text-sm font-semibold text-white', activity.name || activity.type || 'Attività'));
+    const activityName = activity.name || activity.type || 'Attività';
+    const detailId = normalizeActivityId(activity.id);
+    if (detailId) {
+        // Il nome apre il dettaglio dell'attività.
+        const open = createButton('', 'activity-detail', { activityId: detailId }, 'group flex w-full items-start justify-between gap-2 text-left text-sm font-semibold text-white hover:text-brand-200');
+        open.setAttribute('aria-label', `Dettaglio attività: ${activityName}`);
+        open.append(createElement('span', 'underline decoration-slate-600 underline-offset-2 group-hover:decoration-brand-300', activityName), createElement('span', 'shrink-0 text-brand-300', '›'));
+        section.append(open);
+    } else {
+        section.append(createElement('p', 'text-sm font-semibold text-white', activityName));
+    }
     const details = [];
     const distance = Number(activity.distance);
     const duration = Number(activity.moving_time || activity.elapsed_time);

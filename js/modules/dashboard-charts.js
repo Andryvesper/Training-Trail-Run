@@ -21,7 +21,8 @@ export function renderLineChart(container, {
     dates,
     series,
     valueFormat = value => String(value),
-    zeroLine = false
+    zeroLine = false,
+    xLabel = 'Data'
 }) {
     const visible = series.filter(item => item.values.some(value => value !== null));
     const card = chartCard(title, description);
@@ -93,7 +94,7 @@ export function renderLineChart(container, {
     overlay.addEventListener('pointerleave', hide);
     card.body.append(wrapper);
     card.body.append(dataTable(
-        ['Data', ...visible.map(item => item.label)],
+        [xLabel, ...visible.map(item => item.label)],
         dates.map((date, index) => [formatLongDate(date), ...visible.map(item =>
             item.values[index] === null ? '—' : valueFormat(item.values[index]))])
     ));
