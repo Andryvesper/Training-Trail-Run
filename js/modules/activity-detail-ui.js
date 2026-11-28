@@ -1,5 +1,6 @@
 // js/modules/activity-detail-ui.js - Finestra con il dettaglio di un'attività svolta.
-import { requestedStreamTypes } from './activity-streams.js';
+import { detailStreamTypes, latLngTrack } from './activity-streams.js';
+import { renderTrackMap } from './track-map.js';
 import { activityProfile, activitySummaryItems, formatClock, intervalsActivityUrl, lapRows, usesPace } from './activity-detail.js';
 import { CHART_COLORS, renderLineChart } from './dashboard-charts.js';
 import { analyzeActivity, isRunActivity } from './performance-analysis.js';
@@ -67,10 +68,11 @@ export function openActivityDetail({ activity, intervalsService = null, trigger 
         link.rel = 'noopener noreferrer';
         body.append(link);
     }
+    const mapBox = el('section', 'space-y-3');
     const analysisBox = el('section', 'space-y-3');
     const profileBox = el('section', 'space-y-3');
     const lapsBox = el('section', 'space-y-3');
-    body.append(analysisBox, profileBox, lapsBox);
+    body.append(mapBox, analysisBox, profileBox, lapsBox);
     dialog.append(header, body);
 
     // Clic sullo sfondo: chiude.
@@ -78,6 +80,7 @@ export function openActivityDetail({ activity, intervalsService = null, trigger 
         if (event.target === dialog) dialog.close();
     });
     dialog.addEventListener('close', () => {
+        dialog.trackMap?.remove();
         dialog.remove();
         if (openDialog === dialog) openDialog = null;
         trigger?.focus?.();
@@ -91,18 +94,20 @@ export function openActivityDetail({ activity, intervalsService = null, trigger 
         profileBox.append(note('Collega Intervals.icu per vedere profilo, analisi e giri.'));
         return dialog;
     }
-    loadDetails({ activity, activityId, intervalsService, analysisBox, profileBox, lapsBox, dialog });
+    loadDetails({ activity, activityId, intervalsService, mapBox, analysisBox, profileBox, lapsBox, dialog });
     return dialog;
 }
 
-async function loadDetails({ activity, activityId, intervalsService, analysisBox, profileBox, lapsBox, dialog }) {
+async function loadDetails({ activity, activityId, intervalsService, mapBox, analysisBox, profileBox, lapsBox, dialog }) {
     profileBox.append(note('Caricamento del profilo…'));
     lapsBox.append(note('Caricamento dei giri…'));
     const [streams, intervals] = await Promise.allSettled([
-        intervalsService.getActivityStreams(activityId, requestedStreamTypes(activity)),
+        intervalsService.getActivityStreams(activityId, detailStreamTypes(activity)),
         intervalsService.getActivityIntervals(activityId)
     ]);
     if (!dialog.isConnected) return;
+
+    if (streams.status === 'fulfilled') renderRoute(mapBox, streams.value, dialog);
 
     profileBox.replaceChildren();
     if (streams.status === 'fulfilled') {
@@ -195,6 +200,47 @@ function renderAnalysis(container, activity, streams) {
         analysis.biomechanics?.status === 'unavailable' ? analysis.biomechanics.reason : null
     ].filter(Boolean);
     if (notes.length) container.append(note(notes.join(' ')));
+}
+
+// Percorso GPS su mappa. Senza GPS (tapis roulant, piscina, attività
+// manuale) una nota spiega perché la mappa manca.
+async function renderRoute(container, streams, dialog) {
+    container.append(el('h3', 'text-sm font-semibold text-white', 'Percorso'));
+    let points = [];
+    try {
+        points = latLngTrack(streams);
+    } catch (error) {
+        console.error('Percorso GPS non leggibile:', error);
+    }
+    if (points.length < 2) {
+        const stream = Array.isArray(streams) ? streams.find(item => /^lat_?lng$/i.test(String(item?.type ?? item?.name ?? ''))) : null;
+        if (stream) {
+            // Formato inatteso: chiavi e primi valori aiutano a capire cosa arriva da Intervals.
+            console.warn('Stream latlng senza coordinate leggibili:', {
+                keys: Object.keys(stream),
+                data: Array.isArray(stream.data) ? stream.data.slice(0, 3) : stream.data,
+                data2: Array.isArray(stream.data2) ? stream.data2.slice(0, 3) : stream.data2
+            });
+        } else {
+            console.info('Stream ricevuti senza latlng:', Array.isArray(streams) ? streams.map(item => item?.type ?? item?.name) : streams);
+        }
+        container.append(
+            note(
+                stream
+                    ? 'Mappa non disponibile: il percorso GPS ricevuto da Intervals.icu non contiene coordinate leggibili.'
+                    : 'Mappa non disponibile: Intervals.icu non ha inviato il percorso GPS di questa attività.'
+            )
+        );
+        return;
+    }
+    try {
+        const trackMap = await renderTrackMap(container, { points, label: "Mappa del percorso registrato dall'attività" });
+        if (dialog.isConnected) dialog.trackMap = trackMap;
+        else trackMap.remove();
+    } catch (error) {
+        console.error('Mappa del percorso non disponibile:', error);
+        container.append(note(`Mappa non disponibile: ${error.message}.`));
+    }
 }
 
 function renderProfile(container, activity, streams) {

@@ -19,6 +19,8 @@ import {
     weeklyLoad
 } from './training-load.js';
 import { openActivityDetail } from './activity-detail-ui.js';
+import { GpxTracksService } from './gpx-tracks.js';
+import { openSessionTrack } from './session-track-ui.js';
 import { buildIcsCalendar, downloadIcs, EXPORT_RANGES, exportFileName, selectSessionsForExport } from './calendar-export.js';
 import { localDateKey } from '../core/date-utils.js';
 
@@ -55,7 +57,10 @@ export async function initCalendarModule(supabaseClient, userId) {
             className: 'rounded-2xl border border-slate-800 bg-slate-900/70 p-5'
         })
     );
+    const gpxService = new GpxTracksService(supabaseClient);
     let sessions = [];
+    // Tracce GPX dell'atleta (senza punti) per collegarle alle sedute; null se non caricate.
+    let tracks = null;
     let editingSession = null;
     let pendingAssociation = null;
     exportToolbar?.remove();
@@ -74,9 +79,20 @@ export async function initCalendarModule(supabaseClient, userId) {
         showStatus(status, `Impossibile caricare le sedute pianificate: ${error.message}`, 'error');
     }
 
+    const loadTracks = async () => {
+        try {
+            tracks = await gpxService.listTracks(userId);
+        } catch (error) {
+            // Il calendario funziona anche senza: si perde solo il collegamento alle tracce.
+            console.error('Tracce GPX non disponibili nel calendario:', error);
+            tracks = null;
+        }
+    };
+    await loadTracks();
+
     const render = () => {
         container.setAttribute('aria-busy', 'false');
-        renderCalendar(container, weeks, sessions, editingSession, pendingAssociation, openGroups);
+        renderCalendar(container, weeks, sessions, editingSession, pendingAssociation, openGroups, tracks);
     };
 
     let activitiesRequestId = 0;
@@ -136,6 +152,11 @@ export async function initCalendarModule(supabaseClient, userId) {
         }
     });
 
+    document.addEventListener('gpx-tracks:changed', async () => {
+        await loadTracks();
+        render();
+    });
+
     await refreshActivities();
     render();
     await initTrainingPlanSharingModule(supabaseClient, userId);
@@ -156,6 +177,14 @@ export async function initCalendarModule(supabaseClient, userId) {
                 return;
             }
             openActivityDetail({ activity, intervalsService, trigger: button });
+        } else if (action === 'session-track') {
+            const session = sessions.find(item => item.id === sessionId);
+            const track = tracks?.find(item => item.id === session?.gpx_track_id);
+            if (!session || !track) {
+                showStatus(status, 'Traccia GPX non più disponibile. Ricarica la pagina e riprova.', 'error');
+                return;
+            }
+            openSessionTrack({ service: gpxService, userId, session, track, trigger: button });
         } else if (action === 'add-session') {
             editingSession = { scheduled_date: date };
             render();
@@ -296,7 +325,9 @@ export async function initCalendarModule(supabaseClient, userId) {
             distance_km: formData.get('distance_km'),
             duration_minutes: formData.get('duration_minutes'),
             target_pace_seconds_per_km: targetPace,
-            notes: formData.get('notes')
+            notes: formData.get('notes'),
+            // Senza elenco delle tracce il campo non c'è: il collegamento esistente resta.
+            gpx_track_id: form.elements.namedItem('gpx_track_id') ? formData.get('gpx_track_id') : (existing?.gpx_track_id ?? null)
         };
         const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = true;
@@ -361,7 +392,7 @@ function notifySessionsUpdated() {
     document.dispatchEvent(new CustomEvent('training-sessions:updated'));
 }
 
-function renderCalendar(container, weeks, sessions, editingSession, pendingAssociation, openGroups) {
+function renderCalendar(container, weeks, sessions, editingSession, pendingAssociation, openGroups, tracks) {
     container.replaceChildren();
     const currentIndex = weeks.findIndex(week => week.isCurrent);
     const past = weeks.slice(0, currentIndex);
@@ -379,6 +410,7 @@ function renderCalendar(container, weeks, sessions, editingSession, pendingAssoc
         editingSession,
         pendingAssociation,
         openGroups,
+        tracks,
         currentWeekStart: weeks[currentIndex]?.startDate,
         loadByWeek: new Map(plannedLoad.map(week => [week.weekStart, week]))
     };
@@ -407,7 +439,7 @@ function renderWeek(week, offset, context) {
     const daysGrid = createElement('div', 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7');
     week.days.forEach(day => {
         day.plannedSessions = context.sessions.filter(session => session.scheduled_date === day.date);
-        daysGrid.append(renderDayCard(day, context.editingSession, context.pendingAssociation, context.sessions));
+        daysGrid.append(renderDayCard(day, context.editingSession, context.pendingAssociation, context.sessions, context.tracks));
     });
     section.append(heading, daysGrid);
     return section;
@@ -509,7 +541,7 @@ function groupBy(items, keyOf) {
     return groups;
 }
 
-function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
+function renderDayCard(day, editingSession, pendingAssociation, allSessions, tracks) {
     const todayKey = localDateKey(new Date());
     const isToday = day.date === todayKey;
     const isPast = day.date < todayKey;
@@ -544,13 +576,13 @@ function renderDayCard(day, editingSession, pendingAssociation, allSessions) {
         sessionsSection.append(
             createElement('p', 'text-xs font-semibold uppercase tracking-wide text-slate-400', 'Allenamenti pianificati')
         );
-        day.plannedSessions.forEach(session => sessionsSection.append(renderSession(session, day.intervalsActivities)));
+        day.plannedSessions.forEach(session => sessionsSection.append(renderSession(session, day.intervalsActivities, tracks)));
     } else if (!day.intervalsActivities.length) {
         sessionsSection.append(createElement('p', 'text-sm text-slate-500', 'Nessuna seduta pianificata.'));
     }
 
     if (editingSession?.scheduled_date === day.date) {
-        sessionsSection.append(renderSessionForm(editingSession));
+        sessionsSection.append(renderSessionForm(editingSession, tracks));
     } else if (!isPast) {
         // Nei giorni passati non si pianifica.
         const addButton = createButton(
@@ -722,7 +754,7 @@ function renderAssociationForm(activity, session, currentScore, isEditing) {
     return form;
 }
 
-function renderSession(session, dayActivities = []) {
+function renderSession(session, dayActivities = [], tracks = null) {
     const section = createElement('div', 'rounded-xl border border-slate-800 bg-slate-950/70 p-3 space-y-2');
     // Titolo sopra, azioni sotto: nelle colonne strette i pulsanti non schiacciano il titolo.
     const heading = createElement('div', 'flex flex-col gap-1');
@@ -744,6 +776,21 @@ function renderSession(session, dayActivities = []) {
         metrics.push(`${formatPace(session.target_pace_seconds_per_km)} min/km obiettivo`);
     }
     if (metrics.length) section.append(createElement('p', 'text-xs text-slate-300', metrics.join(' · ')));
+    const track = session.gpx_track_id ? tracks?.find(item => item.id === session.gpx_track_id) : null;
+    if (track) {
+        const route = createButton(
+            '',
+            'session-track',
+            { sessionId: session.id },
+            'group flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border border-brand-500/30 bg-brand-500/5 px-2.5 py-1.5 text-left text-xs text-brand-200 hover:bg-brand-500/15'
+        );
+        route.setAttribute('aria-label', `Mappa del percorso: ${track.name}`);
+        route.append(
+            createElement('span', 'min-w-0 break-words', `Percorso: ${track.name} · ${trackSummary(track)}`),
+            createElement('span', 'shrink-0 font-semibold text-brand-300', 'Mappa ›')
+        );
+        section.append(route);
+    }
     if (session.notes) section.append(createElement('p', 'text-sm text-slate-400 whitespace-pre-wrap break-words', session.notes));
     if (session.completed_at && session.completed_activity) {
         section.append(
@@ -819,7 +866,37 @@ function formatDurationIt(seconds) {
     return minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')} min` : `${minutes} min`;
 }
 
-function renderSessionForm(session) {
+function trackSummary(track) {
+    const parts = [`${formatKmIt(Number(track.distance_km))} km`];
+    if (track.elevation_gain_m != null) parts.push(`D+ ${track.elevation_gain_m} m`);
+    return parts.join(' · ');
+}
+
+// Traccia GPX da percorrere: si sceglie tra quelle caricate nel tab Tracce GPX.
+// Se la distanza è vuota, viene proposta quella della traccia.
+function renderTrackSelect(form, session, tracks, distance) {
+    const label = createElement('label', 'block space-y-1 text-xs text-slate-400');
+    label.append(createElement('span', '', 'Traccia GPX del percorso (facoltativa)'));
+    const select = createElement('select', 'min-h-11 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-200');
+    select.name = 'gpx_track_id';
+    const none = createElement('option', '', tracks.length ? 'Nessuna traccia' : 'Nessuna traccia: caricala nel tab Tracce GPX');
+    none.value = '';
+    select.append(none);
+    tracks.forEach(track => {
+        const option = createElement('option', '', `${track.name} · ${trackSummary(track)}`);
+        option.value = track.id;
+        option.selected = session.gpx_track_id === track.id;
+        select.append(option);
+    });
+    select.addEventListener('change', () => {
+        const track = tracks.find(item => item.id === select.value);
+        if (track && !distance.value) distance.value = String(Math.round(Number(track.distance_km) * 10) / 10);
+    });
+    label.append(select);
+    form.append(label);
+}
+
+function renderSessionForm(session, tracks = null) {
     const form = createElement('form', 'space-y-3 rounded-xl border border-brand-500/30 bg-slate-950 p-3');
     form.dataset.sessionForm = 'true';
     form.dataset.date = session.scheduled_date;
@@ -865,6 +942,8 @@ function renderSessionForm(session) {
     targetPace.title =
         'Facoltativo. Per la condivisione, questo valore può essere riparametrizzato usando i riferimenti dichiarati da entrambi gli atleti.';
     form.append(targetPace);
+
+    if (tracks) renderTrackSelect(form, session, tracks, distance);
 
     const notes = createElement('textarea', 'w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200');
     notes.name = 'notes';

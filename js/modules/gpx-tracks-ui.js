@@ -150,6 +150,7 @@ export async function initGpxTracksModule(supabaseClient, userId) {
                 }
             }
             tracks = [track, ...tracks];
+            notifyTracksChanged();
             resetUpload();
             renderList();
             showTrack({ track, points: upload.points, analysis: upload.analysis, waypoints: sortWaypoints(waypoints) });
@@ -217,6 +218,7 @@ export async function initGpxTracksModule(supabaseClient, userId) {
         try {
             await service.deleteTrack(userId, track.id);
             tracks = tracks.filter(item => item.id !== track.id);
+            notifyTracksChanged();
             if (current?.track.id === track.id || loadingTrackId === track.id) closeTrack();
             renderList();
             showStatus('Traccia eliminata.', 'success');
@@ -414,6 +416,7 @@ export async function initGpxTracksModule(supabaseClient, userId) {
                     race_id: editForm.elements.namedItem('race_id').value
                 });
                 tracks = tracks.map(item => (item.id === updated.id ? updated : item));
+                notifyTracksChanged();
                 state.track = updated;
                 renderList();
                 refreshHeader();
@@ -952,4 +955,9 @@ function textNode(tag, className, text) {
     if (className) node.className = className;
     if (text !== undefined) node.textContent = text;
     return node;
+}
+
+// Il calendario mostra le tracce collegabili alle sedute: va avvisato a ogni modifica.
+function notifyTracksChanged() {
+    document.dispatchEvent(new CustomEvent('gpx-tracks:changed'));
 }

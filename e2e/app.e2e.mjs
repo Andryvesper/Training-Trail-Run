@@ -165,7 +165,8 @@ function fakeIntervals(url) {
             { type: 'fixed_altitude', data: altitude },
             { type: 'heartrate', data: heartrate },
             { type: 'stance_time', data: stance },
-            { type: 'latlng', data: [] }
+            // Percorso verso nord con curve: latitudini in data, longitudini in data2.
+            { type: 'latlng', data: distance.map(d => 45 + d / 111195), data2: distance.map(d => 9 + 0.01 * Math.sin(d / 2000)) }
         ];
     }
     if (url.includes('/activity/i9001/intervals')) {
@@ -211,6 +212,10 @@ function fakeIntervals(url) {
 let server, baseUrl, browser;
 const blockedExternal = [];
 const proxiedIntervals = [];
+const tileRequests = [];
+// Tile della mappa: PNG trasparente 1x1 al posto di OpenTopoMap/OpenStreetMap.
+const TILE_HOSTS = /^https:\/\/([abc]\.tile\.opentopomap\.org|tile\.openstreetmap\.org)\//;
+const BLANK_TILE = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 
 test.before(async () => {
     server = http.createServer(async (req, res) => {
@@ -270,6 +275,10 @@ async function openApp({
             });
         if (url.startsWith(baseUrl)) return route.continue();
         if (onRoute?.(route)) return;
+        if (TILE_HOSTS.test(url)) {
+            tileRequests.push(url);
+            return route.fulfill({ contentType: 'image/png', body: BLANK_TILE });
+        }
         // Proxy Supabase "intervals-proxy": la chiave resta lato server.
         if (intervals && url.includes('/functions/v1/intervals-proxy/')) {
             const cors = {
@@ -555,6 +564,13 @@ test("calendario: niente pianificazione nei giorni passati, dettaglio dell'attiv
         assert.match(await dialog.textContent(), /Analisi prestazione/);
         assert.match(await dialog.textContent(), /Deriva cardiaca/);
 
+        // Percorso GPS su mappa: traccia disegnata e tile chieste solo ai domini ammessi.
+        const map = dialog.getByRole('region', { name: "Mappa del percorso registrato dall'attività" });
+        await map.locator('.leaflet-overlay-pane path').first().waitFor({ timeout: 15000 });
+        await map.locator('img.leaflet-tile').first().waitFor({ state: 'attached' });
+        assert.ok(tileRequests.some(url => url.includes('tile.opentopomap.org')));
+        assert.deepEqual(await map.locator('.track-map-pin').allTextContents(), ['A', 'P']);
+
         await page.keyboard.press('Escape');
         await dialog.waitFor({ state: 'detached' });
         assert.deepEqual(consoleErrors, []);
@@ -625,6 +641,75 @@ test('tracce GPX: caricamento, analisi, waypoint importati e punto aggiunto', as
         await page.locator('#gpx-status', { hasText: 'aggiornata con distanza e dislivelli' }).waitFor();
         assert.ok((await detail.textContent()).includes('Gara collegata: Dieci km e2e · 6 km · D+ 29'));
         assert.match(await page.locator('#races-list').textContent(), /6 km/);
+        assert.deepEqual(consoleErrors, []);
+    } finally {
+        await context.close();
+    }
+});
+
+test('calendario: seduta con traccia GPX collegata, mappa del percorso e scelta nel modulo', async () => {
+    // Anello di 6 km verso nord e ritorno, con un ristoro al km 2.
+    const points = [];
+    for (let d = 0; d <= 6000; d += 20) {
+        const along = d <= 3000 ? d : 6000 - d;
+        points.push([45 + along / 111195, d <= 3000 ? 9 : 9.002, 500 + along * 0.1]);
+    }
+    const track = {
+        id: 'trk1',
+        user_id: USER.id,
+        race_id: null,
+        name: 'Anello e2e',
+        notes: null,
+        file_name: 'anello.gpx',
+        distance_km: 6,
+        elevation_gain_m: 300,
+        elevation_loss_m: 300,
+        min_elevation_m: 500,
+        max_elevation_m: 800,
+        point_count: points.length,
+        points,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    };
+    const db = {
+        ...FAKE_DB,
+        training_sessions: FAKE_DB.training_sessions.map((session, index) =>
+            index === 0 ? { ...session, gpx_track_id: 'trk1' } : session
+        ),
+        gpx_tracks: [track],
+        gpx_track_waypoints: [
+            { id: 'wp1', track_id: 'trk1', user_id: USER.id, kind: 'refreshment', name: 'Ristoro Malga', km: 2, notes: null }
+        ]
+    };
+    const { context, page, consoleErrors } = await openApp({ supabaseJs: fakeSupabaseJs(db) });
+    try {
+        const container = page.locator('#calendar-multi-container');
+        const open = container.getByRole('button', { name: 'Mappa del percorso: Anello e2e' });
+        await open.waitFor({ timeout: 15000 });
+        assert.match(await open.textContent(), /Percorso: Anello e2e · 6,0 km · D\+ 300 m/);
+        await open.click();
+
+        const dialog = page.getByRole('dialog', { name: 'Anello e2e' });
+        await dialog.waitFor();
+        assert.match(await dialog.textContent(), /Seduta e2e 1/);
+        const map = dialog.getByRole('region', { name: 'Mappa del percorso Anello e2e' });
+        await map.locator('.leaflet-overlay-pane path').first().waitFor({ timeout: 15000 });
+        // Anello: un solo segnaposto per partenza e arrivo, più il ristoro numerato.
+        assert.deepEqual((await map.locator('.track-map-pin').allTextContents()).sort(), ['1', 'P/A']);
+        assert.match(await dialog.locator('ol').textContent(), /1\.km 2Ristoro MalgaRistoro/);
+        await dialog.getByRole('button', { name: 'Chiudi percorso' }).click();
+        await dialog.waitFor({ state: 'detached' });
+
+        // Nel modulo la traccia collegata è selezionata; le altre sedute partono da "Nessuna traccia".
+        const firstCard = container.locator(`.day-card[data-date="${inDays(1)}"]`);
+        await firstCard.getByRole('button', { name: 'Modifica' }).click();
+        assert.equal(await firstCard.locator('select[name="gpx_track_id"]').inputValue(), 'trk1');
+        await firstCard.getByRole('button', { name: 'Annulla' }).click();
+        const secondCard = container.locator(`.day-card[data-date="${inDays(2)}"]`);
+        await secondCard.getByRole('button', { name: 'Modifica' }).click();
+        const select = secondCard.locator('select[name="gpx_track_id"]');
+        assert.equal(await select.inputValue(), '');
+        assert.deepEqual(await select.locator('option').allTextContents(), ['Nessuna traccia', 'Anello e2e · 6,0 km · D+ 300 m']);
         assert.deepEqual(consoleErrors, []);
     } finally {
         await context.close();

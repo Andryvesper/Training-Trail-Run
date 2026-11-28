@@ -38,7 +38,7 @@ test('carica le sedute del solo utente e dell’intervallo richiesto', async () 
         ['from', 'training_sessions'],
         [
             'select',
-            'id, user_id, scheduled_date, session_order, title, sport_type, distance_km, duration_minutes, target_pace_seconds_per_km, notes, intervals_activity_id, completed_at, adherence_score, completed_activity'
+            'id, user_id, scheduled_date, session_order, title, sport_type, distance_km, duration_minutes, target_pace_seconds_per_km, notes, gpx_track_id, intervals_activity_id, completed_at, adherence_score, completed_activity'
         ],
         ['eq', 'user_id', 'user-1'],
         ['gte', 'scheduled_date', '2026-05-04'],
@@ -134,7 +134,44 @@ test('rifiuta valori non validi senza inviare scritture al database', async () =
         }),
         /passo obiettivo deve essere compreso/
     );
+    await assert.rejects(
+        service.saveSession('user-1', {
+            scheduled_date: '2026-05-04',
+            session_order: 1,
+            title: 'Trail',
+            sport_type: 'trail',
+            distance_km: '',
+            duration_minutes: '',
+            target_pace_seconds_per_km: '',
+            notes: '',
+            gpx_track_id: "x' or 1=1"
+        }),
+        /traccia GPX collegata non è valida/
+    );
     assert.deepEqual(mock.calls, []);
+});
+
+test('salva la traccia GPX collegata alla seduta o la scollega con un valore vuoto', async () => {
+    const mock = createSupabaseMock({ data: { id: 'session-1' }, error: null });
+    const service = new TrainingPlanService(mock.client);
+    const base = {
+        scheduled_date: '2026-05-04',
+        session_order: 1,
+        title: 'Trail',
+        sport_type: 'trail',
+        distance_km: '',
+        duration_minutes: '',
+        target_pace_seconds_per_km: '',
+        notes: ''
+    };
+
+    await service.saveSession('user-1', { ...base, gpx_track_id: ' 3f2b8c1e-0000-4000-8000-000000000001 ' });
+    await service.saveSession('user-1', { ...base, id: 'session-1', gpx_track_id: '' });
+
+    const inserted = mock.calls.find(call => call[0] === 'insert')[1];
+    const updated = mock.calls.find(call => call[0] === 'update')[1];
+    assert.equal(inserted.gpx_track_id, '3f2b8c1e-0000-4000-8000-000000000001');
+    assert.equal(updated.gpx_track_id, null);
 });
 
 test('associa un’attività Intervals confermata e salva voto e snapshot per il solo proprietario', async () => {

@@ -29,13 +29,25 @@ differire da quelli ufficiali. Si possono aggiungere punti personalizzati
 tecnico, altro) indicando il km o toccando il profilo; i waypoint del file a
 meno di 500 m dalla traccia si possono importare al caricamento. Con i punti
 l'app calcola le tratte tra i rifornimenti (o tra tutti i punti) e permette di
-scaricare un GPX con traccia e punti per l'orologio. La mappa di sfondo non è
-disponibile: la Content Security Policy ammette solo risorse dello stesso sito.
+scaricare un GPX con traccia e punti per l'orologio. In questa scheda la forma
+del percorso resta un disegno senza mappa di sfondo.
 Una traccia si può collegare a una gara della scheda **Gare**; con conferma
 esplicita, distanza e dislivelli stimati dalla traccia sostituiscono quelli
 della gara.
 Serve la migrazione
 [`20261128120000_create_gpx_tracks.sql`](./supabase/migrations/20261128120000_create_gpx_tracks.sql).
+
+Una seduta del calendario può avere una traccia GPX collegata (campo
+"Traccia GPX del percorso" nel modulo della seduta; se la distanza è vuota
+viene proposta quella della traccia). Il pulsante **Mappa** sulla seduta apre
+la traccia su una mappa con partenza, arrivo e punti personalizzati numerati.
+Il dettaglio di un'attività Intervals.icu mostra il percorso GPS registrato
+(stream `latlng`), se presente. Le mappe usano Leaflet (in `vendor/`) con tile
+OpenTopoMap (curve di livello) o OpenStreetMap: il browser chiede a quei
+server solo le tile della zona visualizzata. La condivisione dei piani non
+copia la traccia collegata, che resta dell'atleta che l'ha caricata.
+Serve la migrazione
+[`20261128130000_add_training_session_gpx_track.sql`](./supabase/migrations/20261128130000_add_training_session_gpx_track.sql).
 
 Nel calendario, le attività Intervals.icu dello stesso giorno e sport di una
 seduta vengono proposte come possibili corrispondenze, ma l'associazione viene
@@ -243,6 +255,7 @@ scheda Gare:
 - [`20261128100000_protect_intervals_credentials.sql`](./supabase/migrations/20261128100000_protect_intervals_credentials.sql), per nascondere la API Key al browser. **Solo dopo aver distribuito `intervals-proxy`.**
 - [`20261128110000_record_confirmed_draft_choices.sql`](./supabase/migrations/20261128110000_record_confirmed_draft_choices.sql), per salvare nella bozza confermata le scelte fatte (gare intermedie, sedute extra).
 - [`20261128120000_create_gpx_tracks.sql`](./supabase/migrations/20261128120000_create_gpx_tracks.sql), per le tracce GPX e i loro punti personalizzati.
+- [`20261128130000_add_training_session_gpx_track.sql`](./supabase/migrations/20261128130000_add_training_session_gpx_track.sql), per collegare una traccia GPX a una seduta pianificata. **Prima di pubblicare l'app aggiornata**: il calendario legge la nuova colonna.
 
 ## Sviluppo
 
@@ -260,9 +273,11 @@ Richiede Node.js 22 o successivo. Dopo `npm install`:
 GitHub Actions ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml))
 esegue tutti i controlli a ogni push e pull request.
 
-La pagina non carica script di terze parti: `supabase-js` è in `vendor/` e
-Tailwind è compilato. La Content Security Policy in `index.html` e gli
-header di sicurezza in `vercel.json` presuppongono questa scelta. L'app è
+La pagina non carica script di terze parti: `supabase-js` e Leaflet sono in
+`vendor/` e Tailwind è compilato. La Content Security Policy in `index.html` e
+gli header di sicurezza in `vercel.json` presuppongono questa scelta. L'unica
+eccezione della CSP sono le immagini delle tile della mappa (`img-src`
+ammette `tile.openstreetmap.org` e `*.tile.opentopomap.org`). L'app è
 pubblicata con GitHub Pages in `/Training-Trail-Run/`: per questo manifest e
 service worker usano percorsi relativi. GitHub Pages non applica gli header di
 `vercel.json`, che valgono solo per un eventuale deploy su Vercel; la CSP resta

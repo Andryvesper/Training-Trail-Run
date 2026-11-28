@@ -1,6 +1,6 @@
 const TABLE_NAME = 'training_sessions';
 const SESSION_FIELDS =
-    'id, user_id, scheduled_date, session_order, title, sport_type, distance_km, duration_minutes, target_pace_seconds_per_km, notes, intervals_activity_id, completed_at, adherence_score, completed_activity';
+    'id, user_id, scheduled_date, session_order, title, sport_type, distance_km, duration_minutes, target_pace_seconds_per_km, notes, gpx_track_id, intervals_activity_id, completed_at, adherence_score, completed_activity';
 
 export class TrainingPlanService {
     constructor(supabaseClient) {
@@ -126,6 +126,10 @@ function validateSession(session) {
     if (targetPace !== null && (!Number.isInteger(targetPace) || targetPace < 120 || targetPace > 1800)) {
         throw new Error('Il passo obiettivo deve essere compreso tra 2:00 e 30:00 min/km.');
     }
+    const gpxTrackId = String(session.gpx_track_id ?? '').trim() || null;
+    if (gpxTrackId && !/^[0-9a-z-]{1,64}$/i.test(gpxTrackId)) {
+        throw new Error('La traccia GPX collegata non è valida.');
+    }
 
     return {
         scheduled_date: session.scheduled_date,
@@ -135,6 +139,7 @@ function validateSession(session) {
         distance_km: distance,
         duration_minutes: duration,
         target_pace_seconds_per_km: targetPace,
-        notes: session.notes.trim() || null
+        notes: session.notes.trim() || null,
+        gpx_track_id: gpxTrackId
     };
 }

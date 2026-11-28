@@ -60,6 +60,38 @@ export function requestedStreamTypes(activity) {
     return [...new Set(Object.values(STREAM_ALIASES).flat())];
 }
 
+// Tipi per il dettaglio attività: quelli dell'analisi più il percorso GPS
+// (`latlng`), che serve solo alla mappa e non entra nell'analisi.
+export function detailStreamTypes(activity) {
+    const declared = Array.isArray(activity?.stream_types) ? activity.stream_types : null;
+    const types = requestedStreamTypes(activity);
+    return !declared?.length || declared.includes('latlng') ? [...types, 'latlng'] : types;
+}
+
+/**
+ * Percorso GPS dallo stream `latlng` di Intervals.icu. Accetta coppie
+ * [lat, lon] in `data` oppure latitudini in `data` e longitudini in `data2`.
+ * Scarta i punti senza segnale (null, fuori scala o 0,0).
+ * @returns {[number, number][]}
+ */
+export function latLngTrack(raw) {
+    const item = Array.isArray(raw) ? raw.find(entry => canonical(entry?.type ?? entry?.name) === 'latlng') : null;
+    const data = Array.isArray(item?.data) ? item.data : Array.isArray(raw?.latlng) ? raw.latlng : null;
+    if (!data) return [];
+    const longitudes = Array.isArray(item?.data2) ? item.data2 : null;
+    const points = [];
+    data.forEach((value, index) => {
+        const [lat, lon] = longitudes ? [value, longitudes[index]] : Array.isArray(value) ? value : [null, null];
+        const point = [readNumber(lat), readNumber(lon)];
+        if (isValidLatLng(point)) points.push(point);
+    });
+    return points;
+}
+
+function isValidLatLng([lat, lon]) {
+    return lat !== null && lon !== null && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && (lat !== 0 || lon !== 0);
+}
+
 /**
  * Accetta la risposta di /activity/{id}/streams.json (array di
  * { type, data }) oppure un oggetto { tipo: valori }.
