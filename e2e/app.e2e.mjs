@@ -96,7 +96,7 @@ const fakeSupabaseJs = db => `(() => {
       eq(f, v) { if (f !== 'user_id' && f !== 'id') rows = rows.filter(r => r[f] === v); return b; },
       gte(f, v) { rows = rows.filter(r => r[f] >= v); return b; },
       lte(f, v) { rows = rows.filter(r => r[f] <= v); return b; },
-      insert(p) { rows = [Object.assign({ id: 'new' }, p)]; return b; },
+      insert(p) { rows = (Array.isArray(p) ? p : [p]).map((r, i) => Object.assign({ id: 'new' + (i || ''), created_at: new Date().toISOString() }, r)); return b; },
       upsert(p) { rows = [p]; return b; },
       update(p) { rows = rows.map(r => Object.assign({}, r, p)); return b; },
       delete() { return b; },
@@ -535,6 +535,74 @@ test("calendario: niente pianificazione nei giorni passati, dettaglio dell'attiv
 
         await page.keyboard.press('Escape');
         await dialog.waitFor({ state: 'detached' });
+        assert.deepEqual(consoleErrors, []);
+    } finally {
+        await context.close();
+    }
+});
+
+// GPX sintetico: 6 km verso nord, salita di 300 m nei primi 3 km poi discesa,
+// con un waypoint "Ristoro" sul percorso e uno lontano (da escludere).
+function syntheticGpx() {
+    const points = [];
+    for (let d = 0; d <= 6000; d += 10) {
+        const ele = d <= 3000 ? 500 + d * 0.1 : 800 - (d - 3000) * 0.1;
+        points.push(`<trkpt lat="${(45 + d / 111195).toFixed(6)}" lon="9.000000"><ele>${ele.toFixed(1)}</ele></trkpt>`);
+    }
+    return `<?xml version="1.0"?><gpx version="1.1"><metadata><name>Giro e2e</name></metadata>
+<wpt lat="${(45 + 2000 / 111195).toFixed(6)}" lon="9.0"><name>Ristoro Malga</name></wpt>
+<wpt lat="46.0" lon="10.0"><name>Lontano</name></wpt>
+<trk><trkseg>${points.join('')}</trkseg></trk></gpx>`;
+}
+
+test('tracce GPX: caricamento, analisi, waypoint importati e punto aggiunto', async () => {
+    const { context, page, consoleErrors } = await openApp();
+    try {
+        await page.getByRole('tab', { name: 'Tracce GPX', exact: true }).click();
+        const section = page.locator('#section-gpx');
+        await section.getByText('Nessuna traccia salvata.').waitFor();
+        await section.locator('input[name="file"]').setInputFiles({
+            name: 'giro.gpx',
+            mimeType: 'application/gpx+xml',
+            buffer: Buffer.from(syntheticGpx())
+        });
+        await section.locator('#gpx-upload-preview').getByText('Traccia letta').waitFor();
+        assert.equal(await section.locator('input[name="name"]').inputValue(), 'Giro e2e');
+        assert.match(await section.locator('#gpx-import-waypoints-label').textContent(), /Importa 1 waypoint.*1 esclusi/);
+        await section.locator('select[name="race_id"]').selectOption('race1');
+        await section.getByRole('button', { name: 'Salva traccia' }).click();
+
+        const detail = page.locator('#gpx-track-detail');
+        await detail.getByText('Analisi della traccia').waitFor();
+        assert.match(await page.locator('#gpx-status').textContent(), /Traccia salvata/);
+        const text = await detail.textContent();
+        assert.match(text, /6 km/);
+        assert.ok(text.includes('Salite (1)'));
+        assert.ok(text.includes('Discese (1)'));
+        assert.equal(await detail.locator('[data-waypoint-list] li').count(), 1);
+        assert.match(await detail.locator('[data-waypoint-list]').textContent(), /Ristoro Malga.*Ristoro · km 2/);
+        // Tratte: partenza → ristoro → arrivo.
+        assert.equal(await detail.locator('[data-body="gpx-segments"] tbody tr').count(), 2);
+
+        // Clic sul profilo: imposta il km del nuovo punto.
+        const profile = detail.locator('[data-body="gpx-profile"] svg');
+        const box = await profile.boundingBox();
+        await profile.click({ position: { x: box.width * 0.8, y: box.height * 0.6 } });
+        const form = detail.locator('#gpx-waypoint-form');
+        assert.ok(Number(await form.locator('input[name="km"]').inputValue()) > 4);
+        await form.locator('select[name="kind"]').selectOption('water');
+        await form.locator('input[name="name"]').fill('Fontana');
+        await form.getByRole('button', { name: 'Aggiungi punto' }).click();
+        await detail.locator('[data-waypoint-list] li').nth(1).waitFor();
+        assert.equal(await detail.locator('[data-body="gpx-segments"] tbody tr').count(), 3);
+
+        // Gara collegata: copia distanza e dislivelli dopo conferma; la scheda Gare si aggiorna.
+        assert.match(await detail.textContent(), /Gara collegata: Dieci km e2e · 10 km/);
+        page.once('dialog', dialog => dialog.accept());
+        await detail.getByRole('button', { name: 'Copia distanza e dislivelli nella gara' }).click();
+        await page.locator('#gpx-status', { hasText: 'aggiornata con distanza e dislivelli' }).waitFor();
+        assert.ok((await detail.textContent()).includes('Gara collegata: Dieci km e2e · 6 km · D+ 29'));
+        assert.match(await page.locator('#races-list').textContent(), /6 km/);
         assert.deepEqual(consoleErrors, []);
     } finally {
         await context.close();

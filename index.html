@@ -79,6 +79,10 @@
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 21V5m0 0h12l-2 4 2 4H4m0-8v8m0 8h16"/></svg>
                     <span class="nav-label">Gare</span>
                 </button>
+                <button role="tab" aria-selected="false" data-target="section-gpx" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Tracce GPX">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                    <span class="nav-label">Tracce GPX</span>
+                </button>
                 <button role="tab" aria-selected="false" data-target="section-planner" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Piani di allenamento">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
                     <span class="nav-label">Piani di allenamento</span>
@@ -247,6 +251,50 @@
                     <div id="calendar-multi-container" class="space-y-4">
                         <!-- Renderizzato via JS -->
                     </div>
+                </div>
+
+                <!-- Modulo Tracce GPX -->
+                <div id="section-gpx" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
+                    <div class="space-y-2">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-brand-400">Percorsi</p>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white">Tracce GPX</h2>
+                        <p class="text-sm text-slate-400">Carica la traccia di una gara o di un giro: profilo, dislivelli, pendenze, salite e tratte tra i ristori. Aggiungi i tuoi punti e scarica il GPX aggiornato per l'orologio.</p>
+                    </div>
+                    <p id="gpx-status" class="hidden rounded-xl border p-3 text-sm" role="status" aria-live="polite"></p>
+                    <form id="gpx-upload-form" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5" novalidate>
+                        <h3 class="text-base font-bold text-white">Carica una traccia</h3>
+                        <label class="block space-y-1 text-xs font-medium text-slate-400">
+                            <span>File GPX (massimo 25 MB)</span>
+                            <input name="file" type="file" accept=".gpx,application/gpx+xml" required class="block min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-200">
+                        </label>
+                        <div id="gpx-upload-preview" class="hidden rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-300" aria-live="polite"></div>
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label class="space-y-1 text-xs font-medium text-slate-400">
+                                <span>Nome della traccia</span>
+                                <input name="name" required maxlength="120" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200" placeholder="Es. Trail del Lago 42 km">
+                            </label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400">
+                                <span>Gara collegata (facoltativa)</span>
+                                <select id="gpx-upload-race" name="race_id" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                                    <option value="">Nessuna gara</option>
+                                </select>
+                            </label>
+                            <label class="space-y-1 text-xs font-medium text-slate-400">
+                                <span>Note (facoltative)</span>
+                                <input name="notes" maxlength="2000" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200" placeholder="Edizione, fonte della traccia…">
+                            </label>
+                        </div>
+                        <label id="gpx-import-waypoints-row" class="hidden flex items-start gap-3 text-sm text-slate-300">
+                            <input name="import_waypoints" type="checkbox" checked class="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-700 bg-slate-950">
+                            <span id="gpx-import-waypoints-label"></span>
+                        </label>
+                        <button type="submit" class="min-h-11 rounded-xl bg-brand-500 px-4 py-3 text-sm font-bold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60">Salva traccia</button>
+                    </form>
+                    <section class="space-y-3" aria-labelledby="gpx-tracks-title">
+                        <h3 id="gpx-tracks-title" class="text-base font-bold text-white">Tracce salvate</h3>
+                        <div id="gpx-tracks-list" class="space-y-3" aria-live="polite"></div>
+                    </section>
+                    <div id="gpx-track-detail" class="hidden space-y-5" aria-live="polite"></div>
                 </div>
 
                 <div id="section-races" role="tabpanel" class="hidden space-y-5 sm:space-y-6">

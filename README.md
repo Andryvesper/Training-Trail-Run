@@ -16,6 +16,27 @@ si può indicare il periodo previsto quando la data esatta non è ancora nota;
 per una gara conclusa si possono registrare tempi ufficiali e real time,
 piazzamenti e fonte del risultato.
 
+La scheda **Tracce GPX** carica un file GPX (traccia o percorso, fino a 25 MB),
+lo legge nel browser e salva una versione semplificata (al massimo un punto
+ogni 10 m, 20000 punti) nella tabella `gpx_tracks`; il file originale non
+viene conservato. L'analisi mostra distanza, D+ e D-, quote, km sforzo (stessa
+formula dell'app: distanza + D+/100 + D-/200), profilo altimetrico colorato per
+pendenza, forma del percorso, distribuzione delle pendenze, salite e discese
+principali (almeno 50 m) e parziali al km. I dislivelli sono stime: quota
+lisciata su circa 100 m e variazioni sotto 2 m ignorate, quindi possono
+differire da quelli ufficiali. Si possono aggiungere punti personalizzati
+(ristoro, acqua, aid station, punto di controllo, cancello orario, tratto
+tecnico, altro) indicando il km o toccando il profilo; i waypoint del file a
+meno di 500 m dalla traccia si possono importare al caricamento. Con i punti
+l'app calcola le tratte tra i rifornimenti (o tra tutti i punti) e permette di
+scaricare un GPX con traccia e punti per l'orologio. La mappa di sfondo non è
+disponibile: la Content Security Policy ammette solo risorse dello stesso sito.
+Una traccia si può collegare a una gara della scheda **Gare**; con conferma
+esplicita, distanza e dislivelli stimati dalla traccia sostituiscono quelli
+della gara.
+Serve la migrazione
+[`20261128120000_create_gpx_tracks.sql`](./supabase/migrations/20261128120000_create_gpx_tracks.sql).
+
 Nel calendario, le attività Intervals.icu dello stesso giorno e sport di una
 seduta vengono proposte come possibili corrispondenze, ma l'associazione viene
 salvata solo dopo conferma esplicita. L'atleta può dare un voto personale da 1
@@ -177,6 +198,7 @@ scheda Gare:
 - [`20261128091000_harden_schema.sql`](./supabase/migrations/20261128091000_harden_schema.sql), per limiti di dimensione, policy solo per utenti autenticati, indici, una revisione delle soglie al giorno e pulizia delle condivisioni scadute.
 - [`20261128100000_protect_intervals_credentials.sql`](./supabase/migrations/20261128100000_protect_intervals_credentials.sql), per nascondere la API Key al browser. **Solo dopo aver distribuito `intervals-proxy`.**
 - [`20261128110000_record_confirmed_draft_choices.sql`](./supabase/migrations/20261128110000_record_confirmed_draft_choices.sql), per salvare nella bozza confermata le scelte fatte (gare intermedie, sedute extra).
+- [`20261128120000_create_gpx_tracks.sql`](./supabase/migrations/20261128120000_create_gpx_tracks.sql), per le tracce GPX e i loro punti personalizzati.
 
 ## Sviluppo
 

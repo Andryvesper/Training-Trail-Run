@@ -44,6 +44,44 @@ export class TrainingRacesService {
         if (error) throw error;
         if (!data) throw new Error('La gara non è stata eliminata.');
     }
+
+    // Solo distanza e dislivelli (es. dalla traccia GPX): gli altri campi restano invariati.
+    async updateRaceCourse(userId, raceId, course) {
+        const values = validateRaceCourse(course);
+        const { data, error } = await this.supabaseClient
+            .from(TABLE_NAME)
+            .update(values)
+            .eq('id', raceId)
+            .eq('user_id', userId)
+            .select(RACE_FIELDS)
+            .single();
+
+        if (error) throw error;
+        if (!data) throw new Error('La gara non è stata aggiornata.');
+        return data;
+    }
+}
+
+/**
+ * Distanza (km) e dislivelli (m) da copiare in una gara. Un dislivello null
+ * resta null (traccia senza quote).
+ */
+export function validateRaceCourse({ distanceKm, gain = null, loss = null } = {}) {
+    const distance = Math.round(Number(distanceKm) * 1000) / 1000;
+    if (!Number.isFinite(distance) || distance <= 0 || distance > 1000) {
+        throw new Error('La distanza deve essere maggiore di zero e al massimo 1000 km.');
+    }
+    const elevation = (value, label) => {
+        if (value === null || value === undefined) return null;
+        const meters = Math.round(Number(value));
+        if (!Number.isFinite(meters) || meters < 0 || meters > 100000) throw new Error(`${label} non è valido.`);
+        return meters;
+    };
+    return {
+        distance_km: distance,
+        elevation_gain_m: elevation(gain, 'Il dislivello positivo'),
+        elevation_loss_m: elevation(loss, 'Il dislivello negativo')
+    };
 }
 
 function validateRace(race) {

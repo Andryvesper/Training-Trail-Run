@@ -3,6 +3,7 @@ import { initializePlatform } from './core/platform.js';
 import { initIntervalsModule } from './modules/intervals-ui.js';
 import { initCalendarModule } from './modules/calendar-ui.js';
 import { initRacesModule } from './modules/races-ui.js';
+import { initGpxTracksModule } from './modules/gpx-tracks-ui.js';
 import { initTrainingPlannerModule } from './modules/training-planner-ui.js';
 import { initAthleteProfileModule } from './modules/athlete-profile-ui.js';
 import { clearActivityCache } from './modules/intervals-cache.js';
@@ -19,6 +20,7 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
 const MODULES = [
     ['Calendario', initCalendarModule],
     ['Gare', initRacesModule],
+    ['Tracce GPX', initGpxTracksModule],
     ['Piani di allenamento', initTrainingPlannerModule],
     ['Profilo', initAthleteProfileModule],
     ['Intervals.icu', initIntervalsModule]

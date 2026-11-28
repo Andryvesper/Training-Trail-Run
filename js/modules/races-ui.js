@@ -93,6 +93,20 @@ export async function initRacesModule(supabaseClient, userId) {
         showStatus(`Impossibile caricare gare e risultati: ${error.message}`, 'error');
     }
 
+    // Gara aggiornata da un'altra scheda (es. Tracce GPX): elenco e, se la gara
+    // è aperta nel modulo, i campi di distanza e dislivello seguono il nuovo valore.
+    document.addEventListener('training-races:changed', event => {
+        if (event.detail?.source !== 'gpx' || !Array.isArray(event.detail.races)) return;
+        races = sortRaces(event.detail.races);
+        const updated = races.find(race => race.id === editingRaceId);
+        if (updated) {
+            form.elements.namedItem('distance_km').value = updated.distance_km;
+            form.elements.namedItem('elevation_gain_m').value = updated.elevation_gain_m ?? '';
+            form.elements.namedItem('elevation_loss_m').value = updated.elevation_loss_m ?? '';
+        }
+        render();
+    });
+
     raceStatus.addEventListener('change', render);
     cancelButton.addEventListener('click', resetForm);
     form.addEventListener('submit', async event => {
