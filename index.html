@@ -54,6 +54,29 @@
                 </div>
                 <button id="btn-login" type="submit" class="w-full disabled:cursor-wait disabled:opacity-70 bg-brand-500 text-white font-bold py-3.5 rounded-xl text-sm hover:bg-brand-600 active:scale-[0.98] transition-all shadow-lg shadow-brand-500/20">Accedi alla Piattaforma</button>
             </form>
+
+            <!-- Primo accesso da link di invito: si sceglie la password -->
+            <form id="password-setup-form" class="hidden space-y-4" novalidate>
+                <div class="space-y-1 text-center">
+                    <h2 class="text-base font-bold text-white">Scegli la tua password</h2>
+                    <p class="text-xs text-slate-400">Sei entrato con il link di invito. La password servirà per i prossimi accessi.</p>
+                </div>
+                <div>
+                    <label for="setup-email" class="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+                    <input type="email" id="setup-email" name="email" autocomplete="username" readonly class="w-full bg-slate-950/50 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-400 outline-none">
+                </div>
+                <div>
+                    <label for="setup-password" class="block text-xs font-medium text-slate-400 mb-1.5">Nuova password</label>
+                    <input type="password" id="setup-password" name="password" autocomplete="new-password" minlength="8" required class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all">
+                    <p class="mt-1 text-[11px] text-slate-500">Almeno 8 caratteri.</p>
+                </div>
+                <div>
+                    <label for="setup-password-confirm" class="block text-xs font-medium text-slate-400 mb-1.5">Ripeti la password</label>
+                    <input type="password" id="setup-password-confirm" name="confirm" autocomplete="new-password" minlength="8" required class="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all">
+                </div>
+                <button id="btn-password-setup" type="submit" class="w-full disabled:cursor-wait disabled:opacity-70 bg-brand-500 text-white font-bold py-3.5 rounded-xl text-sm hover:bg-brand-600 active:scale-[0.98] transition-all shadow-lg shadow-brand-500/20">Salva password ed entra</button>
+                <button id="btn-password-setup-cancel" type="button" class="w-full min-h-11 rounded-xl text-xs font-medium text-slate-400 hover:text-white">Esci senza salvare</button>
+            </form>
             <p id="auth-error" role="alert" class="text-xs text-rose-400 text-center hidden bg-rose-500/10 p-3 rounded-xl border border-rose-500/20"></p>
         </div>
     </div>
@@ -98,6 +121,10 @@
                 <button role="tab" aria-selected="false" data-target="section-profile" class="tab-btn flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Profilo">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     <span class="nav-label">Profilo</span>
+                </button>
+                <button role="tab" aria-selected="false" data-target="section-admin" class="tab-btn hidden flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white" aria-label="Amministrazione">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v6m3-3h-6M13 7a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                    <span class="nav-label">Amministrazione</span>
                 </button>
             </nav>
             <div class="nav-label border-t border-slate-800 p-4 text-xs text-slate-500">Pianifica · Allenati · Migliora</div>
@@ -789,6 +816,26 @@
                         </div>
                         <p class="text-xs text-slate-500">Tutti i campi sono facoltativi e visibili solo a te. Non servono per generare il piano.</p>
                         <button type="submit" class="min-h-11 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600">Salva profilo</button>
+                    </form>
+                </section>
+
+                <section id="section-admin" role="tabpanel" class="hidden space-y-5 sm:space-y-6">
+                    <div class="space-y-2">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-brand-400">Solo amministratori</p>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white">Amministrazione</h2>
+                    </div>
+                    <form id="admin-invite-form" class="max-w-2xl space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5" novalidate>
+                        <div>
+                            <h3 class="text-base font-bold text-white">Invita un nuovo utente</h3>
+                            <p class="mt-1 text-sm text-slate-400">Il nuovo utente riceve un link via email: entra senza password e la sceglie al primo accesso.</p>
+                        </div>
+                        <p id="admin-invite-status" class="hidden" role="status" aria-live="polite"></p>
+                        <label class="block space-y-1 text-xs font-medium text-slate-400">
+                            <span>Email del nuovo utente</span>
+                            <input name="email" type="email" inputmode="email" autocomplete="off" maxlength="254" required placeholder="nome@esempio.it" class="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-200">
+                        </label>
+                        <p class="text-xs text-slate-500">Il link vale una sola volta e scade dopo il tempo impostato in Supabase. Un nuovo invito alla stessa email è possibile finché il link non è stato usato.</p>
+                        <button type="submit" class="min-h-11 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-wait disabled:opacity-70">Invia invito</button>
                     </form>
                 </section>
 

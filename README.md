@@ -133,6 +133,43 @@ L'ordine dei passaggi conta:
 Finché la funzione non è distribuita, l'app chiama Intervals.icu direttamente
 come prima (la chiave è ancora leggibile).
 
+## Invito di nuovi utenti
+
+Gli utenti con ruolo `admin` vedono la scheda **Amministrazione**. Lì
+inseriscono l'email di un nuovo utente e inviano l'invito. Il destinatario
+riceve un link: aprendolo entra senza password e l'app gli chiede subito di
+sceglierne una (almeno 8 caratteri). Finché non la salva, non vede l'app; se
+chiude la pagina, al rientro sullo stesso browser la richiesta si ripresenta.
+
+L'invio passa dalla Edge Function
+[`supabase/functions/admin-invite`](./supabase/functions/admin-invite/index.ts),
+che verifica lato server che chi invia sia `admin` e marca il nuovo utente con
+il metadato `must_set_password`. La scheda nascosta agli atleti è solo
+interfaccia: il controllo vero è nella funzione.
+
+Configurazione (una volta):
+
+1. Distribuisci la funzione:
+   `npx supabase functions deploy admin-invite --project-ref sjsttftadxmutrhmagep --no-verify-jwt`.
+2. Promuovi il tuo profilo ad amministratore dal SQL Editor:
+   `update public.profiles set role = 'admin' where email = '<tua email>';`
+3. In **Authentication → URL Configuration** aggiungi l'indirizzo dell'app
+   (ad esempio `https://<utente>.github.io/Training-Trail-Run/`) a
+   **Redirect URLs**. Senza, il link porta al Site URL.
+4. In **Authentication → Emails → SMTP Settings** configura un SMTP
+   personalizzato. Il servizio email predefinito di Supabase invia solo agli
+   indirizzi del team del progetto e con limiti molto bassi.
+5. Facoltativo: traduci il modello **Invite user** in
+   **Authentication → Emails → Templates**.
+6. Consigliato: disattiva **Allow new users to sign up**
+   (Authentication → Sign In / Providers). Gli inviti funzionano lo stesso e
+   nessuno può registrarsi da solo con la chiave pubblica.
+
+Il link vale una volta e scade dopo il tempo di **Email OTP Expiration**. Un
+link scaduto o già usato mostra il motivo nella schermata di accesso. Si può
+reinviare l'invito alla stessa email finché il link non è stato usato; dopo, la
+funzione risponde che l'account esiste già.
+
 ## Backup locale
 
 Gli script in `scripts/backup/` preparano un backup cifrato age con dump

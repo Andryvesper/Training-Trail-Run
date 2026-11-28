@@ -6,7 +6,9 @@ import { initRacesModule } from './modules/races-ui.js';
 import { initGpxTracksModule } from './modules/gpx-tracks-ui.js';
 import { initTrainingPlannerModule } from './modules/training-planner-ui.js';
 import { initAthleteProfileModule } from './modules/athlete-profile-ui.js';
+import { initUserInvitesModule } from './modules/user-invites-ui.js';
 import { clearActivityCache } from './modules/intervals-cache.js';
+import { needsPasswordSetup, passwordUpdateErrorMessage, readAuthRedirectError, validateNewPassword } from './modules/user-invites.js';
 
 // App installabile: registra il service worker (solo su HTTPS o localhost).
 if ('serviceWorker' in navigator && window.isSecureContext) {
@@ -39,10 +41,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         showAuthError('Impossibile caricare i servizi dell’app. Controlla la connessione e ricarica la pagina.');
         return;
     }
+    // Link di invito scaduto o già usato: l'errore arriva nell'indirizzo. Va letto
+    // prima di creare il client e poi tolto, per non ripresentarlo al ricaricamento.
+    const linkError = readAuthRedirectError(window.location.hash, window.location.search);
+    if (linkError) window.history.replaceState(null, '', window.location.pathname);
     supabase = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
 
     // I gestori di accesso e uscita sono attivi subito, anche durante l'avvio.
     setupLogin();
+    setupPasswordSetup();
     setupLogout();
     supabase.auth.onAuthStateChange(event => {
         // Uscita da un'altra scheda o sessione scaduta: si torna al login pulito.
@@ -59,6 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             await startApp(session.user);
         } else {
             showAuthScreen();
+            if (linkError) showAuthError(linkError);
         }
     } catch (err) {
         console.error('Errore critico in avvio:', err);
@@ -113,6 +121,63 @@ function loginErrorMessage(error) {
     return 'Accesso non riuscito. Riprova.';
 }
 
+// Chi entra dal link di invito non ha ancora una password: la sceglie qui
+// prima di vedere l'app.
+function setupPasswordSetup() {
+    const form = document.getElementById('password-setup-form');
+    const button = document.getElementById('btn-password-setup');
+    form?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const password = document.getElementById('setup-password').value;
+        const confirmation = document.getElementById('setup-password-confirm').value;
+        const invalid = validateNewPassword(password, confirmation);
+        if (invalid) {
+            showAuthError(invalid);
+            return;
+        }
+
+        const label = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Salvataggio…';
+        hideAuthError();
+        try {
+            const { data, error } = await supabase.auth.updateUser({ password, data: { must_set_password: false } });
+            if (error) {
+                showAuthError(passwordUpdateErrorMessage(error));
+                return;
+            }
+            form.reset();
+            form.classList.add('hidden');
+            document.getElementById('login-form')?.classList.remove('hidden');
+            await startApp(data.user);
+        } catch (err) {
+            console.error('Errore di rete durante il salvataggio della password:', err);
+            showAuthError('Connessione non riuscita. Controlla la rete e riprova.');
+        } finally {
+            button.disabled = false;
+            button.textContent = label;
+        }
+    });
+    document.getElementById('btn-password-setup-cancel')?.addEventListener('click', async () => {
+        try {
+            await supabase.auth.signOut();
+        } catch (err) {
+            console.error('Errore durante l’uscita:', err);
+        } finally {
+            window.location.reload();
+        }
+    });
+}
+
+function showPasswordSetup(user) {
+    document.getElementById('login-form')?.classList.add('hidden');
+    document.getElementById('password-setup-form')?.classList.remove('hidden');
+    document.getElementById('setup-email').value = user.email || '';
+    hideAuthError();
+    showAuthScreen();
+    document.getElementById('setup-password')?.focus();
+}
+
 function setupLogout() {
     document.getElementById('btn-logout')?.addEventListener('click', async () => {
         try {
@@ -131,10 +196,15 @@ function setupLogout() {
  */
 async function startApp(user) {
     if (appStarted) return;
+    if (needsPasswordSetup(user)) {
+        showPasswordSetup(user);
+        return;
+    }
     appStarted = true;
 
     const profile = await initializePlatform(supabase, user);
     if (!profile) showAppError('Profilo utente non disponibile: alcune funzioni potrebbero non funzionare.');
+    initUserInvitesModule(supabase, profile);
 
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('main-app').classList.remove('hidden');

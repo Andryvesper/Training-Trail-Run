@@ -85,9 +85,9 @@ const FAKE_DB = {
 };
 
 // Sostituisce supabase-js: sessione finta e query builder in memoria.
-const fakeSupabaseJs = db => `(() => {
+const fakeSupabaseJs = (db, user = USER) => `(() => {
   const DB = ${JSON.stringify(db)};
-  const USER = ${JSON.stringify(USER)};
+  let USER = ${JSON.stringify(user)};
   function builder(table) {
     let rows = (DB[table] || []).slice();
     let mode = 'many';
@@ -114,6 +114,11 @@ const fakeSupabaseJs = db => `(() => {
       getSession: async () => ({ data: { session: { user: USER, access_token: 'e2e-token' } }, error: null }),
       signInWithPassword: async () => ({ data: { user: USER }, error: null }),
       signOut: async () => ({ error: null }),
+      updateUser: async ({ password, data }) => {
+        window.__updatedPassword = password;
+        USER = Object.assign({}, USER, { user_metadata: Object.assign({}, USER.user_metadata, data) });
+        return { data: { user: USER }, error: null };
+      },
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } })
     },
     from: builder,
@@ -237,7 +242,14 @@ test.after(async () => {
 });
 
 // Il service worker resta bloccato nei test dell'app: le route finte devono vedere ogni richiesta.
-async function openApp({ intervals = false, serviceWorkers = 'block', viewport = { width: 1280, height: 900 } } = {}) {
+async function openApp({
+    intervals = false,
+    serviceWorkers = 'block',
+    viewport = { width: 1280, height: 900 },
+    supabaseJs = null,
+    onRoute = null,
+    waitForApp = true
+} = {}) {
     const context = await browser.newContext({ viewport, acceptDownloads: true, serviceWorkers });
     const page = await context.newPage();
     const consoleErrors = [];
@@ -248,8 +260,12 @@ async function openApp({ intervals = false, serviceWorkers = 'block', viewport =
     await page.route('**/*', route => {
         const url = route.request().url();
         if (url.includes('/vendor/supabase-js-'))
-            return route.fulfill({ contentType: 'text/javascript', body: intervals ? fakeSupabaseJs(INTERVALS_DB) : FAKE_SUPABASE_JS });
+            return route.fulfill({
+                contentType: 'text/javascript',
+                body: supabaseJs ?? (intervals ? fakeSupabaseJs(INTERVALS_DB) : FAKE_SUPABASE_JS)
+            });
         if (url.startsWith(baseUrl)) return route.continue();
+        if (onRoute?.(route)) return;
         // Proxy Supabase "intervals-proxy": la chiave resta lato server.
         if (intervals && url.includes('/functions/v1/intervals-proxy/')) {
             const cors = {
@@ -269,8 +285,10 @@ async function openApp({ intervals = false, serviceWorkers = 'block', viewport =
         return route.abort();
     });
     await page.goto(baseUrl, { waitUntil: 'load' });
-    await page.locator('#main-app').waitFor({ state: 'visible', timeout: 15000 });
-    await page.locator('#calendar-multi-container .calendar-week').first().waitFor({ timeout: 15000 });
+    if (waitForApp) {
+        await page.locator('#main-app').waitFor({ state: 'visible', timeout: 15000 });
+        await page.locator('#calendar-multi-container .calendar-week').first().waitFor({ timeout: 15000 });
+    }
     return { context, page, consoleErrors };
 }
 
@@ -604,6 +622,101 @@ test('tracce GPX: caricamento, analisi, waypoint importati e punto aggiunto', as
         assert.ok((await detail.textContent()).includes('Gara collegata: Dieci km e2e · 6 km · D+ 29'));
         assert.match(await page.locator('#races-list').textContent(), /6 km/);
         assert.deepEqual(consoleErrors, []);
+    } finally {
+        await context.close();
+    }
+});
+
+test('amministrazione: scheda solo per admin, invito inviato alla Edge Function', async () => {
+    const athlete = await openApp();
+    try {
+        assert.equal(await athlete.page.locator('.tab-btn[data-target="section-admin"]').isVisible(), false);
+    } finally {
+        await athlete.context.close();
+    }
+
+    const invites = [];
+    const adminDb = { ...FAKE_DB, profiles: [{ ...FAKE_DB.profiles[0], role: 'admin' }] };
+    const { context, page, consoleErrors } = await openApp({
+        supabaseJs: fakeSupabaseJs(adminDb),
+        onRoute: route => {
+            if (!route.request().url().includes('/functions/v1/admin-invite')) return false;
+            const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type' };
+            if (route.request().method() === 'OPTIONS') {
+                route.fulfill({ status: 204, headers: cors });
+            } else {
+                invites.push({ body: route.request().postDataJSON(), auth: route.request().headers().authorization });
+                route.fulfill({ contentType: 'application/json', headers: cors, body: JSON.stringify({ ok: true }) });
+            }
+            return true;
+        }
+    });
+    try {
+        await page.getByRole('tab', { name: 'Amministrazione' }).click();
+        const form = page.locator('#admin-invite-form');
+        await form.locator('input[name="email"]').fill('non-valida');
+        await form.getByRole('button', { name: 'Invia invito' }).click();
+        await page.locator('#admin-invite-status', { hasText: 'email valido' }).waitFor();
+        assert.equal(invites.length, 0);
+
+        await form.locator('input[name="email"]').fill('  Nuovo.Atleta@E2E.invalid ');
+        await form.getByRole('button', { name: 'Invia invito' }).click();
+        await page.locator('#admin-invite-status', { hasText: 'Invito inviato a nuovo.atleta@e2e.invalid' }).waitFor();
+        assert.equal(invites.length, 1);
+        assert.equal(invites[0].body.email, 'nuovo.atleta@e2e.invalid');
+        assert.equal(invites[0].body.redirectTo, `${baseUrl}/`);
+        assert.equal(invites[0].auth, 'Bearer e2e-token');
+        assert.equal(await form.locator('input[name="email"]').inputValue(), '');
+        assert.deepEqual(consoleErrors, []);
+    } finally {
+        await context.close();
+    }
+});
+
+test('invito: al primo accesso dal link si sceglie la password, poi si entra', async () => {
+    const invited = { ...USER, user_metadata: { must_set_password: true } };
+    const { context, page, consoleErrors } = await openApp({ supabaseJs: fakeSupabaseJs(FAKE_DB, invited), waitForApp: false });
+    try {
+        const form = page.locator('#password-setup-form');
+        await form.waitFor({ state: 'visible', timeout: 15000 });
+        assert.equal(await page.locator('#main-app').isVisible(), false);
+        assert.equal(await page.locator('#login-form').isVisible(), false);
+        assert.equal(await page.locator('#setup-email').inputValue(), USER.email);
+
+        await page.locator('#setup-password').fill('lunga-abbastanza');
+        await page.locator('#setup-password-confirm').fill('diversa-abbastanza');
+        await form.getByRole('button', { name: 'Salva password ed entra' }).click();
+        await page.locator('#auth-error', { hasText: 'non coincidono' }).waitFor();
+        assert.equal(await page.evaluate(() => window.__updatedPassword ?? null), null);
+
+        await page.locator('#setup-password-confirm').fill('lunga-abbastanza');
+        await form.getByRole('button', { name: 'Salva password ed entra' }).click();
+        await page.locator('#main-app').waitFor({ state: 'visible', timeout: 15000 });
+        assert.equal(await page.evaluate(() => window.__updatedPassword), 'lunga-abbastanza');
+        assert.equal(await page.locator('#auth-screen').isVisible(), false);
+        assert.deepEqual(consoleErrors, []);
+    } finally {
+        await context.close();
+    }
+});
+
+test('invito: link scaduto mostra il motivo nella schermata di accesso', async () => {
+    const signedOut = FAKE_SUPABASE_JS.replace(
+        "getSession: async () => ({ data: { session: { user: USER, access_token: 'e2e-token' } }, error: null })",
+        'getSession: async () => ({ data: { session: null }, error: null })'
+    );
+    assert.notEqual(signedOut, FAKE_SUPABASE_JS);
+    const context = await browser.newContext({ serviceWorkers: 'block' });
+    const page = await context.newPage();
+    try {
+        await page.route('**/*', route => {
+            const url = route.request().url();
+            if (url.includes('/vendor/supabase-js-')) return route.fulfill({ contentType: 'text/javascript', body: signedOut });
+            return url.startsWith(baseUrl) ? route.continue() : route.abort();
+        });
+        await page.goto(`${baseUrl}/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid`);
+        await page.locator('#auth-error', { hasText: 'scaduto o è già stato usato' }).waitFor({ timeout: 15000 });
+        assert.equal(new URL(page.url()).hash, '');
     } finally {
         await context.close();
     }
