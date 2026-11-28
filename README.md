@@ -170,6 +170,13 @@ link scaduto o già usato mostra il motivo nella schermata di accesso. Si può
 reinviare l'invito alla stessa email finché il link non è stato usato; dopo, la
 funzione risponde che l'account esiste già.
 
+**Password dimenticata?** nella schermata di accesso fa inviare da Supabase un
+link di recupero allo stesso indirizzo dell'app. Aprendolo si sceglie una
+nuova password prima di entrare. Il messaggio di conferma è lo stesso anche se
+l'email non è registrata, per non rivelare quali account esistono. Serve anche
+a un invitato che ha perso la sessione prima di scegliere la password. Il
+testo dell'email si cambia nel modello **Reset Password**.
+
 ## Backup locale
 
 Gli script in `scripts/backup/` preparano un backup cifrato age con dump

@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     inviteRedirectUrl,
+    isPasswordRecoveryLink,
     needsPasswordSetup,
     normalizeInviteEmail,
+    passwordResetErrorMessage,
     passwordUpdateErrorMessage,
     readAuthRedirectError,
     sendUserInvite,
@@ -73,9 +75,20 @@ test('validateNewPassword: lunghezza minima e conferma', () => {
 
 test('passwordUpdateErrorMessage traduce i codici di Supabase', () => {
     assert.match(passwordUpdateErrorMessage({ code: 'weak_password', status: 422 }), /debole/);
-    assert.match(passwordUpdateErrorMessage({ code: 'reauthentication_needed' }), /nuovo invito/);
+    assert.match(passwordUpdateErrorMessage({ code: 'reauthentication_needed' }), /nuovo link/);
     assert.match(passwordUpdateErrorMessage({ status: 429 }), /Troppi tentativi/);
     assert.match(passwordUpdateErrorMessage({}), /non riuscito/);
+});
+
+test('passwordResetErrorMessage distingue il limite di invio', () => {
+    assert.match(passwordResetErrorMessage({ code: 'over_email_send_rate_limit', status: 429 }), /Troppe richieste/);
+    assert.match(passwordResetErrorMessage({ status: 500 }), /non riuscito/);
+});
+
+test('isPasswordRecoveryLink riconosce solo il link di recupero', () => {
+    assert.equal(isPasswordRecoveryLink('#access_token=abc&type=recovery'), true);
+    assert.equal(isPasswordRecoveryLink('#access_token=abc&type=invite'), false);
+    assert.equal(isPasswordRecoveryLink(''), false);
 });
 
 test('readAuthRedirectError legge l’errore del link da hash o query', () => {

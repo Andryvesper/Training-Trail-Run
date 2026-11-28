@@ -114,6 +114,10 @@ const fakeSupabaseJs = (db, user = USER) => `(() => {
       getSession: async () => ({ data: { session: { user: USER, access_token: 'e2e-token' } }, error: null }),
       signInWithPassword: async () => ({ data: { user: USER }, error: null }),
       signOut: async () => ({ error: null }),
+      resetPasswordForEmail: async (email, options) => {
+        window.__resetRequest = { email, redirectTo: options && options.redirectTo };
+        return { data: {}, error: null };
+      },
       updateUser: async ({ password, data }) => {
         window.__updatedPassword = password;
         USER = Object.assign({}, USER, { user_metadata: Object.assign({}, USER.user_metadata, data) });
@@ -717,6 +721,80 @@ test('invito: link scaduto mostra il motivo nella schermata di accesso', async (
         await page.goto(`${baseUrl}/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid`);
         await page.locator('#auth-error', { hasText: 'scaduto o è già stato usato' }).waitFor({ timeout: 15000 });
         assert.equal(new URL(page.url()).hash, '');
+    } finally {
+        await context.close();
+    }
+});
+
+// Pagina con supabase-js finto e nessuna rete esterna, aperta su un indirizzo a scelta.
+async function openAuthPage(supabaseJs, pathAndHash) {
+    const context = await browser.newContext({ serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const consoleErrors = [];
+    page.on('console', msg => {
+        if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', err => consoleErrors.push(`pageerror: ${err.message}`));
+    await page.route('**/*', route => {
+        const url = route.request().url();
+        if (url.includes('/vendor/supabase-js-')) return route.fulfill({ contentType: 'text/javascript', body: supabaseJs });
+        return url.startsWith(baseUrl) ? route.continue() : route.abort();
+    });
+    await page.goto(`${baseUrl}${pathAndHash}`);
+    return { context, page, consoleErrors };
+}
+
+test('password dimenticata: richiesta del link dalla schermata di accesso', async () => {
+    const signedOut = FAKE_SUPABASE_JS.replace(
+        "getSession: async () => ({ data: { session: { user: USER, access_token: 'e2e-token' } }, error: null })",
+        'getSession: async () => ({ data: { session: null }, error: null })'
+    );
+    const { context, page, consoleErrors } = await openAuthPage(signedOut, '/');
+    try {
+        await page.locator('#login-form').waitFor({ state: 'visible', timeout: 15000 });
+        await page.locator('#auth-email').fill('Atleta@E2E.invalid');
+        await page.getByRole('button', { name: 'Password dimenticata?' }).click();
+        const form = page.locator('#password-reset-form');
+        await form.waitFor({ state: 'visible' });
+        assert.equal(await page.locator('#login-form').isVisible(), false);
+        assert.equal(await page.locator('#reset-email').inputValue(), 'Atleta@E2E.invalid');
+
+        await page.locator('#reset-email').fill('non-valida');
+        await form.getByRole('button', { name: 'Invia il link' }).click();
+        await page.locator('#auth-error', { hasText: 'email valido' }).waitFor();
+
+        await page.locator('#reset-email').fill(' Atleta@E2E.invalid ');
+        await form.getByRole('button', { name: 'Invia il link' }).click();
+        await page.locator('#auth-info', { hasText: 'Se atleta@e2e.invalid è registrata' }).waitFor();
+        assert.equal(await page.locator('#auth-error').isVisible(), false);
+        assert.deepEqual(await page.evaluate(() => window.__resetRequest), {
+            email: 'atleta@e2e.invalid',
+            redirectTo: `${baseUrl}/`
+        });
+
+        await form.getByRole('button', { name: "Torna all'accesso" }).click();
+        await page.locator('#login-form').waitFor({ state: 'visible' });
+        assert.equal(await page.locator('#auth-info').isVisible(), false);
+        assert.deepEqual(consoleErrors, []);
+    } finally {
+        await context.close();
+    }
+});
+
+test('password dimenticata: dal link di recupero si sceglie la nuova password, poi si entra', async () => {
+    const { context, page, consoleErrors } = await openAuthPage(FAKE_SUPABASE_JS, '/#access_token=e2e&type=recovery');
+    try {
+        const form = page.locator('#password-setup-form');
+        await form.waitFor({ state: 'visible', timeout: 15000 });
+        assert.equal(await page.locator('#password-setup-title').textContent(), 'Scegli una nuova password');
+        assert.equal(await page.locator('#main-app').isVisible(), false);
+
+        await page.locator('#setup-password').fill('nuova-password-1');
+        await page.locator('#setup-password-confirm').fill('nuova-password-1');
+        await form.getByRole('button', { name: 'Salva password ed entra' }).click();
+        await page.locator('#main-app').waitFor({ state: 'visible', timeout: 15000 });
+        assert.equal(await page.evaluate(() => window.__updatedPassword), 'nuova-password-1');
+        assert.deepEqual(consoleErrors, []);
     } finally {
         await context.close();
     }

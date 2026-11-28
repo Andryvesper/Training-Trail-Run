@@ -8,7 +8,16 @@ import { initTrainingPlannerModule } from './modules/training-planner-ui.js';
 import { initAthleteProfileModule } from './modules/athlete-profile-ui.js';
 import { initUserInvitesModule } from './modules/user-invites-ui.js';
 import { clearActivityCache } from './modules/intervals-cache.js';
-import { needsPasswordSetup, passwordUpdateErrorMessage, readAuthRedirectError, validateNewPassword } from './modules/user-invites.js';
+import {
+    inviteRedirectUrl,
+    isPasswordRecoveryLink,
+    needsPasswordSetup,
+    normalizeInviteEmail,
+    passwordResetErrorMessage,
+    passwordUpdateErrorMessage,
+    readAuthRedirectError,
+    validateNewPassword
+} from './modules/user-invites.js';
 
 // App installabile: registra il service worker (solo su HTTPS o localhost).
 if ('serviceWorker' in navigator && window.isSecureContext) {
@@ -30,6 +39,7 @@ const MODULES = [
 
 let supabase = null;
 let appStarted = false;
+let passwordRecovery = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
     setupTabNavigation();
@@ -45,10 +55,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // prima di creare il client e poi tolto, per non ripresentarlo al ricaricamento.
     const linkError = readAuthRedirectError(window.location.hash, window.location.search);
     if (linkError) window.history.replaceState(null, '', window.location.pathname);
+    // Link "password dimenticata": dopo l'accesso si sceglie subito la nuova password.
+    passwordRecovery = isPasswordRecoveryLink(window.location.hash);
     supabase = window.supabase.createClient(window.SUPABASE_CONFIG.URL, window.SUPABASE_CONFIG.KEY);
 
     // I gestori di accesso e uscita sono attivi subito, anche durante l'avvio.
     setupLogin();
+    setupPasswordReset();
     setupPasswordSetup();
     setupLogout();
     supabase.auth.onAuthStateChange(event => {
@@ -121,8 +134,63 @@ function loginErrorMessage(error) {
     return 'Accesso non riuscito. Riprova.';
 }
 
-// Chi entra dal link di invito non ha ancora una password: la sceglie qui
-// prima di vedere l'app.
+// "Password dimenticata?": Supabase invia un link che riporta all'app per
+// scegliere una nuova password. La risposta non rivela se l'email esiste.
+function setupPasswordReset() {
+    const loginForm = document.getElementById('login-form');
+    const form = document.getElementById('password-reset-form');
+    const button = document.getElementById('btn-password-reset');
+    const emailInput = document.getElementById('reset-email');
+
+    document.getElementById('btn-forgot-password')?.addEventListener('click', () => {
+        hideAuthError();
+        hideAuthInfo();
+        emailInput.value = document.getElementById('auth-email').value.trim();
+        loginForm.classList.add('hidden');
+        form.classList.remove('hidden');
+        emailInput.focus();
+    });
+    document.getElementById('btn-password-reset-back')?.addEventListener('click', () => {
+        hideAuthError();
+        hideAuthInfo();
+        form.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+        document.getElementById('auth-email').focus();
+    });
+
+    form?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const email = normalizeInviteEmail(emailInput.value);
+        hideAuthInfo();
+        if (!email) {
+            showAuthError('Inserisci un indirizzo email valido.');
+            return;
+        }
+        const label = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Invio in corso…';
+        hideAuthError();
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: inviteRedirectUrl(window.location)
+            });
+            if (error) {
+                showAuthError(passwordResetErrorMessage(error));
+                return;
+            }
+            showAuthInfo(`Se ${email} è registrata, riceverai a breve un link per scegliere una nuova password.`);
+        } catch (err) {
+            console.error('Errore di rete durante la richiesta del link:', err);
+            showAuthError('Connessione non riuscita. Controlla la rete e riprova.');
+        } finally {
+            button.disabled = false;
+            button.textContent = label;
+        }
+    });
+}
+
+// Chi entra dal link di invito o da quello di recupero sceglie qui la
+// password prima di vedere l'app.
 function setupPasswordSetup() {
     const form = document.getElementById('password-setup-form');
     const button = document.getElementById('btn-password-setup');
@@ -146,6 +214,7 @@ function setupPasswordSetup() {
                 showAuthError(passwordUpdateErrorMessage(error));
                 return;
             }
+            passwordRecovery = false;
             form.reset();
             form.classList.add('hidden');
             document.getElementById('login-form')?.classList.remove('hidden');
@@ -169,8 +238,13 @@ function setupPasswordSetup() {
     });
 }
 
-function showPasswordSetup(user) {
+function showPasswordSetup(user, { recovery = false } = {}) {
+    document.getElementById('password-setup-title').textContent = recovery ? 'Scegli una nuova password' : 'Scegli la tua password';
+    document.getElementById('password-setup-hint').textContent = recovery
+        ? 'Sei entrato con il link di recupero. La nuova password sostituisce quella vecchia.'
+        : 'Sei entrato con il link di invito. La password servirà per i prossimi accessi.';
     document.getElementById('login-form')?.classList.add('hidden');
+    document.getElementById('password-reset-form')?.classList.add('hidden');
     document.getElementById('password-setup-form')?.classList.remove('hidden');
     document.getElementById('setup-email').value = user.email || '';
     hideAuthError();
@@ -196,8 +270,8 @@ function setupLogout() {
  */
 async function startApp(user) {
     if (appStarted) return;
-    if (needsPasswordSetup(user)) {
-        showPasswordSetup(user);
+    if (passwordRecovery || needsPasswordSetup(user)) {
+        showPasswordSetup(user, { recovery: passwordRecovery });
         return;
     }
     appStarted = true;
@@ -240,6 +314,16 @@ function showAuthError(message) {
 
 function hideAuthError() {
     document.getElementById('auth-error').classList.add('hidden');
+}
+
+function showAuthInfo(message) {
+    const element = document.getElementById('auth-info');
+    element.textContent = message;
+    element.classList.remove('hidden');
+}
+
+function hideAuthInfo() {
+    document.getElementById('auth-info')?.classList.add('hidden');
 }
 
 document.addEventListener('click', event => {

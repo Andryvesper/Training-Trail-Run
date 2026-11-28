@@ -1,5 +1,5 @@
-// Inviti dei nuovi utenti: l'amministratore invia il link, chi lo apre entra
-// senza password e sceglie subito la propria.
+// Inviti dei nuovi utenti e recupero password: chi apre il link ricevuto via
+// email entra senza password e ne sceglie subito una.
 // L'invio passa dalla Edge Function "admin-invite", che verifica il ruolo lato server.
 
 const INVITE_FUNCTION = 'admin-invite';
@@ -72,10 +72,24 @@ export function passwordUpdateErrorMessage(error) {
     if (code === 'weak_password') return 'Password troppo debole: usa lettere, numeri e simboli.';
     if (code === 'same_password') return 'Scegli una password diversa da quella attuale.';
     if (code === 'reauthentication_needed' || code === 'session_not_found' || status === 401) {
-        return 'Sessione scaduta: chiedi all’amministratore un nuovo invito.';
+        return 'Sessione scaduta: richiedi un nuovo link con “Password dimenticata?”.';
     }
     if (status === 429) return 'Troppi tentativi. Attendi qualche minuto e riprova.';
     return 'Salvataggio della password non riuscito. Riprova.';
+}
+
+export function passwordResetErrorMessage(error) {
+    const code = String(error?.code || '');
+    const status = Number(error?.status);
+    if (code === 'over_email_send_rate_limit' || status === 429) {
+        return 'Troppe richieste. Attendi qualche minuto e riprova.';
+    }
+    return 'Invio del link non riuscito. Riprova più tardi.';
+}
+
+/** Vero quando l'app si apre dal link "password dimenticata" di Supabase. */
+export function isPasswordRecoveryLink(hash = '') {
+    return new URLSearchParams(String(hash).replace(/^#/, '')).get('type') === 'recovery';
 }
 
 /**
@@ -89,9 +103,9 @@ export function readAuthRedirectError(hash = '', search = '') {
         const code = params.get('error_code') || params.get('error');
         if (!code) continue;
         if (code === 'otp_expired') {
-            return 'Il link è scaduto o è già stato usato. Chiedi all’amministratore un nuovo invito.';
+            return 'Il link è scaduto o è già stato usato. Richiedi un nuovo link con “Password dimenticata?” o un nuovo invito all’amministratore.';
         }
-        return 'Accesso dal link non riuscito. Chiedi all’amministratore un nuovo invito.';
+        return 'Accesso dal link non riuscito. Richiedi un nuovo link con “Password dimenticata?” o un nuovo invito all’amministratore.';
     }
     return null;
 }
